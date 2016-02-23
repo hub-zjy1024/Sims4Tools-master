@@ -137,17 +137,8 @@ namespace StblResource
             }
             writer.Write(this.reserved);
 
-            long sizePosition = writer.BaseStream.Position;
-            writer.Write(0x00000000);
-            uint actualSize = 0;
-            foreach (StringEntry entry in this.entries)
-            {
-                entry.UnParse(memoryStream);
-                actualSize += entry.EntrySize;
-            }
-
-            writer.BaseStream.Position = sizePosition;
-            writer.Write(actualSize);
+            writer.Write(this.StringDataLength);
+            this.entries.UnParse(memoryStream);
 
             memoryStream.Position = 0;
             return memoryStream;
@@ -209,7 +200,7 @@ namespace StblResource
         [ElementPriority(4)]
         public uint StringDataLength
         {
-            get { return this.stringLength; }
+            get { return (uint)this.entries.StringEntriesLength; }
             set { }
         }
 

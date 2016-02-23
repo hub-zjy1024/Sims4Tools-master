@@ -25,6 +25,7 @@ namespace StblResource
 {
     using System;
     using System.IO;
+    using System.Linq;
     using s4pi.Interfaces;
 
     public class StringEntryList : DependentList<StringEntry>
@@ -41,11 +42,15 @@ namespace StblResource
             this.Parse(s);
         }
 
+        public int StringEntriesLength
+        {
+            get { return this.Select(entry => (int)entry.EntrySize).Sum(); }
+        }
+
         #region Data I/O
 
         protected override void Parse(Stream s)
         {
-            BinaryReader r = new BinaryReader(s);
             for (ulong i = 0; i < this.numberEntries; i++)
             {
                 this.Add(new StringEntry(1, this.handler, s));

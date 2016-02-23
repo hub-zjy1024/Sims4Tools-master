@@ -46,7 +46,6 @@ namespace StblResource
             : base(apiVersion, handler)
         {
             this.Parse(s);
-            this.UpdateEntrySize();
         }
 
         internal uint EntrySize { get; private set; }
@@ -71,6 +70,8 @@ namespace StblResource
                                     flags = this.flags,
                                     stringValue = this.stringValue
                                 };
+            clone.UpdateEntrySize();
+
             return clone;
         }
 
@@ -85,6 +86,7 @@ namespace StblResource
             this.flags = r.ReadByte();
             ushort length = r.ReadUInt16();
             this.stringValue = Encoding.UTF8.GetString(r.ReadBytes(length));
+            this.UpdateEntrySize();
         }
 
         public void UnParse(Stream s)
@@ -161,7 +163,7 @@ namespace StblResource
 
         private void UpdateEntrySize()
         {
-            this.EntrySize = (uint)Encoding.UTF8.GetByteCount(this.StringValue);
+            this.EntrySize = (uint)Encoding.UTF8.GetByteCount(this.StringValue) + 1;
         }
     }
 }
