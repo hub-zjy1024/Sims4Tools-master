@@ -30,15 +30,13 @@ using s4pi.Interfaces;
 
 namespace StblResource
 {
-    using System.Text;
-
     /// <summary>
     /// A resource wrapper that understands String Table resources
     /// Currently not compatible with TS3
     /// </summary>
     public class StblResource : AResource
     {
-        private const int recommendedApiVersion = 1;
+        internal const int recommendedApiVersion = 1;
 
         public override int RecommendedApiVersion
         {
@@ -63,7 +61,7 @@ namespace StblResource
 
         #endregion
 
-        public StblResource(int APIversion, Stream s) : base(APIversion, s)
+        public StblResource(int apiVersion, Stream s) : base(apiVersion, s)
         {
             if (this.stream == null)
             {
@@ -153,186 +151,6 @@ namespace StblResource
 
             memoryStream.Position = 0;
             return memoryStream;
-        }
-
-        #endregion
-
-        #region Sub Class
-
-        public class StringEntry : AHandlerElement, IEquatable<StringEntry>
-        {
-            private uint keyHash;
-            private byte flags;
-            private string stringValue;
-
-            internal uint EntrySize
-            {
-                get { return (uint)(this.StringValue.Length + 1); }
-            }
-
-            public StringEntry(int apiVersion, EventHandler handler)
-                : base(apiVersion, handler)
-            {
-            }
-
-            public StringEntry(int apiVersion, EventHandler handler, Stream s)
-                : base(apiVersion, handler)
-            {
-                this.Parse(s);
-            }
-
-            #region AHandlerElement Members
-
-            public override int RecommendedApiVersion
-            {
-                get { return recommendedApiVersion; }
-            }
-
-            public override List<string> ContentFields
-            {
-                get { return GetContentFields(this.requestedApiVersion, this.GetType()); }
-            }
-
-            public override AHandlerElement Clone(EventHandler handler)
-            {
-                StringEntry clone = new StringEntry(this.RecommendedApiVersion, handler)
-                                    {
-                                        keyHash = this.keyHash,
-                                        flags = this.flags,
-                                        stringValue = this.stringValue
-                                    };
-                return clone;
-            }
-
-            #endregion
-
-            #region Data I/O
-
-            public void Parse(Stream s)
-            {
-                BinaryReader r = new BinaryReader(s);
-                this.keyHash = r.ReadUInt32();
-                this.flags = r.ReadByte();
-                ushort length = r.ReadUInt16();
-                this.stringValue = Encoding.UTF8.GetString(r.ReadBytes(length));
-            }
-
-            public void UnParse(Stream s)
-            {
-                BinaryWriter w = new BinaryWriter(s);
-                w.Write(this.keyHash);
-                w.Write(this.flags);
-                byte[] str = Encoding.UTF8.GetBytes(this.StringValue);
-                w.Write((ushort)str.Length);
-                w.Write(str);
-            }
-
-            #endregion
-
-            public bool Equals(StringEntry other)
-            {
-                return this.keyHash == other.keyHash && this.flags == other.flags
-                       && string.CompareOrdinal(this.StringValue, other.StringValue) == 0;
-            }
-
-            [ElementPriority(0)]
-            public uint KeyHash
-            {
-                get { return this.keyHash; }
-                set
-                {
-                    if (this.keyHash != value)
-                    {
-                        this.OnElementChanged();
-                        this.keyHash = value;
-                    }
-                }
-            }
-
-            [ElementPriority(1)]
-            public byte Flags
-            {
-                get { return this.flags; }
-                set
-                {
-                    if (this.flags != value)
-                    {
-                        this.OnElementChanged();
-                        this.flags = value;
-                    }
-                }
-            }
-
-            [ElementPriority(2)]
-            public string StringValue
-            {
-                get { return this.stringValue ?? string.Empty; }
-                set
-                {
-                    if (string.CompareOrdinal(this.StringValue, value) != 0)
-                    {
-                        this.OnElementChanged();
-                        this.stringValue = value;
-                    }
-                }
-            }
-
-            public string Value
-            {
-                get
-                {
-                    return string.Format("Key 0x{0:X8}, Flags 0x{1:X2} : {2}",
-                        this.keyHash,
-                        this.flags,
-                        this.StringValue);
-                }
-            }
-        }
-
-        public class StringEntryList : DependentList<StringEntry>
-        {
-            private readonly ulong numberEntries;
-
-            public StringEntryList(EventHandler handler) : base(handler)
-            {
-            }
-
-            public StringEntryList(EventHandler handler, Stream s, ulong numEntries) : base(handler)
-            {
-                this.numberEntries = numEntries;
-                this.Parse(s);
-            }
-
-            #region Data I/O
-
-            protected override void Parse(Stream s)
-            {
-                BinaryReader r = new BinaryReader(s);
-                for (ulong i = 0; i < this.numberEntries; i++)
-                {
-                    this.Add(new StringEntry(1, this.handler, s));
-                }
-            }
-
-            public override void UnParse(Stream s)
-            {
-                foreach (StringEntry entry in this)
-                {
-                    entry.UnParse(s);
-                }
-            }
-
-            #endregion
-
-            protected override StringEntry CreateElement(Stream s)
-            {
-                return new StringEntry(1, this.handler, s);
-            }
-
-            protected override void WriteElement(Stream s, StringEntry element)
-            {
-                element.UnParse(s);
-            }
         }
 
         #endregion
