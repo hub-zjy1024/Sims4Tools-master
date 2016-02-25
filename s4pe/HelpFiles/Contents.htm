@@ -1,4 +1,224 @@
-﻿<html>
-<head></head>
-<body><p>Place holder</p></body>
+﻿<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <title>s4pe Help</title>
+    <style>
+        body {
+            padding: 1em 3em 1em 4em;
+            font-family: "Lucida Grande", "Lucida Sans Unicode", sans-serif;
+            font-size: 106%;
+            line-height: 170%;
+        }
+
+        div.toc {
+            margin-bottom: 3em;
+        }
+
+        h1, h2, h3 {
+            font-weight: bold;
+        }
+
+        h1, h2 {
+            font-size: 150%;
+            margin-top: 3em;
+            padding-top: 2em;
+            border-top: solid 1px #dddddd;
+        }
+
+        div.footer {
+            margin-top: 3em;
+            padding-top: 2em;
+            border-top: solid 1px #dddddd;
+        }
+
+        div.toc h2 {
+            margin-top: 0;
+            border-top: none;
+        }
+
+        h3 {
+            padding-top: 1em;
+            font-size: 100%;
+        }
+
+        a:link {
+            color: #0074BC;
+        }
+
+            a:link:hover, a:link:active, a:visited:hover, a:visited:active {
+                color: #009BF4;
+            }
+
+        a:visited {
+            color: #0071B2;
+        }
+
+        span.button {
+            background-color: #e4e8ef;
+            padding: 0 0.5em;
+        }
+
+    </style>
+</head>
+<meta name="author" content="The s4pe development group" />
+<meta charset="UTF-8" />
+<body>
+    <div class="toc">
+        <h2>Contents</h2>
+        <ul>
+            <li><a href="#how-to-use">How to use</a></li>
+            <li><a href="#tutorials">Tutorials</a></li>
+            <li><a href="#documentation">Documentation</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+            <li><a href="#links">Links</a></li>
+        </ul>
+    </div>
+    <h1><a name="how-to-use">How to use s4pe</a></h1>
+    <div>
+        <p>
+            Open the package you want to edit; this will show you the list of resources on the left side and a preview of the selected resource on the right side. To edit a resource, hit the <span class="button">Grid</span> button at the bottom of the window.  <strong>Do not edit the game files directly</strong> ‒ copy the resources you want into a new package and edit them there.
+        </p>
+        <p>
+            To sort the resource list, use the “Tag”, “Type”, “Group” etc headings at the top.
+        </p>
+        <p>
+            To find resources by name, type, group and so on, type/paste what you are looking for in the Filter fields at the bottom of the window, then tick the box in front, hit <span class="button">Set</span> and tick <span class="button">Filter Active</span>. Note that the IDs are hexadecimal and need to be prefixed with “0x”.
+        </p>
+        <p>
+            To find resources by content (like tags or internal names), use the Search tool in the top menu: <span class="menu-option">Tools > Search</span>. String search is case sensitive.
+        </p>
+        <p>
+            To renumber, copy, export/import, duplicate .. a resource, use the contextual menu (rightclick on the resource in the list) or the <span class="menu-option">Resource</span> menu at the top. <span class="menu-option">Export > To File</span> always dumps the resource as-is. Options like <span class="menu-option">Export to DDS</span> (available on _IMG resources) are using external helpers that usually do some reformatting or conversion so that the resource will be editable in other tools.
+        </p>
+        <p>
+            To see a list of installed helpers or activate/deactivate them, use <span class="menu-option">Settings > External Program Settings</span>. Here you can also assign external programs for hex and text editing.
+        </p>
+    </div>
+    <h2><a name="documentation">Documentation</a></h2>
+    <ul>
+        <li>
+            <a href="http://forums.thesims.com/en_US/discussion/779844/maxis-documentation">Maxis Custom Content Guide for TS4</a> ‒ Maxis documentation and example files
+        </li>
+        <li>
+            <a href="http://forums.thesims.com/en_US/discussion/858947/maxis-info-index">Maxis Info Index</a> ‒ List of documentation on TS4 file formats and other resources that Maxis have published
+        </li>
+        <li>
+            <a href="http://simswiki.info/wiki.php?title=Sims_4:PackedFileTypes">simswiki.info: Packed File Types</a> ‒ Documentation on various resource types
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?p=4529075#post4529075">modthesims.info: DATA resource types by group</a>
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=551120">modthesims.info: OBJD/COBJ resources</a> ‒ Documentation on Object Definition (OBJD), Catalog Object (COBJ)
+        </li>
+    </ul>
+    <h2><a name="tutorials">Tutorials</a></h2>
+    <h3>General</h3>
+    <ul>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=573047">Finding Maxis string and object IDs</a> ‒ modthesims.info
+        </li>
+    </ul>
+    <h3>CAS Parts</h3>
+    <ul>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=539130">How to change CASP age and gender flags in s4pe</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://nyloa.tumblr.com/post/114254537090/for-this-tutorial-you-need-s4cas-tools-by-cmar">Editing CASP flags with s4pe</a> ‒ nyloa.tumblr.com
+        </li>
+        <li>
+            <a href="http://www.modthesims.info/showthread.php?t=540210">How to make make up layer over skin overlays (editing CompositionMethod)</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://sintiklia.tumblr.com/post/93699589685/tutorial-how-to-export-meshes-from-s4pesims-4">How to export meshes from s4pe (GEOM export)</a> ‒ sintiklia.tumblr.com
+        </li>
+        <li>
+            <a href="http://m1ssduo.tumblr.com/post/98810892163/hi-guys-just-here-to-share-a-little-guide-on-how">Editing CASP thumbnails with s4pe</a> ‒ m1ssduo.tumblr.com
+        </li>
+        <li>
+            <a href="http://peacemaker-ic.tumblr.com/post/102525815784/this-is-a-quick-and-basic-method-for-ordering#notes">Changing the sort order of CC Swatches</a> ‒ peacemaker-ic.tumblr.com
+        </li>
+        <li>
+            <a href="http://simplymorgan77.tumblr.com/post/98073121136/tutorial-how-to-change-swatch-display-order">How to Change Swatch Display Order</a> ‒ simplymorgan77.tumblr.com
+        </li>
+    </ul>
+    <h3>Strings</h3>
+    <ul>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=573055">How to add a custom string resource (STBL)</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=570244">How to translate an existing mod (STBL editing)</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://forums.thesims.com/en_US/discussion/866186/mod-tutorial-add-new-random-names-for-cas-and-townies">Add new random names for CAS and townies</a> ‒ thesims.com / <a href="https://www.youtube.com/watch?v=Ou-BgtOsvnA">Video tutorial</a> ‒ youtube.com
+        </li>
+    </ul>
+    <h3>Walls/Floors/Terrain Paint</h3>
+    <ul>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=568497">Coloured Pool Water (manual cloning)</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=541387">How to add/reference bump and spec maps to walls/floors</a> ‒ modthesims.info
+        </li>
+    </ul>
+    <h3>Other</h3>
+    <ul>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=554779">Default Replacement Skin Tones</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=573053">How to create a custom(ised) catalog object</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=532269">Editing the CLIP resource using s4pe</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=561923">How to package a lot</a> ‒ modthesims.info
+        </li>
+    </ul>
+    <p>
+        <h3>See also</h3>
+        <ul>
+            <li>
+                <a href="http://modthesims.info/showthread.php?t=532269">List of TS4 Tutorials</a> at modthesims.info > Modding > Tutorials
+            </li>
+            <li>
+                <a href="http://modthesims.info/forumdisplay.php?f=708">TS4 Tutorials forum</a> at modthesims.info
+            </li>
+            <li>
+                <a href="http://simswiki.info/wiki.php?title=Sims_4:Modding">TS4 Tutorials overview</a> at simswiki.info
+            </li>
+        </ul>
+    </p>
+    <h2><a name="troubleshooting">Troubleshooting</a></h2>
+    <ul>
+        <li>
+            <h3>“Could not find a resource handler” message in the preview window and all options greyed out</h3>
+            <p>
+                This means you have extracted s4pe with something other than 7zip, which is the single most common reason that s4pe is not working correctly. <a href="http://www.7-zip.org/">Download 7zip</a> and try again.
+            </p>
+        </li>
+    </ul>
+    <h2><a name="links">Links</a></h2>
+    <ul>
+        <li>
+            <a href="https://github.com/s4ptacle/Sims4Tools/releases">s4pe ‒ Releases</a>
+        </li>
+        <li>
+            <a href="https://github.com/s4ptacle/Sims4Tools/issues">s4pe ‒ Issues</a>
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=572510">s4pe 0.4.4-beta ‒ Feedback</a> thread at modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=573292">s4pe Inline Help ‒ Feedback</a> thread at modthesims.info
+        </li>
+    </ul>
+    <div class="footer">
+        s4pe Inline Help, Revision 1 (s4pe 0.4.4-beta) | 2016-02
+    </div>
+</body>
 </html>
