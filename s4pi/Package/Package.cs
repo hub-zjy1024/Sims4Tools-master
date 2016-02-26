@@ -127,7 +127,6 @@ namespace s4pi.Package
                 if (value.Length < newIE.Memsize)
                 {
                     // Move to TS4
-                    //newIE.Compressed = 0xffff;
                     newIE.Compressed = 0x5A42;
                     newIE.Filesize = (uint)value.Length;
                 }

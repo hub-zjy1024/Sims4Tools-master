@@ -443,19 +443,10 @@ namespace S4PIDemoFE
                             }
                             catch (Exception ex)
                             {
-                                string rk = "";
-                                if (rie != null)
-                                {
-                                    rk = "(RK: " + rie + ")\n";
-                                }
-                                else
-                                {
-                                    rk = "(RK is null)\n";
-                                }
+                                string rk = rie.ToString() ?? "could not be read";
 
-                                CopyableMessageBox.IssueException(ex,
-                                    "Could not import all resources - aborting.\n" + rk,
-                                    title);
+                                string message = string.Format("Could not import all resources. Error occured on package file '{0}', resource key '{1}'. Aborting.\n", filename, rk);
+                                CopyableMessageBox.IssueException(ex, message, title);
                                 throw new IgnoredException(ex);
                             }
                         }

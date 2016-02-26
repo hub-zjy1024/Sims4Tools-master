@@ -132,7 +132,7 @@ namespace s4pi.Package
         public IResourceIndexEntry this[uint type, uint group, ulong instance]
         {
             get {
-                foreach(ResourceIndexEntry rie in this)
+                foreach(IResourceIndexEntry rie in this)
                 {
                     if (rie.ResourceType != type) continue;
                     if (rie.ResourceGroup != group) continue;
