@@ -58,6 +58,14 @@
             padding: 0 0.5em;
         }
 
+        span.menu-option {
+            font-weight: bold;
+        }
+
+        img {
+            margin-top:.5em;
+        }
+
     </style>
     <meta name="author" content="The s4pe development group" />
     <meta charset="UTF-8" />
@@ -76,19 +84,37 @@
     <h1><a name="how-to-use">How to use s4pe</a></h1>
     <div>
         <p>
-            Open the package you want to edit; this will show you the list of resources on the left side and a preview of the selected resource on the right side. To edit a resource, hit the <span class="button">Grid</span> button at the bottom of the window.  <strong>Do not edit the game files directly</strong> ‒ copy the resources you want into a new package and edit them there.
+            Open the package you want to edit; this will show you the list of resources on the left side and a preview of the selected resource on the right side.
         </p>
         <p>
             To sort the resource list, use the “Tag”, “Type”, “Group” etc headings at the top.
         </p>
         <p>
-            To find resources by name, type, group and so on, type/paste what you are looking for in the Filter fields at the bottom of the window, then tick the box in front, hit <span class="button">Set</span> and tick <span class="button">Filter Active</span>. Note that the IDs are hexadecimal and need to be prefixed with “0x”.
+            To find resources by name, type, group and so on, type/paste what you are looking for in the Filter fields at the bottom of the window, then tick the box in front, hit <span class="button">Set</span> and tick <span class="button">Filter Active</span>. Note that IDs are hexadecimal and need to be prefixed with “0x”.
         </p>
         <p>
             To find resources by content (like tags or internal names), use the Search tool in the top menu: <span class="menu-option">Tools > Search</span>. String search is case sensitive.
         </p>
         <p>
-            To renumber, copy, export/import, duplicate .. a resource, use the contextual menu (rightclick on the resource in the list) or the <span class="menu-option">Resource</span> menu at the top. <span class="menu-option">Export > To File</span> always dumps the resource as-is. Options like <span class="menu-option">Export to DDS</span> (available on _IMG resources) are using external helpers that usually do some reformatting or conversion so that the resource will be editable in other tools.
+            --
+        </p>
+        <p>
+            To edit a resource, hit the <span class="button">Grid</span> button at the bottom of the window.  <strong>Do not edit the game files directly</strong> ‒ copy the resources you want into a new package and edit them there.
+        </p>
+        <p>
+            To modify collections in Grid view, click on the <span class="button">...</span> button at the right-hand side.
+        </p>
+        <p>
+            <img width="560" src="collections.jpg" />
+        </p>
+        <p>
+            This will open the collection in a new window, where you can add and remove elements.
+        </p>
+        <p>
+            --
+        </p>
+        <p>
+            To renumber, copy, export/import, duplicate .. a resource, use the contextual menu (rightclick on the resource in the list) or the <span class="menu-option">Resource</span> menu at the top. <span class="menu-option">Export > To File</span> always dumps the resource as-is. Options like <span class="menu-option">Export to PNG</span> (available on THUM resources) are using external helpers that usually do some reformatting or conversion so that the resource will be editable in other tools.
         </p>
         <p>
             To see a list of installed helpers or activate/deactivate them, use <span class="menu-option">Settings > External Program Settings</span>. Here you can also assign external programs for hex and text editing.
@@ -165,7 +191,7 @@
         </li>
     </ul>
     <h3>Other</h3>
-    <ul>
+    <ul>  
         <li>
             <a href="http://modthesims.info/showthread.php?t=554779">Default Replacement Skin Tones</a> ‒ modthesims.info
         </li>
@@ -177,6 +203,9 @@
         </li>
         <li>
             <a href="http://modthesims.info/showthread.php?t=561923">How to package a lot</a> ‒ modthesims.info
+        </li>
+        <li>
+            <a href="http://modthesims.info/showthread.php?t=573344">Build/Buy Mode Thumbnails and Swatches </a> ‒ modthesims.info
         </li>
     </ul>
     <p>
