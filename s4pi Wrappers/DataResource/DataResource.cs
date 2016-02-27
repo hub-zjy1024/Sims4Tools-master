@@ -1,78 +1,104 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
-using System.IO;
-using s4pi.Interfaces;
-using System.Diagnostics;
-
-namespace s4pi.DataResource
+﻿namespace s4pi.DataResource
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Security.Cryptography;
+    using s4pi.Interfaces;
+    using s4pi.Settings;
+
     public class DataResource : AResource
     {
-        const int recommendedApiVersion = 1;
-        static bool checking = s4pi.Settings.Settings.Checking;
+        internal const uint NullOffset = 0x80000000;
 
+        private const int recommendedApiVersion = 1;
+        private static bool checking = Settings.Checking;
 
         #region Attributes
+
         private uint version = 0x100;
         private uint dataTablePosition;
         private uint structureTablePosition;
         private StructureList structureList;
         private DataList dataList;
         private byte[] rawData;
+
         #endregion
 
         #region Constructors
-        public DataResource(int APIversion, Stream s) 
-            : base(APIversion, s) 
-        { 
-            if (stream == null) 
-            { 
-                stream = UnParse(); 
-                OnResourceChanged(this, EventArgs.Empty); 
-            } 
-            stream.Position = 0; 
-            Parse(stream); /* */
+
+        public DataResource(int apiVersion, Stream s)
+            : base(apiVersion, s)
+        {
+            if (this.stream == null)
+            {
+                this.stream = this.UnParse();
+                this.OnResourceChanged(this, EventArgs.Empty);
+            }
+            this.stream.Position = 0;
+            this.Parse(this.stream);
         }
+
         #endregion
 
         #region AResource
-        public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-        public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+
+        public override int RecommendedApiVersion
+        {
+            get { return recommendedApiVersion; }
+        }
+
+        public override List<string> ContentFields
+        {
+            get { return GetContentFields(this.requestedApiVersion, this.GetType()); }
+        }
 
         public void Parse(Stream s)
         {
-            BinaryReader r = new BinaryReader(s);
+            BinaryReader reader = new BinaryReader(s);
 
-            uint magic = r.ReadUInt32();
+            uint magic = reader.ReadUInt32();
 
-            if (checking) if (magic != FOURCC("DATA"))
-                    throw new InvalidDataException(String.Format("Expected magic tag 0x{0:X8}; read 0x{1:X8}; position 0x{2:X8}",
-                        FOURCC("DATA"), magic, s.Position));
+            if (checking)
+            {
+                if (magic != FOURCC("DATA"))
+                {
+                    throw new InvalidDataException(
+                        string.Format("Expected magic tag 0x{0:X8}; read 0x{1:X8}; position 0x{2:X8}",
+                            FOURCC("DATA"),
+                            magic,
+                            s.Position));
+                }
+            }
 
-            version = r.ReadUInt32();
+            this.version = reader.ReadUInt32();
 
-            //dataTablePosition = r.ReadUInt32() + (uint)r.BaseStream.Position - 4;
-            if (!Util.GetOffset(r, out dataTablePosition))
-                throw new InvalidDataException(String.Concat("Invalid Data Table Position: 0x", dataTablePosition.ToString("X8")));
+            if (!reader.GetOffset(out this.dataTablePosition))
+            {
+                string message = string.Format("Invalid Data Table Position: 0x{0:X8}", this.dataTablePosition);
+                throw new InvalidDataException(message);
+            }
 
-            int dataCount = r.ReadInt32();
+            int dataCount = reader.ReadInt32();
+            if (!reader.GetOffset(out this.structureTablePosition))
+            {
+                string message = string.Format("Invalid Structure Table Position: 0x{0:X8}", this.StructureTablePosition);
+                throw new InvalidDataException(message);
+            }
 
-            //structureTablePosition = r.ReadUInt32() + (uint)r.BaseStream.Position - 4;
-            if (!Util.GetOffset(r, out structureTablePosition))
-                throw new InvalidDataException(String.Concat("Invalid Structure Table Position: 0x", structureTablePosition.ToString("X8")));
-
-            int structureCount = r.ReadInt32();
+            int structureCount = reader.ReadInt32();
 
             // Structure table
+            this.structureList = new StructureList(this.OnResourceChanged,
+                this.structureTablePosition,
+                structureCount,
+                reader);
 
-            this.structureList = new StructureList(OnResourceChanged, structureTablePosition, structureCount, r);
-
-            this.dataList = new DataList(OnResourceChanged, this, dataCount, r);
+            this.dataList = new DataList(this.OnResourceChanged, this, dataCount, reader);
 
             s.Position = 0;
-            this.rawData = r.ReadBytes((int)s.Length);
+            this.rawData = reader.ReadBytes((int)s.Length);
         }
 
         private const uint blank = 0;
@@ -84,9 +110,13 @@ namespace s4pi.DataResource
             BinaryWriter w = new BinaryWriter(s);
 
             if (this.structureList == null)
-                this.structureList = new StructureList(OnResourceChanged);
+            {
+                this.structureList = new StructureList(this.OnResourceChanged);
+            }
             if (this.dataList == null)
-                this.dataList = new DataList(OnResourceChanged, this);
+            {
+                this.dataList = new DataList(this.OnResourceChanged, this);
+            }
 
             // Write Header with blank offsets
             w.Write((uint)FOURCC("DATA"));
@@ -98,7 +128,6 @@ namespace s4pi.DataResource
 
             // Padding between header and data table?
             // Need more information
-            // Debug.WriteLine(w.BaseStream.Position.ToString("X16"));
             //Util.Padding(w);
             w.Write(blank);
             w.Write(blank);
@@ -113,8 +142,6 @@ namespace s4pi.DataResource
             this.structureList.UnParse(w);
 
 
-
-
             // Write Names and set Name positions in data
             foreach (Structure structure in this.structureList)
             {
@@ -122,68 +149,137 @@ namespace s4pi.DataResource
                 {
                     if (string.IsNullOrEmpty(field.Name))
                     {
-                        field.NamePosition = Util.NullOffset;
+                        field.NamePosition = NullOffset;
                     }
                     else
                     {
                         field.NamePosition = (uint)s.Position;
-                        Util.WriteString(w, field.Name);
+                        w.WriteAsciiString(field.Name);
                     }
                 }
                 if (string.IsNullOrEmpty(structure.Name))
                 {
-                    structure.NamePosition = Util.NullOffset;
+                    structure.NamePosition = NullOffset;
                 }
                 else
                 {
                     structure.NamePosition = (uint)s.Position;
-                    Util.WriteString(w, structure.Name);
+                    w.WriteAsciiString(structure.Name);
                 }
             }
             foreach (Data data in this.dataList)
             {
                 if (string.IsNullOrEmpty(data.Name))
                 {
-                    data.NamePosition = Util.NullOffset;
+                    data.NamePosition = NullOffset;
                 }
                 else
                 {
                     data.NamePosition = (uint)s.Position;
-                    Util.WriteString(w, data.Name);
+                    w.WriteAsciiString(data.Name);
                 }
             }
 
             // Go back, calculate and write offsets
-            
+
             this.structureList.WriteOffsets(w);
             this.dataList.WriteOffsets(w);
 
             // write the data table offset
             w.BaseStream.Position = 0x08;
-            w.Write(dataTablePosition - w.BaseStream.Position);
+            w.Write(this.dataTablePosition - w.BaseStream.Position);
             w.BaseStream.Position = 16;
-            w.Write(structureTablePosition - w.BaseStream.Position); // dirty hack
+            w.Write(this.structureTablePosition - w.BaseStream.Position); // dirty hack
 
             return s;
         }
+
         #endregion
 
         #region Content Fields
+
         [ElementPriority(1)]
-        public uint Version { get { return version; } set { if (version != value) { version = value; OnResourceChanged(this, EventArgs.Empty); } } }
+        public uint Version
+        {
+            get { return this.version; }
+            set
+            {
+                if (this.version != value)
+                {
+                    this.version = value;
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
         [ElementPriority(2)]
-        public uint DataTablePosition { get { return dataTablePosition; } set { if (dataTablePosition != value) { dataTablePosition = value; OnResourceChanged(this, EventArgs.Empty); } } }
+        public uint DataTablePosition
+        {
+            get { return this.dataTablePosition; }
+            set
+            {
+                if (this.dataTablePosition != value)
+                {
+                    this.dataTablePosition = value;
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
         [ElementPriority(3)]
-        public uint StructureTablePosition { get { return structureTablePosition; } set { if (structureTablePosition != value) { structureTablePosition = value; OnResourceChanged(this, EventArgs.Empty); } } }
+        public uint StructureTablePosition
+        {
+            get { return this.structureTablePosition; }
+            set
+            {
+                if (this.structureTablePosition != value)
+                {
+                    this.structureTablePosition = value;
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
         [ElementPriority(4)]
-        public StructureList StructureTable { get { return structureList; } set { if (structureList != value) { structureList = value == null ? new StructureList(OnResourceChanged) : new StructureList(OnResourceChanged, value); OnResourceChanged(this, EventArgs.Empty); } } }
+        public StructureList StructureTable
+        {
+            get { return this.structureList; }
+            set
+            {
+                if (this.structureList != value)
+                {
+                    this.structureList = value == null
+                        ? new StructureList(this.OnResourceChanged)
+                        : new StructureList(this.OnResourceChanged, value);
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
         [ElementPriority(5)]
-        public DataList DataTable { get { return dataList; } set { if (dataList != value) { dataList = value == null ? new DataList(OnResourceChanged, this) : new DataList(OnResourceChanged, this, value); OnResourceChanged(this, EventArgs.Empty); } } }
+        public DataList DataTable
+        {
+            get { return this.dataList; }
+            set
+            {
+                if (this.dataList != value)
+                {
+                    this.dataList = value == null
+                        ? new DataList(this.OnResourceChanged, this)
+                        : new DataList(this.OnResourceChanged, this, value);
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
         #endregion
 
-        public string Value { get { return ValueBuilder; } }
+        public string Value
+        {
+            get { return this.ValueBuilder; }
+        }
 
-        #region Sub-Types
+        #region Nested Types
 
         public class Structure : AHandlerElement, IEquatable<Structure>
         {
@@ -192,6 +288,7 @@ namespace s4pi.DataResource
             private uint myPosition;
 
             #region Attributes
+
             private uint namePosition;
             private string name;
             private uint nameHash;
@@ -200,31 +297,41 @@ namespace s4pi.DataResource
             private uint fieldTablePosition;
             private uint fieldCount;
             private FieldList fieldList;
+
             #endregion
 
             #region Constructors
-            public Structure(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
-            public Structure(int apiVersion, EventHandler handler, BinaryReader r) : base(apiVersion, handler) { Parse(r); }
+
+            public Structure(int apiVersion, EventHandler handler) : base(apiVersion, handler)
+            {
+            }
+
+            public Structure(int apiVersion, EventHandler handler, BinaryReader r) : base(apiVersion, handler)
+            {
+                this.Parse(r);
+            }
+
             #endregion
 
             #region Data I/O
+
             private void Parse(BinaryReader r)
             {
-                myPosition = (uint)r.BaseStream.Position;
+                this.myPosition = (uint)r.BaseStream.Position;
 
-                Util.GetOffset(r, out namePosition);
+                r.GetOffset(out this.namePosition);
 
-                name = Util.GetString(r, namePosition);
-                nameHash = r.ReadUInt32();
-                unknown08 = r.ReadUInt32();
-                size = r.ReadUInt32();
-                Util.GetOffset(r, out fieldTablePosition);
-                fieldCount = r.ReadUInt32();
+                this.name = r.GetAsciiString(this.namePosition);
+                this.nameHash = r.ReadUInt32();
+                this.unknown08 = r.ReadUInt32();
+                this.size = r.ReadUInt32();
+                r.GetOffset(out this.fieldTablePosition);
+                this.fieldCount = r.ReadUInt32();
             }
 
             internal void ParseFieldTable(BinaryReader r)
             {
-                if (this.fieldTablePosition == Util.NullOffset)
+                if (this.fieldTablePosition == NullOffset)
                 {
                     this.fieldList = new FieldList(this.handler);
                 }
@@ -237,87 +344,210 @@ namespace s4pi.DataResource
 
             public void UnParse(BinaryWriter w)
             {
-                myPosition = (uint)w.BaseStream.Position;
+                this.myPosition = (uint)w.BaseStream.Position;
 
-                if (this.name == null) this.name = "";
+                if (this.name == null)
+                {
+                    this.name = "";
+                }
                 this.nameHash = FNV32.GetHash(this.name);
 
                 if (this.fieldList == null)
+                {
                     this.fieldList = new FieldList(this.handler);
+                }
                 if (this.fieldList.Count == 0)
-                    this.fieldTablePosition = Util.NullOffset;
+                {
+                    this.fieldTablePosition = NullOffset;
+                }
 
-                w.Write(Util.Zero32); // Name Offset
+                w.Write((uint)0); // Name Offset
                 w.Write(this.nameHash);
                 w.Write(this.unknown08);
                 w.Write(this.size);
-                w.Write(Util.Zero32); // Field Table Offset
+                w.Write((uint)0); // Field Table Offset
                 w.Write(this.fieldList.Count);
             }
 
             public void WriteOffsets(BinaryWriter w)
             {
                 Stream s = w.BaseStream;
-                //long savedPos = s.Position;
-                s.Position = myPosition;
+                s.Position = this.myPosition;
 
-                w.Write(this.namePosition == Util.NullOffset
-                    ? this.namePosition : this.namePosition - myPosition);
-                
+                w.Write(this.namePosition == NullOffset
+                    ? this.namePosition
+                    : this.namePosition - this.myPosition);
+
                 s.Position += 12; // Name Hash, Unknown 08, and Size
 
-                w.Write(this.fieldTablePosition == Util.NullOffset
-                    ? this.fieldTablePosition : this.fieldTablePosition - myPosition - 0x10);
-
-                //s.Position = savedPos;
+                w.Write(this.fieldTablePosition == NullOffset
+                    ? this.fieldTablePosition
+                    : this.fieldTablePosition - this.myPosition - 0x10);
 
                 this.fieldList.WriteOffsets(w);
             }
+
             #endregion
 
             #region AHandlerElement
-            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+
+            public override int RecommendedApiVersion
+            {
+                get { return recommendedApiVersion; }
+            }
+
+            public override List<string> ContentFields
+            {
+                get { return GetContentFields(this.requestedApiVersion, this.GetType()); }
+            }
+
             #endregion
-            
+
             #region IEquatable<Structure>
+
             public bool Equals(Structure other)
             {
-                return name == other.name && nameHash == other.nameHash && unknown08 == other.unknown08 
-                    && size == other.size && fieldTablePosition == other.fieldTablePosition && fieldList.Equals(other.fieldList);
+                return this.name == other.name && this.nameHash == other.nameHash && this.unknown08 == other.unknown08
+                       && this.size == other.size && this.fieldTablePosition == other.fieldTablePosition
+                       && this.fieldList.Equals(other.fieldList);
             }
-            public override bool Equals(object obj) { return obj is Structure && this.Equals(obj as Structure); }
+
+            public override bool Equals(object obj)
+            {
+                return obj is Structure && this.Equals(obj as Structure);
+            }
+
             public override int GetHashCode()
             {
-                return namePosition.GetHashCode() ^ name.GetHashCode() ^ nameHash.GetHashCode() ^ unknown08.GetHashCode() 
-                    ^ size.GetHashCode() ^ fieldTablePosition.GetHashCode();
+                return this.namePosition.GetHashCode() ^ this.name.GetHashCode() ^ this.nameHash.GetHashCode()
+                       ^ this.unknown08.GetHashCode()
+                       ^ this.size.GetHashCode() ^ this.fieldTablePosition.GetHashCode();
             }
+
             #endregion
 
-            public uint GetPosition() { return myPosition; } 
+            public uint GetPosition()
+            {
+                return this.myPosition;
+            }
 
             #region Content Fields
+
             [ElementPriority(1)]
-            public uint NamePosition { get { return namePosition; } set { if (namePosition != value) { namePosition = value; OnElementChanged(); } } }
+            public uint NamePosition
+            {
+                get { return this.namePosition; }
+                set
+                {
+                    if (this.namePosition != value)
+                    {
+                        this.namePosition = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(2)]
-            public string Name { get { return name; } set { if (name != value) { name = value == null ? "" : value; nameHash = FNV32.GetHash(name); OnElementChanged(); } } }
+            public string Name
+            {
+                get { return this.name; }
+                set
+                {
+                    if (this.name != value)
+                    {
+                        this.name = value == null ? "" : value;
+                        this.nameHash = FNV32.GetHash(this.name);
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(3)]
-            public uint NameHash { get { return nameHash; } set { if (nameHash != value) { nameHash = value; OnElementChanged(); } } }
+            public uint NameHash
+            {
+                get { return this.nameHash; }
+                set
+                {
+                    if (this.nameHash != value)
+                    {
+                        this.nameHash = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(4)]
-            public uint Unknown8 { get { return unknown08; } set { if (unknown08 != value) { unknown08 = value; OnElementChanged(); } } }
+            public uint Unknown8
+            {
+                get { return this.unknown08; }
+                set
+                {
+                    if (this.unknown08 != value)
+                    {
+                        this.unknown08 = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(5)]
-            public uint Size { get { return size; } set { if (size != value) { size = value; OnElementChanged(); } } }
+            public uint Size
+            {
+                get { return this.size; }
+                set
+                {
+                    if (this.size != value)
+                    {
+                        this.size = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(6)]
-            public uint FieldTablePosition { get { return fieldTablePosition; } set { if (fieldTablePosition != value) { fieldTablePosition = value; OnElementChanged(); } } }
+            public uint FieldTablePosition
+            {
+                get { return this.fieldTablePosition; }
+                set
+                {
+                    if (this.fieldTablePosition != value)
+                    {
+                        this.fieldTablePosition = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(8)]
-            public FieldList FieldTable { get { return fieldList; } set { if (fieldList != value) { fieldList = value == null ? new FieldList(handler) : new FieldList(handler, value); OnElementChanged(); } } }
+            public FieldList FieldTable
+            {
+                get { return this.fieldList; }
+                set
+                {
+                    if (this.fieldList != value)
+                    {
+                        this.fieldList = value == null
+                            ? new FieldList(this.handler)
+                            : new FieldList(this.handler, value);
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             #endregion
 
-            public string Value { get { return ValueBuilder; } }
+            public string Value
+            {
+                get { return this.ValueBuilder; }
+            }
         }
+
         public class StructureList : DependentList<Structure>
         {
-            public StructureList(EventHandler handler) : base(handler) { }
+            public StructureList(EventHandler handler) : base(handler)
+            {
+            }
+
             public StructureList(EventHandler handler, uint structureTablePosition, int structureCount, BinaryReader r)
                 : base(handler)
             {
@@ -327,11 +557,10 @@ namespace s4pi.DataResource
                 int i;
                 Structure structure;
                 Stream s = r.BaseStream;
-                //long savedPos = s.Position;
                 s.Position = structureTablePosition;
                 for (i = 0; i < structureCount; i++)
                 {
-                    structure = new Structure(0, elementHandler, r);
+                    structure = new Structure(0, this.elementHandler, r);
                     this.Add(structure);
                 }
                 for (i = 0; i < structureCount; i++)
@@ -339,11 +568,14 @@ namespace s4pi.DataResource
                     structure = this[i];
                     structure.ParseFieldTable(r);
                 }
-                //s.Position = savedPos;
             }
-            public StructureList(EventHandler handler, IEnumerable<Structure> ilt) : base(handler, ilt) { }
+
+            public StructureList(EventHandler handler, IEnumerable<Structure> ilt) : base(handler, ilt)
+            {
+            }
 
             #region Data I/O
+
             public void UnParse(BinaryWriter w)
             {
                 int i;
@@ -375,23 +607,35 @@ namespace s4pi.DataResource
                     structure.WriteOffsets(w);
                 }
             }
+
             #endregion
 
             public Structure GetFromPosition(uint position)
             {
-                if (position == Util.NullOffset) return null;
-                Structure structure;
+                if (position == NullOffset)
+                {
+                    return null;
+                }
                 for (int i = this.Count - 1; i >= 0; i--)
                 {
-                    structure = this[i];
+                    var structure = this[i];
                     if (structure.GetPosition() == position)
+                    {
                         return structure;
+                    }
                 }
                 return null;
             }
 
-            protected override Structure CreateElement(Stream s) { throw new NotImplementedException(); }
-            protected override void WriteElement(Stream s, Structure element) { throw new NotImplementedException(); }
+            protected override Structure CreateElement(Stream s)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void WriteElement(Stream s, Structure element)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public class Field : AHandlerElement, IEquatable<Field>
@@ -399,103 +643,214 @@ namespace s4pi.DataResource
             private uint myPosition;
 
             #region Attributes
+
             private uint namePosition;
             private string name;
             private uint nameHash;
             private uint type;
             private uint dataOffset;
             private uint unknown10Position;
+
             #endregion
 
             #region Constructors
-            public Field(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
-            public Field(int apiVersion, EventHandler handler, BinaryReader r) : base(apiVersion, handler) { Parse(r); }
+
+            public Field(int apiVersion, EventHandler handler) : base(apiVersion, handler)
+            {
+            }
+
+            public Field(int apiVersion, EventHandler handler, BinaryReader r) : base(apiVersion, handler)
+            {
+                this.Parse(r);
+            }
+
             #endregion
 
             #region Data I/O
+
             private void Parse(BinaryReader r)
             {
-                myPosition = (uint)r.BaseStream.Position;
+                this.myPosition = (uint)r.BaseStream.Position;
 
-                Util.GetOffset(r, out namePosition);
+                r.GetOffset(out this.namePosition);
 
-                name = Util.GetString(r, namePosition);
-                nameHash = r.ReadUInt32();
-                type = r.ReadUInt32();
-                dataOffset = r.ReadUInt32();
-                Util.GetOffset(r, out unknown10Position);
+                this.name = r.GetAsciiString(this.namePosition);
+                this.nameHash = r.ReadUInt32();
+                this.type = r.ReadUInt32();
+                this.dataOffset = r.ReadUInt32();
+                r.GetOffset(out this.unknown10Position);
             }
 
             public void UnParse(BinaryWriter w)
             {
-                myPosition = (uint)w.BaseStream.Position;
+                this.myPosition = (uint)w.BaseStream.Position;
 
-                if (this.name == null) this.name = "";
+                if (this.name == null)
+                {
+                    this.name = "";
+                }
                 this.nameHash = FNV32.GetHash(this.name);
 
-                w.Write(Util.Zero32); // Name Offset
+                w.Write((uint)0); // Name Offset
                 w.Write(this.nameHash);
                 w.Write(this.type);
                 w.Write(this.dataOffset);
-                w.Write(Util.Zero32); // Unknown 10 Offset
+                w.Write((uint)0); // Unknown 10 Offset
             }
 
             public void WriteOffsets(BinaryWriter w)
             {
                 Stream s = w.BaseStream;
-                //long savedPos = s.Position;
-                s.Position = myPosition;
+                s.Position = this.myPosition;
 
-                w.Write(this.namePosition == Util.NullOffset
-                    ? this.namePosition : this.namePosition - myPosition);
+                w.Write(this.namePosition == NullOffset
+                    ? this.namePosition
+                    : this.namePosition - this.myPosition);
                 s.Position += 12; // Name Hash, Type, and Data Offset
 
-                w.Write(this.unknown10Position == Util.NullOffset
-                    ? this.unknown10Position : this.unknown10Position - myPosition - 0x10);
-
-                //s.Position = savedPos;
+                w.Write(this.unknown10Position == NullOffset
+                    ? this.unknown10Position
+                    : this.unknown10Position - this.myPosition - 0x10);
             }
+
             #endregion
 
             #region AHandlerElement
-            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+
+            public override int RecommendedApiVersion
+            {
+                get { return recommendedApiVersion; }
+            }
+
+            public override List<string> ContentFields
+            {
+                get { return GetContentFields(this.requestedApiVersion, this.GetType()); }
+            }
+
             #endregion
 
             #region IEquatable<Field>
+
             public bool Equals(Field other)
             {
-                return name == other.name && nameHash == other.nameHash && type == other.type 
-                    && dataOffset == other.dataOffset && unknown10Position == other.unknown10Position;
+                return this.name == other.name && this.nameHash == other.nameHash && this.type == other.type
+                       && this.dataOffset == other.dataOffset && this.unknown10Position == other.unknown10Position;
             }
-            public override bool Equals(object obj) { return obj is Field && this.Equals(obj as Field); }
+
+            public override bool Equals(object obj)
+            {
+                return obj is Field && this.Equals(obj as Field);
+            }
+
             public override int GetHashCode()
             {
-                return name.GetHashCode() ^ nameHash.GetHashCode() ^ type.GetHashCode() 
-                    ^ dataOffset.GetHashCode() ^ unknown10Position.GetHashCode();
+                return this.name.GetHashCode() ^ this.nameHash.GetHashCode() ^ this.type.GetHashCode()
+                       ^ this.dataOffset.GetHashCode() ^ this.unknown10Position.GetHashCode();
             }
+
             #endregion
 
             #region Content Fields
+
             [ElementPriority(1)]
-            public uint NamePosition { get { return namePosition; } set { if (namePosition != value) { namePosition = value; OnElementChanged(); } } }
+            public uint NamePosition
+            {
+                get { return this.namePosition; }
+                set
+                {
+                    if (this.namePosition != value)
+                    {
+                        this.namePosition = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(2)]
-            public string Name { get { return name; } set { if (name != value) { name = value == null ? "" : value; nameHash = FNV32.GetHash(name); OnElementChanged(); } } }
+            public string Name
+            {
+                get { return this.name; }
+                set
+                {
+                    if (this.name != value)
+                    {
+                        this.name = value == null ? "" : value;
+                        this.nameHash = FNV32.GetHash(this.name);
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(3)]
-            public uint NameHash { get { return nameHash; } set { if (nameHash != value) { nameHash = value; OnElementChanged(); } } }
+            public uint NameHash
+            {
+                get { return this.nameHash; }
+                set
+                {
+                    if (this.nameHash != value)
+                    {
+                        this.nameHash = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(4)]
-            public uint Type { get { return type; } set { if (type != value) { type = value; OnElementChanged(); } } }
+            public uint Type
+            {
+                get { return this.type; }
+                set
+                {
+                    if (this.type != value)
+                    {
+                        this.type = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(5)]
-            public uint DataOffset { get { return dataOffset; } set { if (dataOffset != value) { dataOffset = value; OnElementChanged(); } } }
+            public uint DataOffset
+            {
+                get { return this.dataOffset; }
+                set
+                {
+                    if (this.dataOffset != value)
+                    {
+                        this.dataOffset = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             [ElementPriority(6)]
-            public uint Unknown10Position { get { return unknown10Position; } set { if (unknown10Position != value) { unknown10Position = value; OnElementChanged(); } } }
+            public uint Unknown10Position
+            {
+                get { return this.unknown10Position; }
+                set
+                {
+                    if (this.unknown10Position != value)
+                    {
+                        this.unknown10Position = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             #endregion
 
-            public string Value { get { return ValueBuilder; } }            
+            public string Value
+            {
+                get { return this.ValueBuilder; }
+            }
         }
+
         public class FieldList : DependentList<Field>, IEquatable<FieldList>
         {
-            public FieldList(EventHandler handler) : base(handler) { }
+            public FieldList(EventHandler handler) : base(handler)
+            {
+            }
+
             public FieldList(EventHandler handler, uint fieldCount, BinaryReader r)
                 : base(handler)
             {
@@ -504,12 +859,16 @@ namespace s4pi.DataResource
 
                 for (int i = 0; i < fieldCount; i++)
                 {
-                    this.Add(new Field(0, elementHandler, r));
+                    this.Add(new Field(0, this.elementHandler, r));
                 }
             }
-            public FieldList(EventHandler handler, IEnumerable<Field> ilt) : base(handler, ilt) { }
+
+            public FieldList(EventHandler handler, IEnumerable<Field> ilt) : base(handler, ilt)
+            {
+            }
 
             #region Data I/O
+
             public void UnParse(BinaryWriter w)
             {
                 foreach (Field field in this)
@@ -525,19 +884,31 @@ namespace s4pi.DataResource
                     field.WriteOffsets(w);
                 }
             }
+
             #endregion
 
-            protected override Field CreateElement(Stream s) { throw new NotImplementedException(); }
-            protected override void WriteElement(Stream s, Field element) { throw new NotImplementedException(); }
+            protected override Field CreateElement(Stream s)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void WriteElement(Stream s, Field element)
+            {
+                throw new NotImplementedException();
+            }
 
             public bool Equals(FieldList other)
             {
                 if (other == null || this.Count != other.Count)
+                {
                     return false;
+                }
                 for (int i = this.Count - 1; i >= 0; i--)
                 {
                     if (!this[i].Equals(other[i]))
+                    {
                         return false;
+                    }
                 }
                 return true;
             }
@@ -550,6 +921,7 @@ namespace s4pi.DataResource
             private DataResource owner;
 
             #region Attributes
+
             private uint namePosition;
             private string name;
             private uint nameHash;
@@ -561,161 +933,332 @@ namespace s4pi.DataResource
             private uint fieldCount;
             private bool isNull;
             private DataBlobHandler fieldData;
+
             #endregion
 
             #region Constructors
-            public Data(int apiVersion, EventHandler handler, DataResource owner) : base(apiVersion, handler) { this.owner = owner; }
-            public Data(int apiVersion, EventHandler handler, DataResource owner, BinaryReader r) : base(apiVersion, handler) { this.owner = owner; Parse(r); }
+
+            public Data(int apiVersion, EventHandler handler, DataResource owner) : base(apiVersion, handler)
+            {
+                this.owner = owner;
+            }
+
+            public Data(int apiVersion, EventHandler handler, DataResource owner, BinaryReader r)
+                : base(apiVersion, handler)
+            {
+                this.owner = owner;
+                this.Parse(r);
+            }
+
             #endregion
 
             #region Data I/O
+
             private void Parse(BinaryReader r)
             {
-                myPosition = (uint)r.BaseStream.Position;
+                this.myPosition = (uint)r.BaseStream.Position;
 
-                Util.GetOffset(r, out namePosition);
+                r.GetOffset(out this.namePosition);
 
-                name = Util.GetString(r, namePosition);
-                nameHash = r.ReadUInt32();
-                if (Util.GetOffset(r, out structurePosition))
+                this.name = r.GetAsciiString(this.namePosition);
+                this.nameHash = r.ReadUInt32();
+                if (r.GetOffset(out this.structurePosition))
                 {
-                    structure = this.owner.structureList.GetFromPosition(structurePosition);
-                    if (structure == null)
-                        throw new InvalidDataException(string.Format("Invalid Structure Position: 0x{0:X8}", structurePosition));
+                    this.structure = this.owner.structureList.GetFromPosition(this.structurePosition);
+                    if (this.structure == null)
+                    {
+                        throw new InvalidDataException(string.Format("Invalid Structure Position: 0x{0:X8}",
+                            this.structurePosition));
+                    }
                 }
                 else
-                    structure = null;
-                unknown0C = r.ReadUInt32();
-                unknown10 = r.ReadUInt32();
-                if (!Util.GetOffset(r, out fieldPosition))
+                {
+                    this.structure = null;
+                }
+                this.unknown0C = r.ReadUInt32();
+                this.unknown10 = r.ReadUInt32();
+                if (!r.GetOffset(out this.fieldPosition))
+                {
                     throw new InvalidDataException("Invalid Field Offset: 0x80000000");
-                fieldCount = r.ReadUInt32();
+                }
+                this.fieldCount = r.ReadUInt32();
             }
 
             internal void ParseFieldData(uint length, Stream s)
             {
                 s.Position = this.fieldPosition;
-                this.fieldData = new DataBlobHandler(requestedApiVersion, handler, length, s);
+                this.fieldData = new DataBlobHandler(this.requestedApiVersion, this.handler, length, s);
             }
 
             public void UnParse(BinaryWriter w)
             {
-                myPosition = (uint)w.BaseStream.Position;
+                this.myPosition = (uint)w.BaseStream.Position;
 
-                if (this.name == null) this.name = "";
+                if (this.name == null)
+                {
+                    this.name = "";
+                }
                 this.nameHash = FNV32.GetHash(this.name);
 
-                w.Write(Util.Zero32); // Name Offset
+                w.Write((uint)0); // Name Offset
                 w.Write(this.nameHash);
-                w.Write(Util.Zero32); // Structure Offset
+                w.Write((uint)0); // Structure Offset
                 w.Write(this.unknown0C);
                 w.Write(this.unknown10);
-                w.Write(Util.Zero32); // Field Offset
+                w.Write((uint)0); // Field Offset
                 w.Write(this.fieldCount);
             }
 
             public void WriteOffsets(BinaryWriter w)
             {
                 Stream s = w.BaseStream;
-                //long savedPos = s.Position;
-                s.Position = myPosition;
+                s.Position = this.myPosition;
 
-                w.Write(this.namePosition == Util.NullOffset 
-                    ? this.namePosition : this.namePosition - myPosition);
+                w.Write(this.namePosition == NullOffset
+                    ? this.namePosition
+                    : this.namePosition - this.myPosition);
                 s.Position += 4; // Name Hash
 
                 if (this.structure == null)
                 {
-                    this.structurePosition = Util.NullOffset;
+                    this.structurePosition = NullOffset;
                     w.Write(this.structurePosition);
                 }
                 else
                 {
                     this.structurePosition = this.structure.GetPosition();
-                    w.Write(this.structurePosition - myPosition - 0x08);
+                    w.Write(this.structurePosition - this.myPosition - 0x08);
                 }
                 s.Position += 8; // Unknown 0C and Unknown 10
-                
-                w.Write(this.fieldPosition == Util.NullOffset
-                    ? this.fieldPosition : this.fieldPosition - myPosition - 0x14);
-                
-                //s.Position = savedPos;
+
+                w.Write(this.fieldPosition == NullOffset
+                    ? this.fieldPosition
+                    : this.fieldPosition - this.myPosition - 0x14);
             }
+
             #endregion
 
             #region AHandlerElement
-            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+
+            public override int RecommendedApiVersion
+            {
+                get { return recommendedApiVersion; }
+            }
+
+            public override List<string> ContentFields
+            {
+                get { return GetContentFields(this.requestedApiVersion, this.GetType()); }
+            }
+
             #endregion
 
             #region IEquatable<Data>
+
             public bool Equals(Data other)
             {
-                return namePosition == other.namePosition && name == other.name && nameHash == other.nameHash
-                    && structurePosition == other.structurePosition && unknown0C == other.unknown0C && unknown10 == other.unknown10
-                    && fieldPosition == other.fieldPosition && fieldCount == other.fieldCount && isNull == other.isNull;
+                return this.namePosition == other.namePosition && this.name == other.name
+                       && this.nameHash == other.nameHash
+                       && this.structurePosition == other.structurePosition && this.unknown0C == other.unknown0C
+                       && this.unknown10 == other.unknown10
+                       && this.fieldPosition == other.fieldPosition && this.fieldCount == other.fieldCount
+                       && this.isNull == other.isNull;
             }
-            public override bool Equals(object obj) { return obj is Data && this.Equals(obj as Data); }
+
+            public override bool Equals(object obj)
+            {
+                return obj is Data && this.Equals((Data)obj);
+            }
+
             public override int GetHashCode()
             {
-                return namePosition.GetHashCode() ^ name.GetHashCode() ^ nameHash.GetHashCode()
-                    ^ structurePosition.GetHashCode() ^ unknown0C.GetHashCode() ^ unknown10.GetHashCode()
-                    ^ fieldPosition.GetHashCode() ^ fieldCount.GetHashCode() ^ isNull.GetHashCode();
+                return this.namePosition.GetHashCode() ^ this.name.GetHashCode() ^ this.nameHash.GetHashCode()
+                       ^ this.structurePosition.GetHashCode() ^ this.unknown0C.GetHashCode()
+                       ^ this.unknown10.GetHashCode()
+                       ^ this.fieldPosition.GetHashCode() ^ this.fieldCount.GetHashCode() ^ this.isNull.GetHashCode();
             }
+
             #endregion
 
             #region Content Fields
+
             [ElementPriority(1)]
-            public uint NamePosition { get { return namePosition; } set { if (namePosition != value) { namePosition = value; OnElementChanged(); } } }
-            [ElementPriority(2)]
-            public string Name { get { return name; } set { if (name != value) { name = value == null ? "" : value; nameHash = FNV32.GetHash(name); OnElementChanged(); } } }
-            [ElementPriority(3)]
-            public uint NameHash { get { return nameHash; } set { if (nameHash != value) { nameHash = value; OnElementChanged(); } } }
-            [ElementPriority(4)]
-            public uint StructurePosition { get { return structurePosition; } set { if (structurePosition != value) { structurePosition = value; OnElementChanged(); } } }
-            [ElementPriority(5)]
-            public uint Unknown0C { get { return unknown0C; } set { if (unknown0C != value) { unknown0C = value; OnElementChanged(); } } }
-            [ElementPriority(6)]
-            public uint Unknown10 { get { return unknown10; } set { if (unknown10 != value) { unknown10 = value; OnElementChanged(); } } }
-            [ElementPriority(7)]
-            public uint FieldPosition { get { return fieldPosition; } set { if (fieldPosition != value) { fieldPosition = value; OnElementChanged(); } } }
-            [ElementPriority(8)]
-            public uint FieldCount { get { return fieldCount; } set { if (fieldCount != value) { fieldCount = value; OnElementChanged(); } } }
-            [ElementPriority(9)]
-            public bool IsNull { get { return isNull; } set { if (isNull != value) { isNull = value; OnElementChanged(); } } }
-            [ElementPriority(10)]
-            public DataBlobHandler FieldData 
-            { 
-                get { return fieldData; } 
-                set 
+            public uint NamePosition
+            {
+                get { return this.namePosition; }
+                set
                 {
-                    if (value == null) 
-                        throw new InvalidOperationException();
-                    if (fieldData != value) 
-                    { 
-                        fieldData = new DataBlobHandler(requestedApiVersion, handler, value); 
-                        OnElementChanged(); 
-                    } 
-                } 
+                    if (this.namePosition != value)
+                    {
+                        this.namePosition = value;
+                        this.OnElementChanged();
+                    }
+                }
             }
+
+            [ElementPriority(2)]
+            public string Name
+            {
+                get { return this.name; }
+                set
+                {
+                    if (this.name != value)
+                    {
+                        this.name = value == null ? "" : value;
+                        this.nameHash = FNV32.GetHash(this.name);
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(3)]
+            public uint NameHash
+            {
+                get { return this.nameHash; }
+                set
+                {
+                    if (this.nameHash != value)
+                    {
+                        this.nameHash = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(4)]
+            public uint StructurePosition
+            {
+                get { return this.structurePosition; }
+                set
+                {
+                    if (this.structurePosition != value)
+                    {
+                        this.structurePosition = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(5)]
+            public uint Unknown0C
+            {
+                get { return this.unknown0C; }
+                set
+                {
+                    if (this.unknown0C != value)
+                    {
+                        this.unknown0C = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(6)]
+            public uint Unknown10
+            {
+                get { return this.unknown10; }
+                set
+                {
+                    if (this.unknown10 != value)
+                    {
+                        this.unknown10 = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(7)]
+            public uint FieldPosition
+            {
+                get { return this.fieldPosition; }
+                set
+                {
+                    if (this.fieldPosition != value)
+                    {
+                        this.fieldPosition = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(8)]
+            public uint FieldCount
+            {
+                get { return this.fieldCount; }
+                set
+                {
+                    if (this.fieldCount != value)
+                    {
+                        this.fieldCount = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(9)]
+            public bool IsNull
+            {
+                get { return this.isNull; }
+                set
+                {
+                    if (this.isNull != value)
+                    {
+                        this.isNull = value;
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
+            [ElementPriority(10)]
+            public DataBlobHandler FieldData
+            {
+                get { return this.fieldData; }
+                set
+                {
+                    if (value == null)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    if (this.fieldData != value)
+                    {
+                        this.fieldData = new DataBlobHandler(this.requestedApiVersion, this.handler, value);
+                        this.OnElementChanged();
+                    }
+                }
+            }
+
             #endregion
 
-            public string Value { get { return ValueBuilder; } }
+            public string Value
+            {
+                get { return this.ValueBuilder; }
+            }
         }
+
         public class DataList : DependentList<Data>
         {
             private class FieldPosComparer : IComparer<Data>
             {
                 public static readonly FieldPosComparer Singleton = new FieldPosComparer();
-                public FieldPosComparer() { }
-                public int Compare(Data x, Data y) { return (int)x.FieldPosition - (int)y.FieldPosition; }
+
+                public FieldPosComparer()
+                {
+                }
+
+                public int Compare(Data x, Data y)
+                {
+                    return (int)x.FieldPosition - (int)y.FieldPosition;
+                }
             }
 
             private List<Data> fieldPosSorted;
 
             private DataResource owner;
 
-            public DataList(EventHandler handler, DataResource owner) : base(handler) { this.owner = owner; }
+            public DataList(EventHandler handler, DataResource owner) : base(handler)
+            {
+                this.owner = owner;
+            }
+
             public DataList(EventHandler handler, DataResource owner, int dataCount, BinaryReader r)
                 : base(handler)
             {
@@ -727,61 +1270,61 @@ namespace s4pi.DataResource
                 int i;
                 //long savedPos = s.Position;
                 Data data;
-                fieldPosSorted = new List<Data>(dataCount);
+                this.fieldPosSorted = new List<Data>(dataCount);
                 s.Position = owner.dataTablePosition;
                 for (i = 0; i < dataCount; i++)
                 {
-                    data = new Data(0, elementHandler, owner, r);
+                    data = new Data(0, this.elementHandler, owner, r);
                     this.Add(data);
-                    fieldPosSorted.Add(data);
+                    this.fieldPosSorted.Add(data);
                 }
-                //s.Position = savedPos;
 
                 // Go back and read the actual data
-                uint length;
-                fieldPosSorted.Sort(FieldPosComparer.Singleton);
+                this.fieldPosSorted.Sort(FieldPosComparer.Singleton);
                 for (i = 0; i < dataCount; i++)
                 {
-                    data = fieldPosSorted[i];
-                    length = i < dataCount - 1 
-                        ? fieldPosSorted[i + 1].FieldPosition - data.FieldPosition 
+                    data = this.fieldPosSorted[i];
+                    var length = i < dataCount - 1
+                        ? this.fieldPosSorted[i + 1].FieldPosition - data.FieldPosition
                         : owner.structureTablePosition - data.FieldPosition;
                     data.ParseFieldData(length, s);
                 }
             }
-            public DataList(EventHandler handler, DataResource owner, IEnumerable<Data> ilt) : base(handler, ilt) { this.owner = owner; }
+
+            public DataList(EventHandler handler, DataResource owner, IEnumerable<Data> ilt) : base(handler, ilt)
+            {
+                this.owner = owner;
+            }
 
             #region Data I/O
-            public void UnParse(BinaryWriter w)
+
+            public void UnParse(BinaryWriter writer)
             {
                 int i;
                 int count = this.Count;
-                long previousPosition = w.BaseStream.Position;
+                long previousPosition = writer.BaseStream.Position;
 
                 // Write the headers 
                 for (i = 0; i < count; i++)
                 {
-                    this[i].UnParse(w);
+                    this[i].UnParse(writer);
                 }
 
-                Debug.WriteLine(w.BaseStream.Position - previousPosition);
+                Debug.WriteLine(writer.BaseStream.Position - previousPosition);
 
                 // Padding between headers and data?
                 // Note: this quick fix is still problematic for big files
                 // The padding need to be fully explored
                 //w.Write(Util.Zero32);
-                Debug.WriteLine(w.BaseStream.Position.ToString("X16"));
-                Util.Padding(w, 16 - (w.BaseStream.Position - previousPosition) % 16);
-
-
+                Debug.WriteLine(writer.BaseStream.Position.ToString("X16"));
+                writer.WriteZeroBytes(16 - (int)(writer.BaseStream.Position - previousPosition) % 16);
 
 
                 // Write the data
-                Data data;
-                Stream s = w.BaseStream;
+                Stream s = writer.BaseStream;
                 for (i = 0; i < count; i++)
                 {
-                    data = this[i];
+                    Data data = this[i];
                     data.FieldPosition = (uint)s.Position;
                     data.FieldData.UnParse(s);
                 }
@@ -794,10 +1337,18 @@ namespace s4pi.DataResource
                     data.WriteOffsets(w);
                 }
             }
+
             #endregion
 
-            protected override Data CreateElement(Stream s) { throw new NotImplementedException(); }
-            protected override void WriteElement(Stream s, Data element) { throw new NotImplementedException(); }
+            protected override Data CreateElement(Stream s)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void WriteElement(Stream s, Data element)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         #endregion
