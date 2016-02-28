@@ -1,4 +1,30 @@
-﻿namespace s4pi.DataResource
+﻿/***************************************************************************
+ *  Copyright (C) 2014, 2016 by the Sims 4 Tools development team          *
+ *                                                                         *
+ *  Contributors:                                                          *
+ *  ChaosMageX                                                             *
+ *  granthes                                                               *
+ *  Keyi Zhang, kz005@bucknell.edu                                         *
+ *  Buzzler                                                                *
+ *  pbox (using info from velocitygrass)                                   *
+ *                                                                         *
+ *  This file is part of the Sims 4 Package Interface (s4pi)               *
+ *                                                                         *
+ *  s4pi is free software: you can redistribute it and/or modify           *
+ *  it under the terms of the GNU General Public License as published by   *
+ *  the Free Software Foundation, either version 3 of the License, or      *
+ *  (at your option) any later version.                                    *
+ *                                                                         *
+ *  s4pi is distributed in the hope that it will be useful,                *
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of         *
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
+ *  GNU General Public License for more details.                           *
+ *                                                                         *
+ *  You should have received a copy of the GNU General Public License      *
+ *  along with s4pi.  If not, see <http://www.gnu.org/licenses/>.          *
+ ***************************************************************************/
+
+namespace s4pi.DataResource
 {
     using System;
     using System.Collections.Generic;
@@ -7,6 +33,7 @@
     using System.Security.Cryptography;
     using s4pi.Interfaces;
     using s4pi.Settings;
+    using FieldDataTypeFlags = s4pi.DataResource.DataResourceFlags.FieldDataTypeFlags;
 
     public class DataResource : AResource
     {
@@ -647,9 +674,9 @@
             private uint namePosition;
             private string name;
             private uint nameHash;
-            private uint type;
+            private FieldDataTypeFlags dataType;
             private uint dataOffset;
-            private uint unknown10Position;
+            private uint positionOffset;
 
             #endregion
 
@@ -676,9 +703,9 @@
 
                 this.name = r.GetAsciiString(this.namePosition);
                 this.nameHash = r.ReadUInt32();
-                this.type = r.ReadUInt32();
+                this.dataType = (FieldDataTypeFlags)r.ReadUInt32();
                 this.dataOffset = r.ReadUInt32();
-                r.GetOffset(out this.unknown10Position);
+                r.GetOffset(out this.positionOffset);
             }
 
             public void UnParse(BinaryWriter w)
@@ -693,7 +720,7 @@
 
                 w.Write((uint)0); // Name Offset
                 w.Write(this.nameHash);
-                w.Write(this.type);
+                w.Write((uint)this.dataType);
                 w.Write(this.dataOffset);
                 w.Write((uint)0); // Unknown 10 Offset
             }
@@ -706,11 +733,11 @@
                 w.Write(this.namePosition == NullOffset
                     ? this.namePosition
                     : this.namePosition - this.myPosition);
-                s.Position += 12; // Name Hash, Type, and Data Offset
+                s.Position += 12; // Name Hash, DataType, and Data Offset
 
-                w.Write(this.unknown10Position == NullOffset
-                    ? this.unknown10Position
-                    : this.unknown10Position - this.myPosition - 0x10);
+                w.Write(this.positionOffset == NullOffset
+                    ? this.positionOffset
+                    : this.positionOffset - this.myPosition - 0x10);
             }
 
             #endregion
@@ -733,8 +760,8 @@
 
             public bool Equals(Field other)
             {
-                return this.name == other.name && this.nameHash == other.nameHash && this.type == other.type
-                       && this.dataOffset == other.dataOffset && this.unknown10Position == other.unknown10Position;
+                return this.name == other.name && this.nameHash == other.nameHash && this.dataType == other.dataType
+                       && this.dataOffset == other.dataOffset && this.positionOffset == other.positionOffset;
             }
 
             public override bool Equals(object obj)
@@ -744,8 +771,8 @@
 
             public override int GetHashCode()
             {
-                return this.name.GetHashCode() ^ this.nameHash.GetHashCode() ^ this.type.GetHashCode()
-                       ^ this.dataOffset.GetHashCode() ^ this.unknown10Position.GetHashCode();
+                return this.name.GetHashCode() ^ this.nameHash.GetHashCode() ^ this.dataType.GetHashCode()
+                       ^ this.dataOffset.GetHashCode() ^ this.positionOffset.GetHashCode();
             }
 
             #endregion
@@ -796,14 +823,14 @@
             }
 
             [ElementPriority(4)]
-            public uint Type
+            public FieldDataTypeFlags DataType
             {
-                get { return this.type; }
+                get { return this.dataType; }
                 set
                 {
-                    if (this.type != value)
+                    if (this.dataType != value)
                     {
-                        this.type = value;
+                        this.dataType = value;
                         this.OnElementChanged();
                     }
                 }
@@ -824,14 +851,14 @@
             }
 
             [ElementPriority(6)]
-            public uint Unknown10Position
+            public uint PositionOffset
             {
-                get { return this.unknown10Position; }
+                get { return this.positionOffset; }
                 set
                 {
-                    if (this.unknown10Position != value)
+                    if (this.positionOffset != value)
                     {
-                        this.unknown10Position = value;
+                        this.positionOffset = value;
                         this.OnElementChanged();
                     }
                 }
@@ -927,8 +954,8 @@
             private uint nameHash;
             private uint structurePosition;
             private Structure structure;
-            private uint unknown0C;
-            private uint unknown10;
+            private FieldDataTypeFlags dataType;
+            private uint fieldSize;
             private uint fieldPosition;
             private uint fieldCount;
             private bool isNull;
@@ -975,8 +1002,8 @@
                 {
                     this.structure = null;
                 }
-                this.unknown0C = r.ReadUInt32();
-                this.unknown10 = r.ReadUInt32();
+                this.dataType = (FieldDataTypeFlags)r.ReadUInt32();
+                this.fieldSize = r.ReadUInt32();
                 if (!r.GetOffset(out this.fieldPosition))
                 {
                     throw new InvalidDataException("Invalid Field Offset: 0x80000000");
@@ -1003,8 +1030,8 @@
                 w.Write((uint)0); // Name Offset
                 w.Write(this.nameHash);
                 w.Write((uint)0); // Structure Offset
-                w.Write(this.unknown0C);
-                w.Write(this.unknown10);
+                w.Write((uint)this.dataType);
+                w.Write(this.fieldSize);
                 w.Write((uint)0); // Field Offset
                 w.Write(this.fieldCount);
             }
@@ -1029,7 +1056,7 @@
                     this.structurePosition = this.structure.GetPosition();
                     w.Write(this.structurePosition - this.myPosition - 0x08);
                 }
-                s.Position += 8; // Unknown 0C and Unknown 10
+                s.Position += 8; // data dataType and field size
 
                 w.Write(this.fieldPosition == NullOffset
                     ? this.fieldPosition
@@ -1058,8 +1085,8 @@
             {
                 return this.namePosition == other.namePosition && this.name == other.name
                        && this.nameHash == other.nameHash
-                       && this.structurePosition == other.structurePosition && this.unknown0C == other.unknown0C
-                       && this.unknown10 == other.unknown10
+                       && this.structurePosition == other.structurePosition && this.dataType == other.dataType
+                       && this.fieldSize == other.fieldSize
                        && this.fieldPosition == other.fieldPosition && this.fieldCount == other.fieldCount
                        && this.isNull == other.isNull;
             }
@@ -1072,8 +1099,8 @@
             public override int GetHashCode()
             {
                 return this.namePosition.GetHashCode() ^ this.name.GetHashCode() ^ this.nameHash.GetHashCode()
-                       ^ this.structurePosition.GetHashCode() ^ this.unknown0C.GetHashCode()
-                       ^ this.unknown10.GetHashCode()
+                       ^ this.structurePosition.GetHashCode() ^ this.dataType.GetHashCode()
+                       ^ this.fieldSize.GetHashCode()
                        ^ this.fieldPosition.GetHashCode() ^ this.fieldCount.GetHashCode() ^ this.isNull.GetHashCode();
             }
 
@@ -1139,28 +1166,31 @@
             }
 
             [ElementPriority(5)]
-            public uint Unknown0C
+            public FieldDataTypeFlags DataType
             {
-                get { return this.unknown0C; }
+                get 
+                {
+                    return this.dataType; 
+                }
                 set
                 {
-                    if (this.unknown0C != value)
+                    if (this.dataType != value)
                     {
-                        this.unknown0C = value;
+                        this.dataType = value;
                         this.OnElementChanged();
                     }
                 }
             }
 
             [ElementPriority(6)]
-            public uint Unknown10
+            public uint FieldSize
             {
-                get { return this.unknown10; }
+                get { return this.fieldSize; }
                 set
                 {
-                    if (this.unknown10 != value)
+                    if (this.fieldSize != value)
                     {
-                        this.unknown10 = value;
+                        this.fieldSize = value;
                         this.OnElementChanged();
                     }
                 }
