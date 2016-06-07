@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <M n="tag" s="15608553923092786359">
   <C n="TagCategory">
     <L n="_elements">
@@ -49,6 +49,8 @@
       <T ev="108">SkintoneType</T>
       <T ev="109">Occult</T>
       <T ev="110">SkintoneBlend</T>
+      <T ev="111">GenderAppropriate</T>
+      <T ev="112">NudePart</T>
     </L>
   </C>
   <C n="Tag">
@@ -1457,6 +1459,55 @@
       <T ev="1498">Func_Movie</T>
       <T ev="1499">Food_GrilledCheese</T>
       <T ev="1500">Func_CoatRack</T>
+      <T ev="1501">Situation_Event_NPC</T>
+      <T ev="1502">Func_Gardening_Growfruit</T>
+      <T ev="1503">Uniform_TragicClown</T>
+      <T ev="1504">Situation_TragicClown</T>
+      <T ev="1505">Recipe_Type_Food</T>
+      <T ev="1506">Recipe_Type_Drink</T>
+      <T ev="1507">Recipe_Course_Appetizer</T>
+      <T ev="1508">Recipe_Course_Main</T>
+      <T ev="1509">Recipe_Course_Dessert</T>
+      <T ev="1510">Recipe_Meal_Breakfast</T>
+      <T ev="1511">Recipe_Meal_Lunch</T>
+      <T ev="1512">Recipe_Meal_Dinner</T>
+      <T ev="1513">Recipe_Category_Meat</T>
+      <T ev="1514">Recipe_Category_Vegetarian</T>
+      <T ev="1515">Recipe_Category_Grains</T>
+      <T ev="1516">Recipe_Category_Sweets</T>
+      <T ev="1517">Recipe_Category_Misc</T>
+      <T ev="1518">Recipe_Category_Drinks</T>
+      <T ev="1519">Recipe_Category_Seafood</T>
+      <T ev="1520">Func_HeatLamp_BG</T>
+      <T ev="1521">Recipe_ChefsChoice_ChildFriendly</T>
+      <T ev="1522">Recipe_Category_Water</T>
+      <T ev="1523">Recipe_ChildRestricted</T>
+      <T ev="1524">Recipe_Course_Drink</T>
+      <T ev="1525">Func_Counter</T>
+      <T ev="1526">Appropriateness_Touching</T>
+      <T ev="1527">Func_Nectar</T>
+      <T ev="1528">Func_SimRay_NotValid_TransformResult_BG</T>
+      <T ev="1529">GenderAppropriate_Male</T>
+      <T ev="1530">GenderAppropriate_Female</T>
+      <T ev="1531">Recipe_Category_Fizzy</T>
+      <T ev="1532">Recipe_Category_Fruit</T>
+      <T ev="1533">Recipe_Category_Cold</T>
+      <T ev="1534">Recipe_Category_Hot</T>
+      <T ev="1535">Recipe_Category_Nectar</T>
+      <T ev="1536">Recipe_Category_CakePie</T>
+      <T ev="1537">Recipe_Category_Chocolate</T>
+      <T ev="1538">Func_TableDiningBar</T>
+      <T ev="1539">Appropriateness_Playing</T>
+      <T ev="1540">NudePart_Always</T>
+      <T ev="1541">NudePart_MaleWithBreast</T>
+      <T ev="1542">Func_Bed_Valid_MonsterUnder_Target</T>
+      <T ev="1543">Bottom_Underwear</T>
+      <T ev="1544">Bottom_Swimwear</T>
+      <T ev="1545">Func_Business_Light</T>
+      <T ev="1546">Func_CullingPortal</T>
+      <T ev="1547">Func_TableDiningUmbrella</T>
+      <T ev="1548">Buff_Business_EmployeeTraining</T>
+      <T ev="1549">Buff_Business_CustomerStarRating</T>
       <T ev="8194">Skill_Psychic</T>
       <T ev="8195">Style_Witch</T>
       <T ev="8196">Style_Pirate</T>
@@ -1811,6 +1862,31 @@
       <T ev="28678">Func_Popcorn_Buttered</T>
       <T ev="30721">Func_ParkFountain</T>
       <T ev="30722">Func_WishingWell</T>
+      <T ev="26625">BuyCat_Venue_Restaurant</T>
+      <T ev="26626">Func_WaiterStation</T>
+      <T ev="26627">Func_ChefStation</T>
+      <T ev="26628">Func_HostStation</T>
+      <T ev="26629">Func_Booth</T>
+      <T ev="26630">Situation_RestaurantDining</T>
+      <T ev="26631">Func_ExperimentalFood</T>
+      <T ev="26632">Role_RestaurantEat</T>
+      <T ev="26633">Role_RestaurantStaff</T>
+      <T ev="26634">Interaction_WaitstaffIdle</T>
+      <T ev="26635">Role_HostAtStation</T>
+      <T ev="26636">Func_Booth_Corner</T>
+      <T ev="26637">Job_RestaurantDiner</T>
+      <T ev="26638">Role_Restaurant_PostPlaceOrder</T>
+      <T ev="26639">Func_PlacematDrawing</T>
+      <T ev="26640">Interaction_Restaurant_WaitToPlaceOrder</T>
+      <T ev="26641">Func_Booth_Banquette</T>
+      <T ev="26642">Situation_HomeChef</T>
+      <T ev="26643">Func_FoodPlatter</T>
+      <T ev="26644">Uniform_RestaurantCritic</T>
+      <T ev="26647">Role_RestaurantDiner</T>
+      <T ev="26648">Buff_OwnableRestaurant_Customer</T>
+      <T ev="32769">Func_PuppetTheater</T>
+      <T ev="32770">Func_BattleStation</T>
+      <T ev="32771">Func_Collection_Monsters</T>
     </L>
   </C>
 </M>

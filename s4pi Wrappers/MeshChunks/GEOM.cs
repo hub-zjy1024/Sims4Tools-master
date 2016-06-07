@@ -1,21 +1,26 @@
 /***************************************************************************
- *  Copyright (C) 2009, 2010 by Peter L Jones                              *
- *  pljones@users.sf.net                                                   *
+ *  Copyright (C) 2014, 2016 by the Sims 4 Tools development team          *
  *                                                                         *
- *  This file is part of the Sims 3 Package Interface (s3pi)               *
+ *  Contributors:                                                          *
+ *  Peter Jones                                                            *
+ *  Keyi Zhang                                                             *
+ *  CmarNYC                                                                *
+ *  Buzzler                                                                *  
  *                                                                         *
- *  s3pi is free software: you can redistribute it and/or modify           *
+ *  This file is part of the Sims 4 Package Interface (s4pi)               *
+ *                                                                         *
+ *  s4pi is free software: you can redistribute it and/or modify           *
  *  it under the terms of the GNU General Public License as published by   *
  *  the Free Software Foundation, either version 3 of the License, or      *
  *  (at your option) any later version.                                    *
  *                                                                         *
- *  s3pi is distributed in the hope that it will be useful,                *
+ *  s4pi is distributed in the hope that it will be useful,                *
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of         *
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
  *  GNU General Public License for more details.                           *
  *                                                                         *
  *  You should have received a copy of the GNU General Public License      *
- *  along with s3pi.  If not, see <http://www.gnu.org/licenses/>.          *
+ *  along with s4pi.  If not, see <http://www.gnu.org/licenses/>.          *
  ***************************************************************************/
 using System.IO;
 using s4pi.Interfaces;
@@ -36,17 +41,19 @@ namespace meshExpImp.ModelBlocks
 
         #region Attributes
         uint tag = (uint)FOURCC("GEOM");
-        uint version = 0x0000000C;
+        uint version = 0x0000000D;
         ShaderType shader;
         MTNF mtnf = null;
         uint mergeGroup;
         uint sortOrder;
         VertexFormatList vertexFormats;
         VertexDataList vertexData;
+        uint numSubMeshes;
         FaceList faces;
         int skinIndex;
-        UnknownThingList unknownThings;
-        UnknownThing2List unknownThings2;
+        UVStitchList uvStitchList;
+        SeamStitchList seamStitchList;
+        SlotrayIntersectionList slotrayIntersectionList;
         UIntList boneHashes;
 
         TGIBlockList tgiBlockList;
@@ -59,13 +66,13 @@ namespace meshExpImp.ModelBlocks
             : this(apiVersion, handler,
             basis.version, basis.shader, basis.mtnf, basis.mergeGroup, basis.sortOrder,
             basis.vertexFormats, basis.vertexData,
-            basis.faces, basis.skinIndex, basis.unknownThings, basis.unknownThings2, basis.boneHashes,
+            basis.faces, basis.skinIndex, basis.uvStitchList, basis.seamStitchList, basis.slotrayIntersectionList, basis.boneHashes,
             basis.tgiBlockList) { }
         public GEOM(int apiVersion, EventHandler handler,
             uint version, ShaderType shader, MTNF mtnf, uint mergeGroup, uint sortOrder,
             IEnumerable<VertexFormat> vertexFormats, IEnumerable<VertexDataElement> vertexData,
             IEnumerable<Face> facePoints, int skinIndex,
-            UnknownThingList unknownThings, UnknownThing2List unknownThings2, IEnumerable<uint> boneHashes,
+            UVStitchList uvStitchList, SeamStitchList seamStitchList, SlotrayIntersectionList slotrayIntersectionList, IEnumerable<uint> boneHashes,
             IEnumerable<TGIBlock> tgiBlockList)
             : base(apiVersion, handler, null)
         {
@@ -80,8 +87,9 @@ namespace meshExpImp.ModelBlocks
             this.vertexData = vertexData == null ? null : new VertexDataList(handler, version, vertexData, this.vertexFormats);
             this.faces = facePoints == null ? null : new FaceList(handler, facePoints);
             this.skinIndex = skinIndex;
-            this.unknownThings = unknownThings == null ? null : new UnknownThingList(handler, unknownThings);
-            this.unknownThings2 = unknownThings2 == null ? null : new UnknownThing2List(handler, unknownThings2);
+            this.uvStitchList = uvStitchList == null ? null : new UVStitchList(handler, uvStitchList);
+            this.seamStitchList = seamStitchList == null ? null : new SeamStitchList(handler, seamStitchList);
+            this.slotrayIntersectionList = slotrayIntersectionList == null ? null : new SlotrayIntersectionList(handler, slotrayIntersectionList);
             this.boneHashes = boneHashes == null ? null : new UIntList(handler, boneHashes);
             this.tgiBlockList = tgiBlockList == null ? null : new TGIBlockList(handler, tgiBlockList);
 
@@ -98,27 +106,9 @@ namespace meshExpImp.ModelBlocks
         public override uint ResourceType { get { return 0x015A1849; } }
 
         // public override AHandlerElement Clone(EventHandler handler) { return new GEOM(requestedApiVersion, handler, this); }
+        #endregion
 
-        public override List<string> ContentFields
-        {
-            get
-            {
-                List<string> res = base.ContentFields;
-                if (shader == 0)
-                    res.Remove("Mtnf");
-                if (version == 0x00000005)
-                {
-                    res.Remove("UnknownThings");
-                    res.Remove("UnknownThings2");
-                }
-                else if (version == 0x0000000C)
-                {
-                    res.Remove("SkinIndex");
-                }
-                return res;
-            }
-        }
-
+        #region DataIO
         protected override void Parse(Stream s)
         {
             BinaryReader r = new BinaryReader(s);
@@ -126,8 +116,8 @@ namespace meshExpImp.ModelBlocks
             if (checking) if (tag != (uint)FOURCC("GEOM"))
                     throw new InvalidDataException(String.Format("Invalid Tag read: '{0}'; expected: 'GEOM'; at 0x{1:X8}", FOURCC(tag), s.Position));
             version = r.ReadUInt32();
-            if (checking) if (version != 0x00000005 && version != 0x0000000C)
-                    throw new InvalidDataException(String.Format("Invalid Version read: '{0}'; expected: '0x00000005' or '0x0000000C'; at 0x{1:X8}", version, s.Position));
+            if (checking) if (version != 0x00000005 && version != 0x0000000C && version != 0x0000000D)
+                    throw new InvalidDataException(String.Format("Invalid Version read: '{0}'; expected: '0x00000005', '0x0000000C' or '0x0000000D'; at 0x{1:X8}", version, s.Position));
 
             long tgiPosn = r.ReadUInt32() + s.Position;
             long tgiSize = r.ReadUInt32();
@@ -151,23 +141,27 @@ namespace meshExpImp.ModelBlocks
             vertexFormats = new VertexFormatList(handler, version, s);
             vertexData = new VertexDataList(handler, version, s, numVertices, vertexFormats);//...as you'll be needing it
 
-            int numFacePointSizes = r.ReadInt32();
-            if (checking) if (numFacePointSizes != 1)
-                    throw new InvalidDataException(String.Format("Expected number of face point sizes to be 1, read {0}, at 0x{1:X8}", numFacePointSizes, s.Position));
+            numSubMeshes = r.ReadUInt32();
+            if (checking) if (numSubMeshes != 1)
+                    throw new InvalidDataException(String.Format("Expected number of sub meshes to be 1, read {0}, at 0x{1:X8}", numSubMeshes, s.Position));
 
             byte facePointSize = r.ReadByte();
-            if (checking) if (facePointSize != 2)
-                    throw new InvalidDataException(String.Format("Expected face point size to be 2, read {0}, at 0x{1:X8}", facePointSize, s.Position));
+           // if (checking) if (facePointSize != 2)
+           //         throw new InvalidDataException(String.Format("Expected face point size to be 2, read {0}, at 0x{1:X8}", facePointSize, s.Position));
 
             faces = new FaceList(handler, s);
             if (version == 0x00000005)
             {
                 skinIndex = r.ReadInt32();
             }
-            else if (version == 0x0000000C)
+            else if (version >= 0x0000000C)
             {
-                unknownThings = new UnknownThingList(handler, s);
-                unknownThings2 = new UnknownThing2List(handler, s);
+                uvStitchList = new UVStitchList(handler, s);
+                if (version >= 0x0000000D)
+                {
+                    seamStitchList = new SeamStitchList(handler, s);
+                }
+                slotrayIntersectionList = new SlotrayIntersectionList(handler, s);
             }
             boneHashes = new UIntList(handler, s);
 
@@ -206,7 +200,7 @@ namespace meshExpImp.ModelBlocks
             vertexFormats.UnParse(ms);
             if (vertexData == null) vertexData = new VertexDataList(handler, version, vertexFormats);
             vertexData.UnParse(ms);
-            w.Write((int)1);
+            w.Write((uint)1);
             w.Write((byte)2);
             if (faces == null) faces = new FaceList(handler);
             faces.UnParse(ms);
@@ -214,12 +208,17 @@ namespace meshExpImp.ModelBlocks
             {
                 w.Write(skinIndex);
             }
-            else if (version == 0x0000000C)
+            else if (version >= 0x0000000C)
             {
-                if (unknownThings == null) unknownThings = new UnknownThingList(handler);
-                unknownThings.UnParse(ms);
-                if (unknownThings2 == null) unknownThings2 = new UnknownThing2List(handler);
-                unknownThings2.UnParse(ms);
+                if (uvStitchList == null) uvStitchList = new UVStitchList(handler);
+                uvStitchList.UnParse(ms);
+                if (version >= 0x0000000D)
+                {
+                    if (seamStitchList == null) seamStitchList = new SeamStitchList(handler);
+                    seamStitchList.UnParse(ms);
+                }
+                if (slotrayIntersectionList == null) slotrayIntersectionList = new SlotrayIntersectionList(handler);
+                slotrayIntersectionList.UnParse(ms);
             }
             if (boneHashes == null) boneHashes = new UIntList(handler);
             boneHashes.UnParse(ms);
@@ -251,6 +250,8 @@ namespace meshExpImp.ModelBlocks
             Weights = 0x05,
             TangentNormal = 0x06,
             Color = 0x07,
+            BiNormal = 0x08,
+            WeightMap = 0x09,
             VertexID = 0x0A,
         }
         static uint[] expectedDataType05 = new uint[] {
@@ -287,7 +288,7 @@ namespace meshExpImp.ModelBlocks
             /*Normal*/ 1,
             /*UV*/ 1,
             /*BoneAssignment*/ 2,
-            /*Unknown*/ 2, 
+            /*BoneWeight*/ 2, 
             /*TangentNormal*/ 1,
             /*Color*/ 3,
             /*Unknown*/ 0,
@@ -301,7 +302,7 @@ namespace meshExpImp.ModelBlocks
             /*Normal*/ 12,
             /*UV*/ 8,
             /*BoneAssignment*/ 4,
-            /*Unknown*/ 4, 
+            /*BoneWeight*/ 4, 
             /*TangentNormal*/ 12,
             /*Color*/ 4,
             /*Unknown*/ 0,
@@ -315,78 +316,36 @@ namespace meshExpImp.ModelBlocks
 
             uint version;
             UsageType usage;
+            internal uint dataType;
+            internal byte elementSize;
 
             public VertexFormat(int apiVersion, EventHandler handler, uint version) : base(apiVersion, handler) { this.version = version; }
             public VertexFormat(int apiVersion, EventHandler handler, uint version, Stream s) : base(apiVersion, handler) { this.version = version; Parse(s); }
             public VertexFormat(int apiVersion, EventHandler handler, VertexFormat basis)
-                : this(apiVersion, handler, basis.version, basis.usage) { }
-            public VertexFormat(int apiVersion, EventHandler handler, uint version, UsageType usage)
+                : this(apiVersion, handler, basis.version, basis.usage, basis.dataType, basis.elementSize) { }
+            public VertexFormat(int apiVersion, EventHandler handler, uint version, UsageType usage, uint dataType, byte elementSize)
                 : base(apiVersion, handler)
             {
                 this.version = version;
                 this.usage = usage;
+                this.dataType = dataType;
+                this.elementSize = elementSize;
             }
 
             private void Parse(Stream s)
             {
-                uint[] expectedDataType;
-                byte[] expectedElementSize;
-
-                switch (version)
-                {
-                    case 0x00000005:
-                        expectedDataType = expectedDataType0C;
-                        expectedElementSize = expectedElementSize0C;
-                        break;
-                    case 0x0000000C:
-                        expectedDataType = expectedDataType0C;
-                        expectedElementSize = expectedElementSize0C;
-                        break;
-                    default:
-                        expectedDataType = null;
-                        expectedElementSize = null;
-                        break;
-                }
-
                 BinaryReader r = new BinaryReader(s);
                 usage = (UsageType)r.ReadUInt32();
-                if (checking) if (usage == 0 || (uint)usage >= expectedDataType.Length)
-                        throw new InvalidDataException(string.Format("Unexpected usage code 0x{0:X8} at 0x{1:X8}", (uint)usage, s.Position));
-
-                uint dataType = r.ReadUInt32();
-                if (checking) if (dataType != expectedDataType[(uint)usage])
-                        throw new InvalidDataException(string.Format("Expected data type 0x{0:X8}, read 0x{1:X8}, at 0x{2:X8}", expectedDataType[(uint)usage], dataType, s.Position));
-
-                byte elementSize = r.ReadByte();
-                if (checking) if (elementSize != expectedElementSize[(uint)usage])
-                        throw new InvalidDataException(String.Format("Expected element size 0x{0:X2}, read 0x{1:X2}, at {2:X8}", expectedElementSize[(uint)usage], elementSize, s.Position));
+                dataType = r.ReadUInt32();
+                elementSize = r.ReadByte();
             }
 
             internal void UnParse(Stream s)
             {
-                uint[] expectedDataType;
-                byte[] expectedElementSize;
-
-                switch (version)
-                {
-                    case 0x00000005:
-                        expectedDataType = expectedDataType0C;
-                        expectedElementSize = expectedElementSize0C;
-                        break;
-                    case 0x0000000C:
-                        expectedDataType = expectedDataType0C;
-                        expectedElementSize = expectedElementSize0C;
-                        break;
-                    default:
-                        expectedDataType = null;
-                        expectedElementSize = null;
-                        break;
-                }
-
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write((uint)usage);
-                w.Write(expectedDataType[(uint)usage]);
-                w.Write(expectedElementSize[(uint)usage]);
+                w.Write(dataType);
+                w.Write(elementSize);
             }
 
             #region AHandlerElement
@@ -424,7 +383,7 @@ namespace meshExpImp.ModelBlocks
                 elementHandler = handler;
                 this.version = version;
                 foreach (VertexFormat ve in le)
-                    this.Add(new VertexFormat(0, elementHandler, version, ve.Usage));
+                    this.Add(new VertexFormat(0, elementHandler, version, ve.Usage, ve.dataType, ve.elementSize));
                 this.handler = handler;
             }
             #endregion
@@ -517,23 +476,26 @@ namespace meshExpImp.ModelBlocks
         }
         public class BoneAssignmentElement : VertexElement
         {
-            protected uint id;
+            protected byte b1, b2, b3, b4;
 
             public BoneAssignmentElement(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
             public BoneAssignmentElement(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler, s) { }
-            public BoneAssignmentElement(int apiVersion, EventHandler handler, BoneAssignmentElement basis) : this(apiVersion, handler, basis.id) { }
-            public BoneAssignmentElement(int apiVersion, EventHandler handler, uint id) : base(apiVersion, handler) { this.id = id; }
+            public BoneAssignmentElement(int apiVersion, EventHandler handler, BoneAssignmentElement basis) : this(apiVersion, handler, basis.b1, basis.b2, basis.b3, basis.b4) { }
+            public BoneAssignmentElement(int apiVersion, EventHandler handler, byte b1, byte b2, byte b3, byte b4) : base(apiVersion, handler) { this.b1 = b1; this.b2 = b2; this.b3 = b3; this.b4 = b4; }
 
-            protected override void Parse(Stream s) { BinaryReader r = new BinaryReader(s); id = r.ReadUInt32(); }
-            internal override void UnParse(Stream s) { BinaryWriter w = new BinaryWriter(s); w.Write(id); }
+            protected override void Parse(Stream s) { BinaryReader r = new BinaryReader(s); b1 = r.ReadByte(); b2 = r.ReadByte(); b3 = r.ReadByte(); b4 = r.ReadByte(); }
+            internal override void UnParse(Stream s) { BinaryWriter w = new BinaryWriter(s); w.Write(b1); w.Write(b2); w.Write(b3); w.Write(b4); }
 
             // public override AHandlerElement Clone(EventHandler handler) { return new BoneAssignmentElement(requestedApiVersion, handler, this); }
-            public override bool Equals(VertexElement other) { BoneAssignmentElement o = other as BoneAssignmentElement; return o != null && id.Equals(o.id); }
+            public override bool Equals(VertexElement other) { BoneAssignmentElement o = other as BoneAssignmentElement; return o != null && b1.Equals(o.b1) && b2.Equals(o.b2) && b3.Equals(o.b3) && b4.Equals(o.b4); }
             public override bool Equals(object obj) { return obj is BoneAssignmentElement && this.Equals(obj as BoneAssignmentElement); }
-            public override int GetHashCode() { return id.GetHashCode(); }
+            public override int GetHashCode() { return b1.GetHashCode() ^ b2.GetHashCode() ^ b3.GetHashCode() ^ b4.GetHashCode(); }
 
             [ElementPriority(1)]
-            public uint ID { get { return id; } set { if (!id.Equals(value)) { id = value; OnElementChanged(); } } }
+            public byte B1 { get { return b1; } set { if (!b1.Equals(value)) { b1 = value; OnElementChanged(); } } }
+            public byte B2 { get { return b2; } set { if (!b2.Equals(value)) { b2 = value; OnElementChanged(); } } }
+            public byte B3 { get { return b3; } set { if (!b3.Equals(value)) { b3 = value; OnElementChanged(); } } }
+            public byte B4 { get { return b4; } set { if (!b4.Equals(value)) { b4 = value; OnElementChanged(); } } }
         }
         public class WeightsElement : VertexElement
         {
@@ -617,16 +579,25 @@ namespace meshExpImp.ModelBlocks
             public override int GetHashCode() { return argb.GetHashCode(); }
 
             public override string Value { get { return Color.FromArgb(argb).ToString(); } }
+
+            [ElementPriority(1)]
+            public byte Alpha { get { return Color.FromArgb(argb).A; } set { if (!Color.FromArgb(argb).A.Equals(value)) { argb = Color.FromArgb(value, Color.FromArgb(argb).R, Color.FromArgb(argb).G, Color.FromArgb(argb).B).ToArgb(); OnElementChanged(); } } }
+            [ElementPriority(2)]
+            public byte Red { get { return Color.FromArgb(argb).R; } set { if (!Color.FromArgb(argb).R.Equals(value)) { argb = Color.FromArgb(Color.FromArgb(argb).A, value, Color.FromArgb(argb).G, Color.FromArgb(argb).B).ToArgb(); OnElementChanged(); } } }
+            [ElementPriority(3)]
+            public byte Green { get { return Color.FromArgb(argb).G; } set { if (!Color.FromArgb(argb).G.Equals(value)) { argb = Color.FromArgb(Color.FromArgb(argb).A, Color.FromArgb(argb).R, value, Color.FromArgb(argb).B).ToArgb(); OnElementChanged(); } } }
+            [ElementPriority(4)]
+            public byte Blue { get { return Color.FromArgb(argb).B; } set { if (!Color.FromArgb(argb).B.Equals(value)) { argb = Color.FromArgb(Color.FromArgb(argb).A, Color.FromArgb(argb).R, Color.FromArgb(argb).G, value).ToArgb(); OnElementChanged(); } } }
         }
         public class VertexIDElement : BoneAssignmentElement
         {
             public VertexIDElement(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
             public VertexIDElement(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler, s) { }
-            public VertexIDElement(int apiVersion, EventHandler handler, VertexIDElement basis) : this(apiVersion, handler, basis.id) { }
-            public VertexIDElement(int apiVersion, EventHandler handler, uint id) : base(apiVersion, handler) { this.id = id; }
+            public VertexIDElement(int apiVersion, EventHandler handler, VertexIDElement basis) : this(apiVersion, handler, basis.b1, basis.b2, basis.b3, basis.b4) { }
+            public VertexIDElement(int apiVersion, EventHandler handler, byte b1, byte b2, byte b3, byte b4) : base(apiVersion, handler) { this.b1 = b1; this.b2 = b2; this.b3 = b3; this.b4 = b4; }
 
             // public override AHandlerElement Clone(EventHandler handler) { return new VertexIDElement(requestedApiVersion, handler, this); }
-            public override bool Equals(VertexElement other) { VertexIDElement o = other as VertexIDElement; return o != null && id.Equals(o.id); }
+            public override bool Equals(VertexElement other) { VertexIDElement o = other as VertexIDElement; return o != null && b1.Equals(o.b1) && b2.Equals(o.b2) && b3.Equals(o.b3) && b4.Equals(o.b4); }
             public override bool Equals(object obj) { return obj is VertexIDElement && this.Equals(obj as VertexIDElement); }
             public override int GetHashCode() { return base.GetHashCode(); }
         }
@@ -653,10 +624,10 @@ namespace meshExpImp.ModelBlocks
                         case UsageType.UV: this.Add(new UVElement(0, handler, s)); break;
                         case UsageType.BoneAssignment: this.Add(new BoneAssignmentElement(0, handler, s)); break;
                         case UsageType.Weights:
-                            switch (this.version)
+                            switch (fmt.dataType)
                             {
-                                case 0x00000005: this.Add(new WeightsElement(0, handler, s)); break;
-                                case 0x0000000C: this.Add(new WeightBytesElement(0, handler, s)); break;
+                                case 1: this.Add(new WeightsElement(0, handler, s)); break;
+                                case 2: this.Add(new WeightBytesElement(0, handler, s)); break;
                             }
                             break;
                         case UsageType.TangentNormal: this.Add(new TangentNormalElement(0, handler, s)); break;
@@ -692,11 +663,10 @@ namespace meshExpImp.ModelBlocks
                         //case UsageType.Weights: this.Add(vtx is WeightsElement ? vtx : new WeightsElement(0, handler)); break;
 
                         case UsageType.Weights:
-                            switch (this.version)
+                            switch (fmt.dataType)
                             {
-                                case 0x00000005: this.Add(vtx is WeightsElement ? vtx : new WeightsElement(0, handler)); break;
-                                case 0x0000000C: this.Add(vtx is WeightBytesElement ? vtx : new WeightBytesElement(0, handler)); break;
-                                //case 0x0000000C: this.Add(ilt.FirstOrDefault(t => t is WeightBytesElement) ?? new WeightBytesElement(0, handler)); break;
+                                case 1: this.Add(vtx is WeightsElement ? vtx : new WeightsElement(0, handler)); break;
+                                case 2: this.Add(vtx is WeightBytesElement ? vtx : new WeightBytesElement(0, handler)); break;
                             }
                             break;
 
@@ -728,10 +698,10 @@ namespace meshExpImp.ModelBlocks
                         case UsageType.UV: (vtx is UVElement ? vtx : new UVElement(0, null)).UnParse(s); break;
                         case UsageType.BoneAssignment: (vtx is BoneAssignmentElement ? vtx : new BoneAssignmentElement(0, null)).UnParse(s); break;
                         case UsageType.Weights:
-                            switch (this.version)
+                            switch (fmt.dataType)
                             {
-                                case 0x00000005: (vtx is WeightsElement ? vtx : new WeightsElement(0, null)).UnParse(s); break;
-                                case 0x0000000C: (vtx is WeightBytesElement ? vtx : new WeightBytesElement(0, null)).UnParse(s); break;
+                                case 1: (vtx is WeightsElement ? vtx : new WeightsElement(0, null)).UnParse(s); break;
+                                case 2: (vtx is WeightBytesElement ? vtx : new WeightBytesElement(0, null)).UnParse(s); break;
                             }
                             break;
                         case UsageType.TangentNormal: (vtx is TangentNormalElement ? vtx : new TangentNormalElement(0, null)).UnParse(s); break;
@@ -772,7 +742,7 @@ namespace meshExpImp.ModelBlocks
 
             public override void Add() { throw new NotImplementedException(); }
 
-            public VertexElement this[UsageType usage]
+          /*  public VertexElement this[UsageType usage]
             {
                 get
                 {
@@ -785,10 +755,11 @@ namespace meshExpImp.ModelBlocks
                         case UsageType.UV: return this.Find(x => x is UVElement);
                         case UsageType.BoneAssignment: return this.Find(x => x is BoneAssignmentElement);
                         case UsageType.Weights:
-                            switch (this.version)
+                            switch (this)
                             {
-                                case 0x00000005: return this.Find(x => x is WeightsElement);
-                                case 0x0000000C: return this.Find(x => x is WeightBytesElement);
+                                case 0x00000005: return this.Find(x => x is WeightsElement); 
+                                case 0x0000000C:
+                                case 0x0000000D: return this.Find(x => x is WeightBytesElement);
                             }
                             break;
                         case UsageType.TangentNormal: return this.Find(x => x is TangentNormalElement);
@@ -808,7 +779,7 @@ namespace meshExpImp.ModelBlocks
                     else
                         throw new ArgumentException();
                 }
-            }
+            } */
         }
         public class VertexDataElement : AHandlerElement, IEquatable<VertexDataElement>
         {
@@ -879,10 +850,10 @@ namespace meshExpImp.ModelBlocks
                             case UsageType.UV: sb.AppendLine(fmt.Usage.ToString() + ": " + (vtx is UVElement ? vtx : new UVElement(0, null)).Value); break;
                             case UsageType.BoneAssignment: sb.AppendLine(fmt.Usage.ToString() + ": " + (vtx is BoneAssignmentElement ? vtx : new BoneAssignmentElement(0, null)).Value); break;
                             case UsageType.Weights:
-                                switch (this.version)
+                                switch (fmt.dataType)
                                 {
-                                    case 0x00000005: sb.AppendLine(fmt.Usage.ToString() + ": " + (vtx is WeightsElement ? vtx : new WeightsElement(0, null)).Value); break;
-                                    case 0x0000000C: sb.AppendLine(fmt.Usage.ToString() + ": " + (vtx is WeightBytesElement ? vtx : new WeightBytesElement(0, null)).Value); break;
+                                    case 1: sb.AppendLine(fmt.Usage.ToString() + ": " + (vtx is WeightsElement ? vtx : new WeightsElement(0, null)).Value); break;
+                                    case 2: sb.AppendLine(fmt.Usage.ToString() + ": " + (vtx is WeightBytesElement ? vtx : new WeightBytesElement(0, null)).Value); break;
                                 }
                                 break;
 
@@ -933,36 +904,36 @@ namespace meshExpImp.ModelBlocks
             const int recommendedApiVersion = 1;
 
             #region Attributes
-            ushort vertexDataIndex0;
-            ushort vertexDataIndex1;
-            ushort vertexDataIndex2;
+            ushort facePoint0;
+            ushort facePoint1;
+            ushort facePoint2;
             #endregion
 
             public Face(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
             public Face(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
             public Face(int apiVersion, EventHandler handler, Face basis)
-                : this(apiVersion, handler, basis.vertexDataIndex0, basis.vertexDataIndex1, basis.vertexDataIndex2) { }
+                : this(apiVersion, handler, basis.facePoint0, basis.facePoint1, basis.facePoint2) { }
             public Face(int apiVersion, EventHandler handler, ushort vertexDataIndex0, ushort vertexDataIndex1, ushort vertexDataIndex2)
                 : base(apiVersion, handler)
             {
-                this.vertexDataIndex0 = vertexDataIndex0;
-                this.vertexDataIndex1 = vertexDataIndex1;
-                this.vertexDataIndex2 = vertexDataIndex2;
+                this.facePoint0 = vertexDataIndex0;
+                this.facePoint1 = vertexDataIndex1;
+                this.facePoint2 = vertexDataIndex2;
             }
 
             private void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
-                vertexDataIndex0 = r.ReadUInt16();
-                vertexDataIndex1 = r.ReadUInt16();
-                vertexDataIndex2 = r.ReadUInt16();
+                facePoint0 = r.ReadUInt16();
+                facePoint1 = r.ReadUInt16();
+                facePoint2 = r.ReadUInt16();
             }
             internal void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write(vertexDataIndex0);
-                w.Write(vertexDataIndex1);
-                w.Write(vertexDataIndex2);
+                w.Write(facePoint0);
+                w.Write(facePoint1);
+                w.Write(facePoint2);
             }
 
             #region AHandlerElement
@@ -974,22 +945,22 @@ namespace meshExpImp.ModelBlocks
             #region IEquatable<Face>
             public bool Equals(Face other)
             {
-                return this.vertexDataIndex0.Equals(other.vertexDataIndex0)
-                    && this.vertexDataIndex1.Equals(other.vertexDataIndex1)
-                    && this.vertexDataIndex2.Equals(other.vertexDataIndex2);
+                return this.facePoint0.Equals(other.facePoint0)
+                    && this.facePoint1.Equals(other.facePoint1)
+                    && this.facePoint2.Equals(other.facePoint2);
             }
 
             public override bool Equals(object obj) { return obj is VertexFormat && Equals(obj as VertexFormat); }
 
-            public override int GetHashCode() { return vertexDataIndex0.GetHashCode() ^ vertexDataIndex1.GetHashCode() ^ vertexDataIndex2.GetHashCode(); }
+            public override int GetHashCode() { return facePoint0.GetHashCode() ^ facePoint1.GetHashCode() ^ facePoint2.GetHashCode(); }
             #endregion
 
             [ElementPriority(1)]
-            public ushort VertexDataIndex0 { get { return vertexDataIndex0; } set { if (vertexDataIndex0 != value) { vertexDataIndex0 = value; OnElementChanged(); } } }
+            public ushort VertexDataIndex0 { get { return facePoint0; } set { if (facePoint0 != value) { facePoint0 = value; OnElementChanged(); } } }
             [ElementPriority(2)]
-            public ushort VertexDataIndex1 { get { return vertexDataIndex1; } set { if (vertexDataIndex1 != value) { vertexDataIndex1 = value; OnElementChanged(); } } }
+            public ushort VertexDataIndex1 { get { return facePoint1; } set { if (facePoint1 != value) { facePoint1 = value; OnElementChanged(); } } }
             [ElementPriority(3)]
-            public ushort VertexDataIndex2 { get { return vertexDataIndex2; } set { if (vertexDataIndex2 != value) { vertexDataIndex2 = value; OnElementChanged(); } } }
+            public ushort VertexDataIndex2 { get { return facePoint2; } set { if (facePoint2 != value) { facePoint2 = value; OnElementChanged(); } } }
 
             public string Value { get { return string.Join("; ", ValueBuilder.Split('\n')); } }
         }
@@ -1008,37 +979,38 @@ namespace meshExpImp.ModelBlocks
 
             //public override void Add() { this.Add(new Face(0, elementHandler)); }
         }
-        public class UnknownThing : AHandlerElement, IEquatable<UnknownThing>
+
+        public class UVStitch : AHandlerElement, IEquatable<UVStitch>
         {
             const int recommendedApiVersion = 1;
 
             #region Attributes
-            uint unknown1;
-            Vector2List unknown2;
+            uint index;
+            Vector2List uv;
             #endregion
 
-            public UnknownThing(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
-            public UnknownThing(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
-            public UnknownThing(int apiVersion, EventHandler handler, UnknownThing basis) : this(apiVersion, handler, basis.unknown1, basis.unknown2) { }
-            public UnknownThing(int apiVersion, EventHandler handler, uint unknown1, IEnumerable<Vector2> unknown2)
+            public UVStitch(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
+            public UVStitch(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
+            public UVStitch(int apiVersion, EventHandler handler, UVStitch basis) : this(apiVersion, handler, basis.index, basis.uv) { }
+            public UVStitch(int apiVersion, EventHandler handler, uint index, IEnumerable<Vector2> uv)
                 : base(apiVersion, handler)
             {
-                this.unknown1 = unknown1;
-                this.unknown2 = unknown2 == null ? null : new Vector2List(handler, unknown2);
+                this.index = index;
+                this.uv = uv == null ? null : new Vector2List(handler, uv);
             }
 
             private void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
-                unknown1 = r.ReadUInt32();
-                unknown2 = new Vector2List(handler, s);
+                index = r.ReadUInt32();
+                uv = new Vector2List(handler, s);
             }
             internal void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write(unknown1);
-                if (unknown2 == null) unknown2 = new Vector2List(handler);
-                unknown2.UnParse(s);
+                w.Write(index);
+                if (uv == null) uv = new Vector2List(handler);
+                uv.UnParse(s);
             }
 
             #region AHandlerElement
@@ -1047,160 +1019,84 @@ namespace meshExpImp.ModelBlocks
             public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
             #endregion
 
-            #region IEquatable<UnknownThing>
-            public bool Equals(UnknownThing other)
+            #region IEquatable<UVStitch>
+            public bool Equals(UVStitch other)
             {
-                if (this.unknown1 != other.unknown1)
+                if (this.index != other.index)
                     return false;
 
-                if (this.unknown2 == null && other.unknown2 != null)
+                if (this.uv == null && other.uv != null)
                     return false;
 
-                if (this.unknown2 != null)
+                if (this.uv != null)
                 {
-                    if (other.unknown2 == null || this.unknown2.Count != other.unknown2.Count)
+                    if (other.uv == null || this.uv.Count != other.uv.Count)
                         return false;
 
-                    for (int i = this.unknown2.Count - 1; i >= 0; i--)
+                    for (int i = this.uv.Count - 1; i >= 0; i--)
                     {
-                        if (!this.unknown2[i].Equals(other.unknown2[i]))
+                        if (!this.uv[i].Equals(other.uv[i]))
                             return false;
                     }
                     return true;
                 }
 
-                return false;
+                return true;
             }
 
-            public override bool Equals(object obj) { return obj is UnknownThing && Equals(obj as UnknownThing); }
+            public override bool Equals(object obj) { return obj is UVStitch && Equals(obj as UVStitch); }
 
-            public override int GetHashCode() { return unknown1.GetHashCode() ^ unknown2.GetHashCode(); }
+            public override int GetHashCode() { return index.GetHashCode() ^ uv.GetHashCode(); }
             #endregion
             [ElementPriority(1)]
-            public uint Unknown1 { get { return unknown1; } set { if (unknown1 != value) { unknown1 = value; OnElementChanged(); } } }
+            public uint Index { get { return index; } set { if (index != value) { index = value; OnElementChanged(); } } }
             [ElementPriority(2)]
-            public Vector2List Unknown2 { get { return unknown2; } set { if (!unknown2.Equals(value)) { unknown2 = value == null ? null : new Vector2List(handler, value); OnElementChanged(); } } }
+            public Vector2List UVList { get { return uv; } set { if (!uv.Equals(value)) { uv = value == null ? null : new Vector2List(handler, value); OnElementChanged(); } } }
 
             public string Value { get { return ValueBuilder; } }
         }
-        public class UnknownThingList : DependentList<UnknownThing>
+        public class UVStitchList : DependentList<UVStitch>
         {
             #region Constructors
-            public UnknownThingList(EventHandler handler) : base(handler) { }
-            public UnknownThingList(EventHandler handler, Stream s) : base(handler, s) { }
-            public UnknownThingList(EventHandler handler, IEnumerable<UnknownThing> le) : base(handler, le) { }
+            public UVStitchList(EventHandler handler) : base(handler) { }
+            public UVStitchList(EventHandler handler, Stream s) : base(handler, s) { }
+            public UVStitchList(EventHandler handler, IEnumerable<UVStitch> le) : base(handler, le) { }
             #endregion
 
-            protected override UnknownThing CreateElement(Stream s) { return new UnknownThing(0, elementHandler, s); }
-            protected override void WriteElement(Stream s, UnknownThing element) { element.UnParse(s); }
+            protected override UVStitch CreateElement(Stream s) { return new UVStitch(0, elementHandler, s); }
+            protected override void WriteElement(Stream s, UVStitch element) { element.UnParse(s); }
         }
 
-
-        public class UnknownThing2 : AHandlerElement, IEquatable<UnknownThing2>
+        public class SeamStitch : AHandlerElement, IEquatable<SeamStitch>
         {
             const int recommendedApiVersion = 1;
-            const int unk5size = 53;//bytes;
-            // Sizes found: 53 (common), 245
 
             #region Attributes
-            uint unknown1;
-            ushort unknown2;
-            ushort unknown3;
-            ushort unknown4;
-            float unknown5;
-            float unknown6;
-            float unknown7;
-            float unknown8;
-            float unknown9;
-            float unknown10;
-            float unknown11;
-            float unknown12;
-            float unknown13;
-            float unknown14;
-            float unknown15;
-            float unknown16;
-            float unknown17;
-            byte unknown18;
+            uint index;
+            ushort vertID;
             #endregion
 
-            public UnknownThing2(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
-            public UnknownThing2(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
-            public UnknownThing2(int apiVersion, EventHandler handler, UnknownThing2 basis)
-                : this(apiVersion, handler, basis.unknown1,
-                basis.unknown2, basis.unknown3, basis.unknown4, basis.unknown5,
-                basis.unknown6, basis.unknown7, basis.unknown8, basis.unknown9,
-                basis.unknown10, basis.unknown11, basis.unknown12, basis.unknown13,
-                basis.unknown14, basis.unknown15, basis.unknown16, basis.unknown17, basis.unknown18) { }
-            public UnknownThing2(int apiVersion, EventHandler handler, uint unknown1,
-                ushort unknown2, ushort unknown3, ushort unknown4, float unknown5,
-                float unknown6, float unknown7, float unknown8, float unknown9,
-                float unknown10, float unknown11, float unknown12, float unknown13,
-                float unknown14, float unknown15, float unknown16, float unknown17, byte unknown18)
+            public SeamStitch(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
+            public SeamStitch(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
+            public SeamStitch(int apiVersion, EventHandler handler, SeamStitch basis) : this(apiVersion, handler, basis.index, basis.vertID) { }
+            public SeamStitch(int apiVersion, EventHandler handler, uint index, ushort vertID)
                 : base(apiVersion, handler)
             {
-                this.unknown1 = unknown1;
-                this.unknown2 = unknown2;
-                this.unknown3 = unknown3;
-                this.unknown4 = unknown4;
-                this.unknown5 = unknown5;
-                this.unknown6 = unknown6;
-                this.unknown7 = unknown7;
-                this.unknown8 = unknown8;
-                this.unknown9 = unknown9;
-                this.unknown10 = unknown10;
-                this.unknown11 = unknown11;
-                this.unknown12 = unknown12;
-                this.unknown13 = unknown13;
-                this.unknown14 = unknown14;
-                this.unknown15 = unknown15;
-                this.unknown16 = unknown16;
-                this.unknown17 = unknown17;
-                this.unknown18 = unknown18;
+                this.index = index;
+                this.vertID = vertID;
             }
 
             private void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
-                unknown1 = r.ReadUInt32();
-                unknown2 = r.ReadUInt16();
-                unknown3 = r.ReadUInt16();
-                unknown4 = r.ReadUInt16();
-                unknown5 = r.ReadSingle();
-                unknown6 = r.ReadSingle();
-                unknown7 = r.ReadSingle();
-                unknown8 = r.ReadSingle();
-                unknown9 = r.ReadSingle();
-                unknown10 = r.ReadSingle();
-                unknown11 = r.ReadSingle();
-                unknown12 = r.ReadSingle();
-                unknown13 = r.ReadSingle();
-                unknown14 = r.ReadSingle();
-                unknown15 = r.ReadSingle();
-                unknown16 = r.ReadSingle();
-                unknown17 = r.ReadSingle();
-                unknown18 = r.ReadByte();
+                index = r.ReadUInt32();
+                vertID = r.ReadUInt16();
             }
             internal void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write(unknown1);
-                w.Write(unknown2);
-                w.Write(unknown3);
-                w.Write(unknown4);
-                w.Write(unknown5);
-                w.Write(unknown6);
-                w.Write(unknown7);
-                w.Write(unknown8);
-                w.Write(unknown9);
-                w.Write(unknown10);
-                w.Write(unknown11);
-                w.Write(unknown12);
-                w.Write(unknown13);
-                w.Write(unknown14);
-                w.Write(unknown15);
-                w.Write(unknown16);
-                w.Write(unknown17);
-                w.Write(unknown18);
+                w.Write(index);
+                w.Write(vertID);
             }
 
             #region AHandlerElement
@@ -1209,82 +1105,179 @@ namespace meshExpImp.ModelBlocks
             public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
             #endregion
 
-            #region IEquatable<UnknownThing>
-            public bool Equals(UnknownThing2 other)
+            #region IEquatable<SeamStitch>
+            public bool Equals(SeamStitch other)
             {
-                return this.unknown1.Equals(other.unknown1)
-                    && this.unknown2.Equals(other.unknown2)
-                    && this.unknown3.Equals(other.unknown3)
-                    && this.unknown4.Equals(other.unknown4)
-                    && this.unknown5.Equals(other.unknown5)
-                    && this.unknown6.Equals(other.unknown6)
-                    && this.unknown7.Equals(other.unknown7)
-                    && this.unknown8.Equals(other.unknown8)
-                    && this.unknown9.Equals(other.unknown9)
-                    && this.unknown10.Equals(other.unknown10)
-                    && this.unknown11.Equals(other.unknown11)
-                    && this.unknown12.Equals(other.unknown12)
-                    && this.unknown13.Equals(other.unknown13)
-                    && this.unknown14.Equals(other.unknown14)
-                    && this.unknown15.Equals(other.unknown15)
-                    && this.unknown16.Equals(other.unknown16)
-                    && this.unknown17.Equals(other.unknown17)
-                    && this.unknown18.Equals(other.unknown18);
+                return (this.index == other.index) && (this.vertID == other.vertID);
             }
 
-            public override bool Equals(object obj) { return obj is UnknownThing2 && Equals(obj as UnknownThing2); }
+            public override bool Equals(object obj) { return obj is SeamStitch && Equals(obj as SeamStitch); }
 
-            public override int GetHashCode() { return unknown1.GetHashCode() ^ unknown2.GetHashCode() ^ unknown3.GetHashCode() ^ unknown4.GetHashCode() ^ unknown5.GetHashCode(); }
+            public override int GetHashCode() { return index.GetHashCode() ^ vertID.GetHashCode(); }
             #endregion
             [ElementPriority(1)]
-            public uint Unknown1 { get { return unknown1; } set { if (unknown1 != value) { unknown1 = value; OnElementChanged(); } } }
+            public uint Index { get { return index; } set { if (index != value) { index = value; OnElementChanged(); } } }
             [ElementPriority(2)]
-            public ushort Unknown2 { get { return unknown2; } set { if (unknown2 != value) { unknown2 = value; OnElementChanged(); } } }
-            [ElementPriority(3)]
-            public ushort Unknown3 { get { return unknown3; } set { if (unknown3 != value) { unknown3 = value; OnElementChanged(); } } }
-            [ElementPriority(4)]
-            public ushort Unknown4 { get { return unknown4; } set { if (unknown4 != value) { unknown4 = value; OnElementChanged(); } } }
-            [ElementPriority(5)]
-            public float Unknown5 { get { return unknown5; } set { if (unknown5 != value) { unknown5 = value; OnElementChanged(); } } }
-            [ElementPriority(6)]
-            public float Unknown6 { get { return unknown6; } set { if (unknown6 != value) { unknown6 = value; OnElementChanged(); } } }
-            [ElementPriority(7)]
-            public float Unknown7 { get { return unknown7; } set { if (unknown7 != value) { unknown7 = value; OnElementChanged(); } } }
-            [ElementPriority(8)]
-            public float Unknown8 { get { return unknown8; } set { if (unknown8 != value) { unknown8 = value; OnElementChanged(); } } }
-            [ElementPriority(9)]
-            public float Unknown9 { get { return unknown9; } set { if (unknown9 != value) { unknown9 = value; OnElementChanged(); } } }
-            [ElementPriority(10)]
-            public float Unknown10 { get { return unknown10; } set { if (unknown10 != value) { unknown10 = value; OnElementChanged(); } } }
-            [ElementPriority(11)]
-            public float Unknown11 { get { return unknown11; } set { if (unknown11 != value) { unknown11 = value; OnElementChanged(); } } }
-            [ElementPriority(12)]
-            public float Unknown12 { get { return unknown12; } set { if (unknown12 != value) { unknown12 = value; OnElementChanged(); } } }
-            [ElementPriority(13)]
-            public float Unknown13 { get { return unknown13; } set { if (unknown13 != value) { unknown13 = value; OnElementChanged(); } } }
-            [ElementPriority(14)]
-            public float Unknown14 { get { return unknown14; } set { if (unknown14 != value) { unknown14 = value; OnElementChanged(); } } }
-            [ElementPriority(15)]
-            public float Unknown15 { get { return unknown15; } set { if (unknown15 != value) { unknown15 = value; OnElementChanged(); } } }
-            [ElementPriority(16)]
-            public float Unknown16 { get { return unknown16; } set { if (unknown16 != value) { unknown16 = value; OnElementChanged(); } } }
-            [ElementPriority(17)]
-            public float Unknown17 { get { return unknown17; } set { if (unknown17 != value) { unknown17 = value; OnElementChanged(); } } }
-            [ElementPriority(18)]
-            public byte Unknown18 { get { return unknown18; } set { if (unknown18 != value) { unknown18 = value; OnElementChanged(); } } }
+            public ushort VertexID { get { return vertID; } set { if (!vertID.Equals(value)) { vertID = value; OnElementChanged(); } } }
 
             public string Value { get { return ValueBuilder; } }
         }
-        public class UnknownThing2List : DependentList<UnknownThing2>
+        public class SeamStitchList : DependentList<SeamStitch>
         {
             #region Constructors
-            public UnknownThing2List(EventHandler handler) : base(handler) { }
-            public UnknownThing2List(EventHandler handler, Stream s) : base(handler, s) { }
-            public UnknownThing2List(EventHandler handler, IEnumerable<UnknownThing2> le) : base(handler, le) { }
+            public SeamStitchList(EventHandler handler) : base(handler) { }
+            public SeamStitchList(EventHandler handler, Stream s) : base(handler, s) { }
+            public SeamStitchList(EventHandler handler, IEnumerable<SeamStitch> le) : base(handler, le) { }
             #endregion
 
-            protected override UnknownThing2 CreateElement(Stream s) { return new UnknownThing2(0, elementHandler, s); }
-            protected override void WriteElement(Stream s, UnknownThing2 element) { element.UnParse(s); }
+            protected override SeamStitch CreateElement(Stream s) { return new SeamStitch(0, elementHandler, s); }
+            protected override void WriteElement(Stream s, SeamStitch element) { element.UnParse(s); }
+        }
+
+        public class SlotrayIntersection : AHandlerElement, IEquatable<SlotrayIntersection>
+        {
+            const int recommendedApiVersion = 1;
+            // const int unk5size = 53;//bytes;
+            // Sizes found: 53 (common), 245
+
+            #region Attributes
+            uint slotIndex;
+            ushort[] indices;
+            float[] coordinates;
+            float distance;
+            Vector3 offsetFromIntersectionOS;
+            Vector3 slotAveragePosOS;
+            Quaternion transformToLS;
+            byte pivotBoneIdx;
+            #endregion
+
+            public SlotrayIntersection(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
+            public SlotrayIntersection(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
+            public SlotrayIntersection(int apiVersion, EventHandler handler, SlotrayIntersection basis)
+                : this(apiVersion, handler, basis.slotIndex,
+                basis.indices, basis.coordinates,
+                basis.distance, basis.offsetFromIntersectionOS,
+                basis.slotAveragePosOS, 
+                basis.transformToLS, basis.pivotBoneIdx) { }
+            public SlotrayIntersection(int apiVersion, EventHandler handler, uint slotIndex,
+                ushort[] indices, float[] coordinates,
+                float distance, Vector3 offsetFromIntersectionOS,
+                Vector3 slotAveragePosOS,
+                Quaternion transformToLS, byte pivotBoneIdx)
+                : base(apiVersion, handler)
+            {
+                this.slotIndex = slotIndex;
+                this.indices = new ushort[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    this.indices[i] = indices[i];
+                }
+                this.coordinates = new float[2];
+                for (int i = 0; i < 2; i++)
+                {
+                    this.coordinates[i] = coordinates[i];
+                }
+                this.distance = distance;
+                this.offsetFromIntersectionOS = new Vector3(apiVersion, this.handler, offsetFromIntersectionOS);
+                this.slotAveragePosOS = new Vector3(apiVersion, this.handler, slotAveragePosOS);
+                this.transformToLS = new Quaternion(apiVersion, this.handler, transformToLS);
+                this.pivotBoneIdx = pivotBoneIdx;
+            }
+
+            private void Parse(Stream s)
+            {
+                BinaryReader r = new BinaryReader(s);
+                slotIndex = r.ReadUInt32();
+                indices = new ushort[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    indices[i] = r.ReadUInt16();
+                }
+                coordinates = new float[2];
+                for (int i = 0; i < 2; i++)
+                {
+                    coordinates[i] = r.ReadSingle();
+                }
+                distance = r.ReadSingle();
+                offsetFromIntersectionOS = new Vector3(this.RecommendedApiVersion, this.handler, s);
+                slotAveragePosOS = new Vector3(this.RecommendedApiVersion, this.handler, s);
+                transformToLS = new Quaternion(this.RecommendedApiVersion, this.handler, s);
+                pivotBoneIdx = r.ReadByte();
+            }
+            internal void UnParse(Stream s)
+            {
+                BinaryWriter w = new BinaryWriter(s);
+                w.Write(slotIndex);
+                if (indices == null) indices = new ushort[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    w.Write(indices[i]);
+                }
+                if (coordinates == null) coordinates = new float[2];
+                for (int i = 0; i < 2; i++)
+                {
+                    w.Write(coordinates[i]);
+                }
+                w.Write(distance);
+                offsetFromIntersectionOS.UnParse(s);
+                slotAveragePosOS.UnParse(s);
+                transformToLS.UnParse(s);
+                w.Write(pivotBoneIdx);
+            }
+
+            #region AHandlerElement
+            // public override UnknownThing Clone(EventHandler handler) { return new UnknownThing(requestedApiVersion, handler, this); }
+            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
+            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+            #endregion
+
+            #region IEquatable<SlotrayIntersection>
+            public bool Equals(SlotrayIntersection other)
+            {
+                return this.slotIndex.Equals(other.slotIndex)
+                    && this.indices.Equals(other.indices)
+                    && this.coordinates.Equals(other.coordinates)
+                    && this.distance.Equals(other.distance)
+                    && this.offsetFromIntersectionOS.Equals(other.offsetFromIntersectionOS)
+                    && this.slotAveragePosOS.Equals(other.slotAveragePosOS)
+                    && this.transformToLS.Equals(other.transformToLS)
+                    && this.pivotBoneIdx.Equals(other.pivotBoneIdx);
+            }
+
+            public override bool Equals(object obj) { return obj is SlotrayIntersection && Equals(obj as SlotrayIntersection); }
+
+            public override int GetHashCode() { return slotIndex.GetHashCode() ^ indices.GetHashCode() ^ coordinates.GetHashCode() ^ distance.GetHashCode() ^
+                offsetFromIntersectionOS.GetHashCode() ^ slotAveragePosOS.GetHashCode() ^ transformToLS.GetHashCode() ^ pivotBoneIdx.GetHashCode(); }
+            #endregion
+            [ElementPriority(1)]
+            public uint SlotIndex { get { return slotIndex; } set { if (slotIndex != value) { slotIndex = value; OnElementChanged(); } } }
+            [ElementPriority(2)]
+            public ushort[] FacePointIndices { get { return indices; } set { if (indices != value) { indices = value; OnElementChanged(); } } }
+            [ElementPriority(5)]
+            public float[] IntersectionCoordinates { get { return coordinates; } set { if (coordinates != value) { coordinates = value; OnElementChanged(); } } }
+            [ElementPriority(7)]
+            public float Distance { get { return distance; } set { if (distance != value) { distance = value; OnElementChanged(); } } }
+            [ElementPriority(8)]
+            public Vector3 OffsetFromIntersectionInObjectSpace { get { return offsetFromIntersectionOS; } set { if (offsetFromIntersectionOS != value) { offsetFromIntersectionOS = value; OnElementChanged(); } } }
+            [ElementPriority(11)]
+            public Vector3 SlotAveragePositionInObjectSpace { get { return slotAveragePosOS; } set { if (slotAveragePosOS != value) { slotAveragePosOS = value; OnElementChanged(); } } }
+            [ElementPriority(14)]
+            public Quaternion TransformToLocalSpace { get { return transformToLS; } set { if (transformToLS != value) { transformToLS = value; OnElementChanged(); } } }
+            [ElementPriority(18)]
+            public byte PivotBoneIndex { get { return pivotBoneIdx; } set { if (pivotBoneIdx != value) { pivotBoneIdx = value; OnElementChanged(); } } }
+
+            public string Value { get { return ValueBuilder; } }
+        }
+        public class SlotrayIntersectionList : DependentList<SlotrayIntersection>
+        {
+            #region Constructors
+            public SlotrayIntersectionList(EventHandler handler) : base(handler) { }
+            public SlotrayIntersectionList(EventHandler handler, Stream s) : base(handler, s) { }
+            public SlotrayIntersectionList(EventHandler handler, IEnumerable<SlotrayIntersection> le) : base(handler, le) { }
+            #endregion
+
+            protected override SlotrayIntersection CreateElement(Stream s) { return new SlotrayIntersection(0, elementHandler, s); }
+            protected override void WriteElement(Stream s, SlotrayIntersection element) { element.UnParse(s); }
         }
         #endregion
 
@@ -1332,9 +1325,11 @@ namespace meshExpImp.ModelBlocks
         [ElementPriority(19), TGIBlockListContentField("TGIBlocks")]
         public int SkinIndex { get { return skinIndex; } set { if (skinIndex != value) { skinIndex = value; OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(19)]
-        public UnknownThingList UnknownThings { get { return unknownThings; } set { if (!unknownThings.Equals(value)) { unknownThings = value == null ? null : new UnknownThingList(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
+        public UVStitchList UVStitchData { get { return uvStitchList; } set { if (!uvStitchList.Equals(value)) { uvStitchList = value == null ? null : new UVStitchList(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(20)]
-        public UnknownThing2List UnknownThings2 { get { return unknownThings2; } set { if (!unknownThings2.Equals(value)) { unknownThings2 = value == null ? null : new UnknownThing2List(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
+        public SeamStitchList SeamStitchData { get { return seamStitchList; } set { if (!seamStitchList.Equals(value)) { seamStitchList = value == null ? null : new SeamStitchList(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
+        [ElementPriority(20)]
+        public SlotrayIntersectionList SlotrayIntersectionData { get { return slotrayIntersectionList; } set { if (!slotrayIntersectionList.Equals(value)) { slotrayIntersectionList = value == null ? null : new SlotrayIntersectionList(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(21)]
         public UIntList BoneHashes
         {
@@ -1358,6 +1353,27 @@ namespace meshExpImp.ModelBlocks
         }
 
         public string Value { get { return ValueBuilder; } }
+
+        public override List<string> ContentFields
+        {
+            get
+            {
+                List<string> res = base.ContentFields;
+                if (shader == 0)
+                    res.Remove("Mtnf");
+                if (version < 0x0000000C)
+                {
+                    res.Remove("UVStitchData");
+                    res.Remove("SlotrayIntersectionData");
+                }
+                else
+                {
+                    res.Remove("SkinIndex");
+                }
+                if (version < 0x0000000D) res.Remove("SeamStitchData");
+                return res;
+            }
+        }
         #endregion
     }
 }

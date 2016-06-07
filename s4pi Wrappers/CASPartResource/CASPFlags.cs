@@ -31,12 +31,20 @@ namespace CASPartResource
     [Flags]
     public enum ParmFlag : byte
     {
+        DisableForOppositeGender = 1 << 7,
+        AllowForLiveRandom = 1 << 6,
         ShowInCASDemo = 1 << 5,
-        ShowInSimInfoDemo = 1 << 4,
+        ShowInSimInfoPanel = 1 << 4,
         ShowInUI = 1 << 3,
-        AllowForRandom = 1 << 2,
+        AllowForCASRandom = 1 << 2,
         DefaultThumbnailPart = 1 << 1,
-        DefaultForBodyType = 1
+    }
+    [Flags]
+    public enum ParmFlag2 : byte
+    {
+        DefaultForBodyTypeFemale = 1 << 2,
+        DefaultForBodyTypeMale = 1 << 1,
+        DisableForOppositeFrame = 1
     }
 
     [Flags]
