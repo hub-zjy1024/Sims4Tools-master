@@ -38,6 +38,7 @@ namespace CASPartResource
         ShowInUI = 1 << 3,
         AllowForCASRandom = 1 << 2,
         DefaultThumbnailPart = 1 << 1,
+        DefaultForBodyTypeDeprecated = 1
     }
     [Flags]
     public enum ParmFlag2 : byte
