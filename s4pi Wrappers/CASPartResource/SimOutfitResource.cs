@@ -56,7 +56,7 @@ namespace CASPartResource
         private SliderReferenceList sliderReferences1;
         private SliderReferenceList sliderReferences2;
         private DataBlobHandler unknown10;
-        private UnknownBlockList unknown11;
+        private UnknownBlockList CasPartList;
 
         private SliderReferenceList sliderReferences3;
         private SliderReferenceList sliderReferences4;
@@ -111,7 +111,7 @@ namespace CASPartResource
             sliderReferences2 = new SliderReferenceList(OnResourceChanged, s, tgiList);
 
             this.unknown10 = new DataBlobHandler(RecommendedApiVersion, OnResourceChanged, r.ReadBytes(24));
-            this.unknown11 = new UnknownBlockList(OnResourceChanged, s, this.tgiList);
+            this.CasPartList = new UnknownBlockList(OnResourceChanged, s, this.tgiList);
 
             this.unknownByteList = new SimpleList<byte>(OnResourceChanged);
             int count1 = r.ReadByte();
@@ -162,7 +162,7 @@ namespace CASPartResource
             sliderReferences1.UnParse(ms);
             sliderReferences2.UnParse(ms);
             unknown10.UnParse(ms);
-            this.unknown11.UnParse(ms);
+            this.CasPartList.UnParse(ms);
 
             w.Write((byte)this.unknownByteList.Count);
             foreach (var i in this.unknownByteList) w.Write(i);
@@ -303,20 +303,20 @@ namespace CASPartResource
             public UnknownReference2(int apiVersion, EventHandler handler, CountedTGIBlockList tgiList) : base(apiVersion, handler) { this.ParentTGIList = tgiList; }
             public UnknownReference2(int apiVersion, EventHandler handler, Stream s, CountedTGIBlockList tgiList) : base(apiVersion, handler) { this.ParentTGIList = tgiList; Parse(s); }
             private byte index;
-            private uint referenceValue;
+            private BodyType bodyType; 
 
             public void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
                 this.index = r.ReadByte();
-                this.referenceValue = r.ReadUInt32();
+                this.bodyType = (BodyType) r.ReadUInt32();
             }
 
             public void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write(this.index);
-                w.Write(this.referenceValue);
+                w.Write((uint)this.bodyType);
             }
 
             const int recommendedApiVersion = 1;
@@ -325,13 +325,13 @@ namespace CASPartResource
             [ElementPriority(0), TGIBlockListContentField("ParentTGIList")]
             public byte TGIReference { get { return this.index; } set { if (!this.index.Equals(value)) { this.index = value; } } }
             [ElementPriority(1)]
-            public uint ReferenceValue { get { return this.referenceValue; } set { if (!this.referenceValue.Equals(value)) { this.referenceValue = value; } } }
+            public BodyType CASP_BodyType { get { return this.bodyType; } set { if (!this.bodyType.Equals(value)) { this.bodyType = value; } } }
             public string Value { get { return ValueBuilder; } }
 
             #region IEquatable
             public bool Equals(UnknownReference2 other)
             {
-                return this.index == other.index && this.referenceValue == other.referenceValue;
+                return this.index == other.index && this.bodyType == other.bodyType;
             }
             #endregion
         }
@@ -513,7 +513,7 @@ namespace CASPartResource
         [ElementPriority(18)]
         public DataBlobHandler Unknown10 { get { return this.unknown10; } set { if (!this.unknown10.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown10 = value; } } }
         [ElementPriority(19)]
-        public UnknownBlockList Unknown11 { get { return this.unknown11; } set { if (!this.unknown11.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown11 = value; } } }
+        public UnknownBlockList CASPartList { get { return this.CasPartList; } set { if (!this.CasPartList.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.CasPartList = value; } } }
         [ElementPriority(20)]
         public SliderReferenceList SliderReferences3 { get { return this.sliderReferences3; } set { if (!this.sliderReferences3.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.sliderReferences3 = value; } } }
         [ElementPriority(21)]
@@ -521,7 +521,7 @@ namespace CASPartResource
         [ElementPriority(22)]
         public DataBlobHandler Unknown12 { get { return this.unknown12; } set { if (!this.unknown12.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown12 = value; } } }
         [ElementPriority(23)]
-        public SliderReferenceList SliderReferences5 { get { return this.sliderReferences5; } set { if (!this.sliderReferences5.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.sliderReferences5 = value; } } }
+        public SliderReferenceList CASPReferences { get { return this.sliderReferences5; } set { if (!this.sliderReferences5.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.sliderReferences5 = value; } } }
         [ElementPriority(24)]
         public DataBlobHandler Unknown13 { get { return this.unknown13; } set { if (!this.unknown13.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown13 = value; } } }
         [ElementPriority(25)]
