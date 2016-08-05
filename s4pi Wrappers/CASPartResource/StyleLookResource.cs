@@ -78,7 +78,15 @@ namespace CASPartResource
             this.animationReference2 = r.ReadUInt64();
             this.animationStateName2 = System.Text.Encoding.ASCII.GetString(r.ReadBytes(r.ReadInt32()));
             this.colorList = new SwatchColorList(OnResourceChanged, s);
-            this.flagList = new FlagList(OnResourceChanged, s);
+            if (this.version > 0x0A)
+            {
+                this.flagList = new FlagList(this.OnResourceChanged, s);
+            }
+            else
+            {
+                this.flagList = FlagList.CreateWithUInt16Flags(this.OnResourceChanged, s, recommendedApiVersion);
+            }
+
         }
 
         protected override Stream UnParse()
@@ -105,7 +113,14 @@ namespace CASPartResource
             if (this.colorList == null) this.colorList = new SwatchColorList(OnResourceChanged);
             this.colorList.UnParse(ms);
             if (this.flagList == null) this.flagList = new FlagList(OnResourceChanged);
-            this.flagList.UnParse(ms);
+            if (this.version > 6)
+            {
+                this.flagList.UnParse(ms);
+            }
+            else
+            {
+                this.flagList.WriteUInt16Flags(ms);
+            }
             ms.Position = 0;
             return ms;
         }
