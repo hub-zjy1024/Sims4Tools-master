@@ -41,6 +41,7 @@
     <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BGEO.cs" />
     <Compile Include="Common\Matrix43.cs" />
     <Compile Include="Common\UByte4.cs" />
     <Compile Include="Common\Vector2.cs">
