@@ -2,20 +2,20 @@
  *  Copyright (C) 2009, 2010 by Peter L Jones                              *
  *  pljones@users.sf.net                                                   *
  *                                                                         *
- *  This file is part of the Sims 3 Package Interface (s3pi)               *
+ *  This file is part of the Sims 4 Package Interface (s4pi)               *
  *                                                                         *
  *  s3pi is free software: you can redistribute it and/or modify           *
  *  it under the terms of the GNU General Public License as published by   *
  *  the Free Software Foundation, either version 3 of the License, or      *
  *  (at your option) any later version.                                    *
  *                                                                         *
- *  s3pi is distributed in the hope that it will be useful,                *
+ *  s4pi is distributed in the hope that it will be useful,                *
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of         *
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
  *  GNU General Public License for more details.                           *
  *                                                                         *
  *  You should have received a copy of the GNU General Public License      *
- *  along with s3pi.  If not, see <http://www.gnu.org/licenses/>.          *
+ *  along with s4pi.  If not, see <http://www.gnu.org/licenses/>.          *
  ***************************************************************************/
 using System;
 using System.Collections.Generic;
@@ -206,6 +206,15 @@ namespace System.Windows.Forms
         /// </remarks>
         [DefaultValue(true), Description("If true, use DXT-type image compression for storage.  The mode will depend on the AlphaDepth.")]
         public bool UseDXT { get { return loaded && ddsFile.UseDXT; } set { if (loaded) { ddsFile.UseDXT = value; pictureBox1.Image = doResize(); } } }
+
+        /// <summary>
+        /// If true, use ATI-type image compression for storage.  The mode will depend on the <see cref="AlphaDepth"/>.
+        /// </summary>
+        /// <remarks>
+        /// Setting to false (from true) will default to A8B8G8R8 format.
+        /// </remarks>
+        [DefaultValue(false), Description("If true, use ATI-type image compression for storage.  The mode will depend on the ATI level.")]
+        public bool UseATI { get { return loaded && ddsFile.UseATI; } }
 
         /// <summary>
         /// If true, treat the image as a luminance (plus alpha) map for storage.
@@ -982,7 +991,7 @@ namespace System.Windows.Forms
             {
                 tlpSize.Visible = true;
                 lbSize.Text = image.Size.Width + ", " + image.Size.Height;
-                lbDDSFmt.Text = UseDXT ? "DXT: " + AlphaDepth : "Non-DXT";
+                lbDDSFmt.Text = (UseDXT ? "DXT" + AlphaDepth : (UseATI ? "ATI" + ddsFile.AtiMode : "Uncompressed")) + "   MipMaps: " + ddsFile.MipMaps;
             }
             else tlpSize.Visible = false;
 

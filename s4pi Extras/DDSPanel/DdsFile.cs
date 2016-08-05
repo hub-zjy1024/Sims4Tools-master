@@ -2,20 +2,20 @@
  *  Copyright (C) 2009, 2010 by Peter L Jones                              *
  *  pljones@users.sf.net                                                   *
  *                                                                         *
- *  This file is part of the Sims 3 Package Interface (s3pi)               *
+ *  This file is part of the Sims 3 Package Interface (s4pi)               *
  *                                                                         *
- *  s3pi is free software: you can redistribute it and/or modify           *
+ *  s4pi is free software: you can redistribute it and/or modify           *
  *  it under the terms of the GNU General Public License as published by   *
  *  the Free Software Foundation, either version 3 of the License, or      *
  *  (at your option) any later version.                                    *
  *                                                                         *
- *  s3pi is distributed in the hope that it will be useful,                *
+ *  s4pi is distributed in the hope that it will be useful,                *
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of         *
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
  *  GNU General Public License for more details.                           *
  *                                                                         *
  *  You should have received a copy of the GNU General Public License      *
- *  along with s3pi.  If not, see <http://www.gnu.org/licenses/>.          *
+ *  along with s4pi.  If not, see <http://www.gnu.org/licenses/>.          *
  ***************************************************************************/
 using System;
 using System.Collections.Generic;
@@ -60,12 +60,14 @@ namespace System.Drawing
                     dxt1 = 0x31545844,
                     dxt3 = 0x33545844,
                     dxt5 = 0x35545844,
+                    ati1 = 0x31495441,
+                    ati2 = 0x32495441
                 }
 
                 enum PFFourCCBlockSize8 : uint
                 {
                     dxt1 = 0x31545844,
-                    // bc1 and bc4 not supported
+                    ati1 = 0x31495441
                 }
 
                 uint size;//76
@@ -99,6 +101,14 @@ namespace System.Drawing
                         case DdsFormat.DXT5:
                             flags |= PFFlags.fourCC;
                             fourCC = PFFourCC.dxt5;
+                            break;
+                        case DdsFormat.ATI1:
+                            flags |= PFFlags.fourCC;
+                            fourCC = PFFourCC.ati1;
+                            break;
+                        case DdsFormat.ATI2:
+                            flags |= PFFlags.fourCC;
+                            fourCC = PFFourCC.ati2;
                             break;
                         case DdsFormat.A8L8:
                             flags |= PFFlags.luminence | PFFlags.alphaPixels;
@@ -198,7 +208,7 @@ namespace System.Drawing
                     {
                         if (!Enum.IsDefined(typeof(PFFourCC), fourCC))
                             throw new NotSupportedException(String.Format(
-                                "Unsupported DDS Pixel Format Four CC.  Got 0x{0:8}, only DXT1/3/5 supported."
+                                "Unsupported DDS Pixel Format Four CC.  Got 0x{0:8}, only DXT1/3/5 and ATI1/2 supported."
                                 , (uint)fourCC
                                 )
                             );
@@ -363,13 +373,15 @@ namespace System.Drawing
                     {
                         // OK, we make the presumption nothing has gone wrong.
 
-                        // Is it DXTn?
+                        // Is it DXTn or ATIn?
                         if ((flags & PFFlags.fourCC) != 0)
                             switch (fourCC)
                             {
                                 case PFFourCC.dxt1: return DdsFormat.DXT1;
                                 case PFFourCC.dxt3: return DdsFormat.DXT3;
                                 case PFFourCC.dxt5: return DdsFormat.DXT5;
+                                case PFFourCC.ati1: return DdsFormat.ATI1;
+                                case PFFourCC.ati2: return DdsFormat.ATI2;
                             }
 
                         // Is it a (supported) Luminance map?
@@ -721,8 +733,8 @@ namespace System.Drawing
                         , numMipMaps
                         , s.Position
                         ));
-                    flags &= ~DdsFlags.mipMapCount;
-                    numMipMaps = 1;
+                  //  flags &= ~DdsFlags.mipMapCount;
+                 //   numMipMaps = 1;
                 }
                 if ((flags & DdsFlags.mipMapCount) != 0 || numMipMaps == 0)
                 {
@@ -732,8 +744,8 @@ namespace System.Drawing
                         , numMipMaps
                         , s.Position
                         ));
-                    flags &= ~DdsFlags.mipMapCount;
-                    numMipMaps = 1;
+                 //   flags &= ~DdsFlags.mipMapCount;
+                 //   numMipMaps = 1;
                 }
 
                 for (int i = 0; i < reserved1.Length; i++) reserved1[i] = r.ReadUInt32();
@@ -824,6 +836,8 @@ namespace System.Drawing
 
             public uint DataSize { get { return IsBlockCompressed ? CompressedSize : UncompressedSize; } }
 
+            public uint NumMipMaps { get { return this.numMipMaps; } }
+
             uint CompressedSize
             {
                 get
@@ -892,6 +906,8 @@ namespace System.Drawing
             DXT1,
             DXT3,
             DXT5,
+            ATI1,
+            ATI2,
             A8R8G8B8,
             X8R8G8B8,
             A8B8G8R8,
@@ -907,6 +923,7 @@ namespace System.Drawing
         #region Attributes
         DdsHeader header;
         uint[] baseImage; //ARGB uint array
+        public uint NumMipMaps { get { return this.header.NumMipMaps; } }
         #endregion
 
         public Dds(DdsFormat ddsFormat, int width, int height, uint[] imageData)
@@ -933,7 +950,15 @@ namespace System.Drawing
             if (header.IsBlockCompressed)
             {
                 // Decompress
-                byte[] pixelData = DdsSquish.DecompressImage(buffer, (int)header.width, (int)header.height, header.SquishFourCC);
+                byte[] pixelData = new byte[0];
+                if (header.FileFormat == DdsFormat.ATI1 || header.FileFormat == DdsFormat.ATI2)
+                {
+                    pixelData = DdsSquash.DecompressImage(buffer, (int)header.width, (int)header.height, header.FileFormat);
+                }
+                else
+                {
+                    pixelData = DdsSquish.DecompressImage(buffer, (int)header.width, (int)header.height, header.SquishFourCC);
+                }
 
                 // Convert R, G, B, A byte array to ARGB uint array...
                 baseImage = new uint[pixelData.Length / sizeof(uint)];
@@ -982,7 +1007,14 @@ namespace System.Drawing
                     .ForAll(i => Array.Copy(BitConverter.GetBytes(encoder(baseImage[i])), 0, pixelData, i * sizeof(uint), sizeof(uint)));
 
                 // Compress
-                buffer = DdsSquish.CompressImage(pixelData, (int)header.width, (int)header.height, header.SquishFourCC);
+                if (header.FileFormat == DdsFormat.ATI1 || header.FileFormat == DdsFormat.ATI2)
+                {
+                    buffer = buffer = DdsSquash.CompressImage(pixelData, (int)header.width, (int)header.height, header.FileFormat);
+                }
+                else
+                {
+                    buffer = DdsSquish.CompressImage(pixelData, (int)header.width, (int)header.height, header.SquishFourCC);
+                }
                 if (buffer.Length != header.DataSize)
                     throw new Exception(String.Format("DdsSquish returned an unexpected buffer size, 0x{0:X8}.  Expected 0x{1:X8}", buffer.Length, header.DataSize));
             }
@@ -1035,9 +1067,12 @@ namespace System.Drawing
         #region Attributes
         int width = 0;
         int height = 0;
-        bool useBlockCompression = false;
+        bool useDXTCompression = false;
+        bool useATICompression = false;
         bool useLuminence = false;
         int alphaDepth = 0;
+        int atiMode = 0;
+        uint numMipMaps = 1;
 
         // ARGB data as extracted from the DDS resource
         uint[] baseImage = null;
@@ -1110,9 +1145,11 @@ namespace System.Drawing
         {
             this.width = width;
             this.height = height;
-            this.useBlockCompression = true;
+            this.useDXTCompression = true;
+            this.useATICompression = false;
             this.useLuminence = false;
             this.alphaDepth = 5;
+            this.atiMode = 0;
 
             // SetPixels operates on currentImage, so create this...
             this.currentImage = new uint[width * height];
@@ -1134,9 +1171,11 @@ namespace System.Drawing
         {
             this.width = image.width;
             this.height = image.height;
-            this.useBlockCompression = image.useBlockCompression;
+            this.useDXTCompression = image.useDXTCompression;
+            this.useATICompression = image.useATICompression;
             this.useLuminence = image.useLuminence;
             this.alphaDepth = image.alphaDepth;
+            this.atiMode = image.atiMode;
 
             this.baseImage = (uint[])image.currentImage.Clone();
 
@@ -1156,9 +1195,11 @@ namespace System.Drawing
         {
             this.width = width;
             this.height = height;
-            this.useBlockCompression = image.useBlockCompression;
+            this.useDXTCompression = image.useDXTCompression;
+            this.useATICompression = image.useATICompression;
             this.useLuminence = image.useLuminence;
             this.alphaDepth = image.alphaDepth;
+            this.atiMode = image.atiMode;
 
             if (this.useLuminence)
             {
@@ -1218,9 +1259,11 @@ namespace System.Drawing
         {
             this.width = image.Width;
             this.height = image.Height;
-            this.useBlockCompression = true;
+            this.useDXTCompression = true;
+            this.useATICompression = false;
             this.useLuminence = false;
             this.alphaDepth = 5;
+            this.atiMode = 0;
 
             this.baseImage = image.ToARGBData();
 
@@ -1259,16 +1302,21 @@ namespace System.Drawing
 
             width = dds.Width;
             height = dds.Height;
-            useBlockCompression = false;
+            useDXTCompression = false;
+            useATICompression = false;
             useLuminence = false;
             alphaDepth = 0;
+            atiMode = 0;
+            numMipMaps = dds.NumMipMaps;
 
             Dds.DdsFormat fmt = dds.FileFormat;
             switch (fmt)
             {
-                case Dds.DdsFormat.DXT1: useBlockCompression = true; alphaDepth = 1; break;
-                case Dds.DdsFormat.DXT3: useBlockCompression = true; alphaDepth = 3; break;
-                case Dds.DdsFormat.DXT5: useBlockCompression = true; alphaDepth = 5; break;
+                case Dds.DdsFormat.DXT1: useDXTCompression = true; alphaDepth = 1; break;
+                case Dds.DdsFormat.DXT3: useDXTCompression = true; alphaDepth = 3; break;
+                case Dds.DdsFormat.DXT5: useDXTCompression = true; alphaDepth = 5; break;
+                case Dds.DdsFormat.ATI1: useATICompression = true; atiMode = 1; break;
+                case Dds.DdsFormat.ATI2: useATICompression = true; atiMode = 2; break;
                 case Dds.DdsFormat.A8L8: useLuminence = true; alphaDepth = 8; break;
                 case Dds.DdsFormat.A1R5G5B5: alphaDepth = 1; break;
                 case Dds.DdsFormat.A4R4G4B4: alphaDepth = 4; break;
@@ -1289,12 +1337,18 @@ namespace System.Drawing
         public void Save(Stream output)
         {
             Dds.DdsFormat ddsFormat;
-            if (useBlockCompression)
+            if (useDXTCompression)
                 switch (alphaDepth)
                 {
                     case 1: ddsFormat = Dds.DdsFormat.DXT1; break;
                     case 3: ddsFormat = Dds.DdsFormat.DXT3; break;
                     default: ddsFormat = Dds.DdsFormat.DXT5; break;
+                }
+            else if (useATICompression)
+                switch (atiMode)
+                {
+                    case 1: ddsFormat = Dds.DdsFormat.ATI1; break;
+                    default: ddsFormat = Dds.DdsFormat.ATI2; break;
                 }
             else if (useLuminence)
                 ddsFormat = Dds.DdsFormat.A8L8;
@@ -1338,12 +1392,12 @@ namespace System.Drawing
         /// </summary>
         public bool UseDXT
         {
-            get { return useBlockCompression; }
+            get { return useDXTCompression; }
             set
             {
-                if (value == useBlockCompression) return;
+                if (value == useDXTCompression) return;
 
-                useBlockCompression = value;
+                useDXTCompression = value;
 
                 if (value)
                 {
@@ -1353,6 +1407,17 @@ namespace System.Drawing
                 else
                     AlphaDepth = 8;
             }
+        }
+
+        /// <summary>
+        /// If true, use ATI/BC4-5-type image compression for storage.
+        /// The exact format will depend on the <see cref="AtiMode"/>.
+        /// By default, ATI2 compression will be used.
+        /// Setting to false (from true) will default to A8B8G8R8 format.
+        /// </summary>
+        public bool UseATI
+        {
+            get { return this.useATICompression; }
         }
 
         /// <summary>
@@ -1383,6 +1448,25 @@ namespace System.Drawing
         /// Invalid values may cause exceptions at that point.
         /// </remarks>
         public int AlphaDepth { get { return alphaDepth; } set { alphaDepth = value; } }
+
+        /// <summary>
+        /// When UseATI is true, the BC compression mode.
+        /// </summary>
+        /// <remarks>
+        /// Value is used when saving a DDS.
+        /// Invalid values may cause exceptions at that point.
+        /// </remarks>
+        public int AtiMode { get { return atiMode; } set { atiMode = value; } }
+
+        /// <summary>
+        /// Returns the number of mipmaps.
+        /// </summary>
+        /// <remarks>
+        /// Value is used when saving a DDS.
+        /// Invalid values may cause exceptions at that point.
+        /// </remarks>
+        public uint MipMaps { get { return this.numMipMaps; } }
+
 
         #region Set Alpha channel
         /// <summary>
