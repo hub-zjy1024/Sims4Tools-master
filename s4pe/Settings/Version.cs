@@ -25,6 +25,7 @@
 namespace S4PIDemoFE.Settings
 {
     using System.Reflection;
+    using System.Windows.Forms;
     using s4pi.Interfaces;
 
     public static class Version
@@ -43,6 +44,14 @@ namespace S4PIDemoFE.Settings
 
         private static string VersionFor(Assembly a)
         {
+            string version;
+            System.IO.StreamReader file = new System.IO.StreamReader(Application.StartupPath + @"\version.ini");
+            if ((version = file.ReadLine()) != null)
+            {
+                file.Close();
+                return version;
+            }
+            file.Close();
             return "";
         }
     }

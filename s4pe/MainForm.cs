@@ -2472,24 +2472,25 @@ namespace S4PIDemoFE
         private void HelpAbout()
         {
             string copyright = "\n" +
-                               myName + "Copyright (C) 2010 Peter L Jones, 2014 Keyi Zhang, aka Kuree\n" +
+                               myName + " Copyright (C) 2016 s4pe Working Group\n" +
                                "\n" +
                                "This program comes with ABSOLUTELY NO WARRANTY; for details see Help->Warranty.\n" +
                                "\n" +
                                "This is free software, and you are welcome to redistribute it\n" +
                                "under certain conditions; see Help->Licence for details.\n" +
                                "\n" +
-                               "Special thanks to Peter L Jones, without whose work the program won't be done.\n";
+                               "Special thanks to Peter L Jones, without whose work this program wouldn't exist.\n";
             CopyableMessageBox.Show(string.Format(
                 "{0}\n" +
-                "Front-end Distribution: {1}\n" +
-                "Library Distribution: {2}"
+               // "Front-end Distribution: {1}\n" +
+              //  "Library Distribution: {2}"
+                "Version: {1}\n"
                 ,
                 copyright
                 ,
                 Version.CurrentVersion
-                ,
-                Version.LibraryVersion
+            //    ,
+            //    Version.LibraryVersion
                 ),
                 myName);
         }
