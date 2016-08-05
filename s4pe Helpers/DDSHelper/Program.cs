@@ -48,7 +48,7 @@ namespace DDSHelper
            {
                using (FileStream fs = new FileStream(args[1], FileMode.Open))
                {
-                   using (SaveFileDialog save = new SaveFileDialog() { Filter = "DDS DXT5|*.dds", FileName = Path.GetFileName(args[1]), Title = "Export to DDS" })
+                   using (SaveFileDialog save = new SaveFileDialog() { Filter = "DDS Image|*.dds", FileName = Path.GetFileName(args[1]), Title = "Export to DDS" })
                    {
                        if (save.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                        {
@@ -56,6 +56,7 @@ namespace DDSHelper
                            {
                                DSTResource dst = new DSTResource(1, fs);
                                dst.ToDDS().CopyTo(fs2);
+                              // fs.CopyTo(fs2);
                            }
                        }
                    }
