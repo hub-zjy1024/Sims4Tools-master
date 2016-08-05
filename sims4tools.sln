@@ -1,5 +1,5 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual C# Express 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreateAssemblyVersion", "s4pi\CreateAssemblyVersion\CreateAssemblyVersion.csproj", "{114622FB-D6BF-4EA7-9BB9-FB06B5A01212}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CS System Classes", "CS System Classes\CS System Classes.csproj", "{00200E76-C245-42A7-B567-5C30EDBCE977}"
@@ -98,12 +98,24 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DDSHelper", "s4pe Helpers\DDSHelper\DDSHelper.csproj", "{66FD661F-6ABA-4D20-950B-419C3D51D407}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DMAPImageHelper", "s4pe Helpers\DMAPImageHelper\DMAPImageHelper.csproj", "{1D46AC70-F281-4C1B-9E77-A3B7CE7B19A3}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AD53972B-D73E-4935-A4AD-3EBE0E3516F2} = {AD53972B-D73E-4935-A4AD-3EBE0E3516F2}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RLEDDSHelper", "s4pe Helpers\RLEDDSHelper\RLEDDSHelper.csproj", "{E86710E3-89DD-48E5-9BE2-349FDFDD2D26}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RLESDDSHelper", "s4pe Helpers\RLESDDSHelper\RLESDDSHelper.csproj", "{0E5198FD-098F-4C5D-8007-759E8208B833}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AD53972B-D73E-4935-A4AD-3EBE0E3516F2} = {AD53972B-D73E-4935-A4AD-3EBE0E3516F2}
+		{D9B63641-D3BE-4120-9115-7D67B1238FBF} = {D9B63641-D3BE-4120-9115-7D67B1238FBF}
+		{51023BD2-9139-438D-B794-95E5EC023537} = {51023BD2-9139-438D-B794-95E5EC023537}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThumbnailHelper", "s4pe Helpers\ThumbnailHelper\ThumbnailHelper.csproj", "{EDBE4989-D08B-41A0-BE3C-A68307606DAF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AD53972B-D73E-4935-A4AD-3EBE0E3516F2} = {AD53972B-D73E-4935-A4AD-3EBE0E3516F2}
+		{D9B63641-D3BE-4120-9115-7D67B1238FBF} = {D9B63641-D3BE-4120-9115-7D67B1238FBF}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "s4pi.Commons", "s4pi.Resource.Commons\s4pi.Commons\s4pi.Commons.csproj", "{BDAC59C8-3ABF-439F-9C1C-5112CB22F4AD}"
 EndProject
