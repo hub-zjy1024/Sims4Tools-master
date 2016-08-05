@@ -48,10 +48,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="s4pi.Helpers">
+    <Reference Include="s4pi.Helpers, Version=1608.5.1112.11176, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\bin\Debug\s4pi.Helpers.dll</HintPath>
     </Reference>
-    <Reference Include="s4pi.ImageResource">
+    <Reference Include="s4pi.ImageResource, Version=1608.5.1112.11175, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\bin\Debug\s4pi.ImageResource.dll</HintPath>
     </Reference>
     <Reference Include="System" />
@@ -62,16 +64,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ImportThumb.cs">
+    <Compile Include="Import.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ImportThumb.Designer.cs">
-      <DependentUpon>ImportThumb.cs</DependentUpon>
+    <Compile Include="Import.Designer.cs">
+      <DependentUpon>Import.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="ImportThumb.resx">
-      <DependentUpon>ImportThumb.cs</DependentUpon>
+    <EmbeddedResource Include="Import.resx">
+      <DependentUpon>Import.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -130,7 +132,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>cd $(OutDir)
-move *.helper ..\</PostBuildEvent>
+if exist *.helper move *.helper ..\</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
