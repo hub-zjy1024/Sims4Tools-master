@@ -902,22 +902,27 @@ namespace s4pi.ImageResource
             {
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write(this.size);
-                w.Write((uint)this.headerFlags);
+                w.Write(this.mipCount > 1 ? (uint)this.headerFlags | (uint)HeaderFlags.Mipmap | (uint)HeaderFlags.LinearSize : (uint)this.headerFlags | (uint)HeaderFlags.LinearSize);
                 w.Write(this.Height);
                 w.Write(this.Width);
-                w.Write(this.PitchOrLinearSize);
+                if (this.PitchOrLinearSize > 0)
+                {
+                    w.Write(this.PitchOrLinearSize);
+                }
+                else
+                {
+                    int blockSize = this.pixelFormat.Fourcc == FourCC.DST1 || this.pixelFormat.Fourcc == FourCC.DXT1 || this.pixelFormat.Fourcc == FourCC.ATI1 ? 8 : 16;
+                    w.Write((uint)((Math.Max(1, ((this.Width + 3) / 4)) * blockSize) * (Math.Max(1, (this.Height + 3) / 4)))); //linear size
+                }
                 w.Write(this.Depth);
                 w.Write((uint)this.mipCount);
                 w.Write(this.Reserved1);
                 this.pixelFormat.UnParse(s);
-                w.Write(this.surfaceFlags);
+                w.Write(this.mipCount > 1 ? (uint)DDSCaps.DDSCaps_Complex | (uint)DDSCaps.DDSCaps_Mipmap | (uint)DDSCaps.DDSCaps_Texture : (uint)DDSCaps.DDSCaps_Texture);
                 w.Write(this.cubemapFlags);
                 w.Write(this.reserved2);
             }
         }
-
-        
-
 
         public enum RLEVersion : uint
         {
@@ -931,7 +936,14 @@ namespace s4pi.ImageResource
             Mipmap = 0x00020000, // DDSD_MIPMAPCOUNT
             Volume = 0x00800000, // DDSD_DEPTH
             Pitch = 0x00000008, // DDSD_PITCH
-            LinerSize = 0x00080000, // DDSD_LINEARSIZE
+            LinearSize = 0x00080000, // DDSD_LINEARSIZE
+        }
+
+        public enum DDSCaps : uint
+        {
+            DDSCaps_Complex = 0x8,
+            DDSCaps_Mipmap = 0x400000,
+            DDSCaps_Texture = 0x1000
         }
         
         #endregion
