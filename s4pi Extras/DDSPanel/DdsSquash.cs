@@ -1,5 +1,5 @@
 ﻿/***************************************************************************
- *  Copyright (C) 2009, 2010 by Camille Marinetti                          *
+ *  Copyright (C) 2016 by Camille Marinetti                          *
  *                                                                         *
  *  This file is part of the Sims 4 Package Interface (s4pi)               *
  *                                                                         *
@@ -89,57 +89,116 @@ namespace System.Drawing
 
         internal static byte[] CompressColor(byte[] unCompressedColor)
         {
+            bool bwrange = false;
+
             byte minColor = Byte.MaxValue, maxColor = Byte.MinValue;
             foreach (byte b in unCompressedColor)
             {
                 if (b < minColor) minColor = b;
                 if (b > maxColor) maxColor = b;
             }
-            byte[] color = new byte[8];
-            if (maxColor == minColor)
+
+            int range1 = (maxColor - minColor) / 8;
+
+            if (minColor <= 10 | maxColor >= 245)
             {
-                if (maxColor == 0) maxColor += 8;
-                else if (maxColor == 255) minColor = 247;
-                else maxColor = (byte)Math.Min(minColor + 8, 255);
+                byte minColor2 = Byte.MaxValue, maxColor2 = Byte.MinValue;
+                foreach (byte b in unCompressedColor)
+                {
+                    if (b > 10 && b < minColor2) minColor2 = b;
+                    if (b < 245 && b > maxColor2) maxColor2 = b;
+                }
+
+                if (maxColor2 - minColor2 > 0)
+                {
+                    int range2 = (maxColor2 - minColor2) / 6;
+
+                    if (range2 < range1)
+                    {
+                        bwrange = true;
+                        minColor = minColor2;
+                        maxColor = maxColor2;
+                    }
+                }
             }
 
-            int increment = (maxColor - minColor) / 7;
-            int half = increment / 2;
-            color[0] = maxColor; // bit code 000
-            color[1] = minColor; // bit code 001
-            color[2] = (byte)(increment * 6); // bit code 010
-            color[3] = (byte)(increment * 5); // bit code 011
-            color[4] = (byte)(increment * 4); // bit code 100
-            color[5] = (byte)(increment * 3); // bit code 101
-            color[6] = (byte)(increment * 2); // bit code 110
-            color[7] = (byte)(increment); // bit code 111
+            int padRange = bwrange ? 10 : 14;
+            if (maxColor - minColor < padRange)
+            {
+                if (maxColor <= padRange) maxColor = (byte)(minColor + padRange);
+                else minColor = (byte)(maxColor - padRange);
+            }
 
             int[] ind = new int[16];
-            for (int i = 0; i < unCompressedColor.Length; i++)
+
+            if (bwrange)
             {
-                if (unCompressedColor[i] >= color[0] - half) ind[i] = 0;
-                else if (unCompressedColor[i] >= color[2] - half) ind[i] = 2;
-                else if (unCompressedColor[i] >= color[3] - half) ind[i] = 3;
-                else if (unCompressedColor[i] >= color[4] - half) ind[i] = 4;
-                else if (unCompressedColor[i] >= color[5] - half) ind[i] = 5;
-                else if (unCompressedColor[i] >= color[6] - half) ind[i] = 6;
-                else if (unCompressedColor[i] >= color[7] - half) ind[i] = 7;
-                else ind[i] = 1;
+                byte[] color = new byte[4];
+                int increment = (maxColor - minColor) / 5;
+                int half = increment / 2;
+                color[0] = (byte)(minColor + increment); // bit code 010
+                color[1] = (byte)(minColor + (increment * 2)); // bit code 011
+                color[2] = (byte)(minColor + (increment * 3)); // bit code 100
+                color[3] = (byte)(minColor + (increment * 4)); // bit code 101
+
+                for (int i = 0; i < unCompressedColor.Length; i++)
+                {
+                    if (unCompressedColor[i] <= 10) ind[i] = 6;
+                    else if (unCompressedColor[i] >= 245) ind[i] = 7;
+                    else if (unCompressedColor[i] <= minColor + half) ind[i] = 1;
+                    else if (unCompressedColor[i] <= color[0] + half) ind[i] = 2;
+                    else if (unCompressedColor[i] <= color[1] + half) ind[i] = 3;
+                    else if (unCompressedColor[i] <= color[2] + half) ind[i] = 4;
+                    else if (unCompressedColor[i] <= color[3] + half) ind[i] = 5;
+                    else ind[i] = 0;
+                }
+            }
+            else
+            {
+                byte[] color = new byte[6];
+                int increment = (maxColor - minColor) / 7;
+                int half = increment / 2;
+                color[0] = (byte)(minColor + (increment * 6)); // bit code 010
+                color[1] = (byte)(minColor + (increment * 5)); // bit code 011
+                color[2] = (byte)(minColor + (increment * 4)); // bit code 100
+                color[3] = (byte)(minColor + (increment * 3)); // bit code 101
+                color[4] = (byte)(minColor + (increment * 2)); // bit code 110
+                color[5] = (byte)(minColor + increment); // bit code 111
+
+                for (int i = 0; i < unCompressedColor.Length; i++)
+                {
+                    if (unCompressedColor[i] >= maxColor - half) ind[i] = 0;
+                    else if (unCompressedColor[i] >= color[0] - half) ind[i] = 2;
+                    else if (unCompressedColor[i] >= color[1] - half) ind[i] = 3;
+                    else if (unCompressedColor[i] >= color[2] - half) ind[i] = 4;
+                    else if (unCompressedColor[i] >= color[3] - half) ind[i] = 5;
+                    else if (unCompressedColor[i] >= color[4] - half) ind[i] = 6;
+                    else if (unCompressedColor[i] >= color[5] - half) ind[i] = 7;
+                    else ind[i] = 1;
+                }
             }
 
             byte[] block = new byte[8];
-            block[0] = maxColor;
-            block[1] = minColor;
+            if (bwrange)
+            {
+                block[0] = minColor;
+                block[1] = maxColor;
+            }
+            else
+            {
+                block[0] = maxColor;
+                block[1] = minColor;
+            }
 
             int tmp = ind[0] + (ind[1] << 3) + (ind[2] << 6) + (ind[3] << 9) + (ind[4] << 12) + (ind[5] << 15) + (ind[6] << 18) + (ind[7] << 21);
             int tmp2 = ind[8] + (ind[9] << 3) + (ind[10] << 6) + (ind[11] << 9) + (ind[12] << 12) + (ind[13] << 15) + (ind[14] << 18) + (ind[15] << 21);
 
-            block[3] = (byte)(tmp & 0xFF);
-            block[4] = (byte)((tmp & 0xFF00) >> 8);
-            block[5] = (byte)((tmp & 0xFF0000) >> 16);
-            block[6] = (byte)(tmp2 & 0xFF);
-            block[7] = (byte)((tmp2 & 0xFF00) >> 8);
-            block[8] = (byte)((tmp2 & 0xFF0000) >> 16);
+            block[2] = (byte)(tmp & 0xFF);
+            block[3] = (byte)((tmp & 0xFF00) >> 8);
+            block[4] = (byte)((tmp & 0xFF0000) >> 16);
+            block[5] = (byte)(tmp2 & 0xFF);
+            block[6] = (byte)((tmp2 & 0xFF00) >> 8);
+            block[7] = (byte)((tmp2 & 0xFF0000) >> 16);
 
             return block;
         }

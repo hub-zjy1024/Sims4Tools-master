@@ -1104,6 +1104,7 @@ namespace System.Drawing
         /// Creates an image of a single colour, specified by the byte parameters,
         /// with the size given by the int parameters.
         /// If <paramref name="supportHSV"/> is true, also creates an HSVa-encoded version of the image.
+        /// DXT compression is set to true, ATI compression is set false.
         /// </summary>
         /// <param name="r">Amount of red per pixel.</param>
         /// <param name="g">Amount of green per pixel.</param>
@@ -1121,6 +1122,7 @@ namespace System.Drawing
         /// Creates an image of a single colour, specified by the <see cref="Color"/> parameter,
         /// with the size given by the int parameters.
         /// If <paramref name="supportHSV"/> is true, also creates an HSVa-encoded version of the image.
+        /// DXT compression is set to true, ATI compression is set false.
         /// </summary>
         /// <param name="color"><see cref="Color"/> of image.</param>
         /// <param name="width">Width of image.</param>
@@ -1136,6 +1138,7 @@ namespace System.Drawing
         /// (low byte is "blue", then "green", then "red" then high byte is "alpha"),
         /// with the size given by the int parameters.
         /// If <paramref name="supportHSV"/> is true, also creates an HSVa-encoded version of the image.
+        /// DXT compression is set to true, ATI compression is set false.
         /// </summary>
         /// <param name="argb">Colour of image (low byte is "blue", then "green", then "red" then high byte is "alpha").</param>
         /// <param name="width">Width of image.</param>
@@ -1244,6 +1247,7 @@ namespace System.Drawing
         /// <summary>
         /// Creates an image from a given <see cref="T:Image"/>.
         /// If <paramref name="supportHSV"/> is true, also creates an HSVa-encoded version of the image.
+        /// DXT compression is set to true, ATI compression is set false.
         /// </summary>
         /// <param name="image"><see cref="T:Image"/> from which to extract image pixels.</param>
         /// <param name="supportHSV">When true, create an HSVa-encoded version of the image.</param>
@@ -1252,6 +1256,7 @@ namespace System.Drawing
         /// <summary>
         /// Creates an image from a given <see cref="T:Bitmap"/>.
         /// If <paramref name="supportHSV"/> is true, also creates an HSVa-encoded version of the image.
+        /// DXT compression is set to true, ATI compression is set false.
         /// </summary>
         /// <param name="image"><see cref="T:Bitmap"/> from which to extract image pixels.</param>
         /// <param name="supportHSV">When true, create an HSVa-encoded version of the image.</param>
@@ -1403,6 +1408,7 @@ namespace System.Drawing
                 {
                     UseLuminance = false;
                     AlphaDepth = 5;
+                    UseATI = false;
                 }
                 else
                     AlphaDepth = 8;
@@ -1418,6 +1424,18 @@ namespace System.Drawing
         public bool UseATI
         {
             get { return this.useATICompression; }
+            set
+            {
+                if (value == useATICompression) return;
+
+                useATICompression = value;
+
+                if (value)
+                {
+                    UseDXT = false;
+                }
+            }
+
         }
 
         /// <summary>
