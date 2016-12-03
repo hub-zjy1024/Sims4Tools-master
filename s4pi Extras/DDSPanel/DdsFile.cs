@@ -1009,10 +1009,10 @@ namespace System.Drawing
                 // Compress
                 if (header.FileFormat == DdsFormat.ATI1 || header.FileFormat == DdsFormat.ATI2)
                 {
-                    buffer = buffer = DdsSquash.CompressImage(pixelData, (int)header.width, (int)header.height, header.FileFormat);
+                    buffer = DdsSquash.CompressImage(pixelData, (int)header.width, (int)header.height, header.FileFormat);
                 }
                 else
-                {
+                { 
                     buffer = DdsSquish.CompressImage(pixelData, (int)header.width, (int)header.height, header.SquishFourCC);
                 }
                 if (buffer.Length != header.DataSize)
