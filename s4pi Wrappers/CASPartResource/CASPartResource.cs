@@ -58,6 +58,7 @@ namespace CASPartResource
         private ParmFlag2 parmFlags2;
         private ExcludePartFlag excludePartFlags;
         private ulong excludeModifierRegionFlags;   // cmar - changed from uint to ulong with V 0x25
+        private ulong unknown1;                     // cmar - added v 0x29
         private FlagList flagList;                  // property 16-bit tag / 32-bit value pairs
         private uint deprecatedPrice;               // deprecated
         private uint partTitleKey;
@@ -137,6 +138,7 @@ namespace CASPartResource
             this.excludePartFlags = (ExcludePartFlag)r.ReadUInt64();
             if (this.version >= 36) this.excludeModifierRegionFlags = r.ReadUInt64();
             else this.excludeModifierRegionFlags = r.ReadUInt32();
+            if (this.version >= 41) this.unknown1 = r.ReadUInt64();
 
             if (this.version >= 37)
                 this.flagList = new FlagList(this.OnResourceChanged, s);
@@ -261,6 +263,7 @@ namespace CASPartResource
             {
                 w.Write((uint)this.excludeModifierRegionFlags);
             }
+            if (this.version >= 41) w.Write(this.unknown1);
 
             this.flagList = this.flagList ?? new FlagList(this.OnResourceChanged);
             if (this.version >= 37)
@@ -542,6 +545,20 @@ namespace CASPartResource
         }
 
         [ElementPriority(12)]
+        public ulong Unknown1
+        {
+            get { return this.unknown1; }
+            set
+            {
+                if (!value.Equals(this.unknown1))
+                {
+                    this.unknown1 = value;
+                }
+                this.OnResourceChanged(this, EventArgs.Empty);
+            }
+        }
+
+        [ElementPriority(13)]
         public FlagList CASFlagList
         {
             get { return this.flagList; }
@@ -555,7 +572,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(13)]
+        [ElementPriority(14)]
         public uint DeprecatedPrice
         {
             get { return this.deprecatedPrice; }
@@ -569,7 +586,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(14)]
+        [ElementPriority(15)]
         public uint PartTitleKey
         {
             get { return this.partTitleKey; }
@@ -583,7 +600,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(15)]
+        [ElementPriority(16)]
         public uint PartDescriptionKey
         {
             get { return this.partDesptionKey; }
@@ -597,7 +614,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(16)]
+        [ElementPriority(17)]
         public byte UniqueTextureSpace
         {
             get { return this.uniqueTextureSpace; }
@@ -611,7 +628,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(17)]
+        [ElementPriority(18)]
         public BodyType BodyType
         {
             get { return this.bodyType; }
@@ -625,7 +642,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(18)]
+        [ElementPriority(19)]
         public int BodySubType
         {
             get { return this.bodySubType; }
@@ -639,7 +656,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(19)]
+        [ElementPriority(20)]
         public AgeGenderFlags AgeGender
         {
             get { return this.ageGender; }
@@ -653,7 +670,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(20)]
+        [ElementPriority(21)]
         public uint Reserved1
         {
             get { return this.reserved1; }
@@ -667,7 +684,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(21)]
+        [ElementPriority(22)]
         public short PackID
         {
             get { return this.packID; }
@@ -681,7 +698,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(22)]
+        [ElementPriority(23)]
         public PackFlag PackFlags
         {
             get { return this.packFlags; }
@@ -695,7 +712,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(23)]
+        [ElementPriority(24)]
         public byte[] Reserved2
         {
             get { return this.reserved2; }
@@ -706,7 +723,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(24)]
+        [ElementPriority(25)]
         public byte Unused2
         {
             get { return this.unused2; }
@@ -720,7 +737,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(25)]
+        [ElementPriority(26)]
         public byte Unused3
         {
             get { return this.unused3; }
@@ -734,7 +751,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(26)]
+        [ElementPriority(27)]
         public SwatchColorList SwatchColorCode
         {
             get { return this.swatchColorCode; }
@@ -748,7 +765,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(27), TGIBlockListContentField("TGIList")]
+        [ElementPriority(28), TGIBlockListContentField("TGIList")]
         public byte BuffResKey
         {
             get { return this.buffResKey; }
@@ -762,7 +779,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(28), TGIBlockListContentField("TGIList")]
+        [ElementPriority(29), TGIBlockListContentField("TGIList")]
         public byte VarientThumbnailKey
         {
             get { return this.varientThumbnailKey; }
@@ -776,7 +793,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(29)]
+        [ElementPriority(30)]
         public ulong VoiceEffectHash
         {
             get { return this.voiceEffectHash; }
@@ -790,7 +807,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(30)]
+        [ElementPriority(31)]
         public uint MaterialSetUpperBodyHash
         {
             get { return this.materialSetUpperBodyHash; }
@@ -804,7 +821,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(31)]
+        [ElementPriority(32)]
         public uint MaterialSetLowerBodyHash
         {
             get { return this.materialSetLowerBodyHash; }
@@ -818,7 +835,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(32)]
+        [ElementPriority(33)]
         public uint MaterialSetShoesHash
         {
             get { return this.materialSetShoesHash; }
@@ -832,7 +849,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(33)]
+        [ElementPriority(34)]
         public OccultTypesDisabled HideForOccultFlags
         {
             get { return this.hideForOccultFlags; }
@@ -846,7 +863,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(34)]
+        [ElementPriority(35)]
         public ulong OppositeGenderCASPart
         {
             get { return this.oppositeGenderPart; }
@@ -860,7 +877,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(35)]
+        [ElementPriority(36)]
         public ulong FallbackCASPart
         {
             get { return this.fallbackPart; }
@@ -874,7 +891,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(36), TGIBlockListContentField("TGIList")]
+        [ElementPriority(37), TGIBlockListContentField("TGIList")]
         public byte NakedKey
         {
             get { return this.nakedKey; }
@@ -888,7 +905,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(37), TGIBlockListContentField("TGIList")]
+        [ElementPriority(38), TGIBlockListContentField("TGIList")]
         public byte ParentKey
         {
             get { return this.parentKey; }
@@ -902,7 +919,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(38)]
+        [ElementPriority(39)]
         public int SortLayer
         {
             get { return this.sortLayer; }
@@ -916,7 +933,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(39)]
+        [ElementPriority(40)]
         public LODBlockList LodBlockList
         {
             get { return this.lodBlockList; }
@@ -930,7 +947,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(40), TGIBlockListContentField("TGIList")]
+        [ElementPriority(41), TGIBlockListContentField("TGIList")]
         public SimpleList<byte> SlotKey
         {
             get { return this.slotKey; }
@@ -944,7 +961,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(41), TGIBlockListContentField("TGIList")]
+        [ElementPriority(42), TGIBlockListContentField("TGIList")]
         public byte DiffuseShadowKey
         {
             get { return this.diffuseShadowKey; }
@@ -958,7 +975,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(42), TGIBlockListContentField("TGIList")]
+        [ElementPriority(43), TGIBlockListContentField("TGIList")]
         public byte ShadowKey
         {
             get { return this.shadowKey; }
@@ -972,7 +989,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(43)]
+        [ElementPriority(44)]
         public byte CompositionMethod
         {
             get { return this.compositionMethod; }
@@ -986,7 +1003,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(44), TGIBlockListContentField("TGIList")]
+        [ElementPriority(45), TGIBlockListContentField("TGIList")]
         public byte RegionMapKey
         {
             get { return this.regionMapKey; }
@@ -1000,7 +1017,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(45)]
+        [ElementPriority(46)]
         public OverrideList Overrides
         {
             get { return this.overrides; }
@@ -1014,7 +1031,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(46), TGIBlockListContentField("TGIList")]
+        [ElementPriority(47), TGIBlockListContentField("TGIList")]
         public byte NormalMapKey
         {
             get { return this.normalMapKey; }
@@ -1028,7 +1045,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(47), TGIBlockListContentField("TGIList")]
+        [ElementPriority(48), TGIBlockListContentField("TGIList")]
         public byte SpecularMapKey
         {
             get { return this.specularMapKey; }
@@ -1042,7 +1059,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(48)]
+        [ElementPriority(49)]
         public uint SharedUVMapSpace
         {
             get
@@ -1063,7 +1080,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(49), TGIBlockListContentField("TGIList")]
+        [ElementPriority(50), TGIBlockListContentField("TGIList")]
         public byte EmissionMapKey
         {
             get { return this.emissionMapKey; }
@@ -1077,7 +1094,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(50)]
+        [ElementPriority(51)]
         public CountedTGIBlockList TGIList
         {
             get { return this.tgiList; }
@@ -1140,6 +1157,10 @@ namespace CASPartResource
                     res.Remove("ParameterFlags2");
                     res.Remove("OppositeGenderPart");
                     res.Remove("FallbackPart");
+                }
+                if (this.version < 0x29)
+                {
+                    res.Remove("Unknown1");
                 }
                 return res;
             }
