@@ -89,40 +89,35 @@ namespace System.Drawing
 
         internal static byte[] CompressColor(byte[] unCompressedColor)
         {
-            bool bwrange = false;
-
             byte minColor = Byte.MaxValue, maxColor = Byte.MinValue;
+            bool bwmode = false;
+
             foreach (byte b in unCompressedColor)
             {
                 if (b < minColor) minColor = b;
                 if (b > maxColor) maxColor = b;
             }
 
-            int range1 = (maxColor - minColor) / 8;
-
-            if (minColor <= 10 | maxColor >= 245)
+            if (minColor <= 5 || maxColor >= 250)
             {
                 byte minColor2 = Byte.MaxValue, maxColor2 = Byte.MinValue;
                 foreach (byte b in unCompressedColor)
                 {
-                    if (b > 10 && b < minColor2) minColor2 = b;
-                    if (b < 245 && b > maxColor2) maxColor2 = b;
+                    if (b < minColor2 & b > 5) minColor2 = b;
+                    if (b > maxColor2 & b < 250) maxColor2 = b;
                 }
-
-                if (maxColor2 - minColor2 > 0)
+                if (minColor2 <= maxColor2)
                 {
-                    int range2 = (maxColor2 - minColor2) / 6;
-
-                    if (range2 < range1)
+                    if (maxColor2 - minColor2 < maxColor - minColor)
                     {
-                        bwrange = true;
+                        bwmode = true;
                         minColor = minColor2;
                         maxColor = maxColor2;
                     }
                 }
             }
 
-            int padRange = bwrange ? 10 : 14;
+            int padRange = bwmode ? 4 : 6;
             if (maxColor - minColor < padRange)
             {
                 if (maxColor <= padRange) maxColor = (byte)(minColor + padRange);
@@ -131,7 +126,7 @@ namespace System.Drawing
 
             int[] ind = new int[16];
 
-            if (bwrange)
+            if (bwmode)
             {
                 byte[] color = new byte[4];
                 int increment = (maxColor - minColor) / 5;
@@ -143,14 +138,14 @@ namespace System.Drawing
 
                 for (int i = 0; i < unCompressedColor.Length; i++)
                 {
-                    if (unCompressedColor[i] <= 10) ind[i] = 6;
-                    else if (unCompressedColor[i] >= 245) ind[i] = 7;
-                    else if (unCompressedColor[i] <= minColor + half) ind[i] = 1;
+                    if (unCompressedColor[i] <= 5) ind[i] = 6;
+                    else if (unCompressedColor[i] >= 250) ind[i] = 7;
+                    else if (unCompressedColor[i] <= minColor + half) ind[i] = 0;
                     else if (unCompressedColor[i] <= color[0] + half) ind[i] = 2;
                     else if (unCompressedColor[i] <= color[1] + half) ind[i] = 3;
                     else if (unCompressedColor[i] <= color[2] + half) ind[i] = 4;
                     else if (unCompressedColor[i] <= color[3] + half) ind[i] = 5;
-                    else ind[i] = 0;
+                    else ind[i] = 1;
                 }
             }
             else
@@ -179,7 +174,7 @@ namespace System.Drawing
             }
 
             byte[] block = new byte[8];
-            if (bwrange)
+            if (bwmode)
             {
                 block[0] = minColor;
                 block[1] = maxColor;
