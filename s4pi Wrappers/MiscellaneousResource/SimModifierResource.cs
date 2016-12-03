@@ -30,16 +30,15 @@ namespace s4pi.Miscellaneous
     {
         const int recommendedApiVersion = 1;
         public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-        public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
 
         static bool checking = s4pi.Settings.Settings.Checking;
-
 
         private ContexData contexData { get; set; }
         private uint version { get; set; }
         private uint gender { get; set; }
         private uint region { get; set; }
         private uint linkTag { get; set; }
+        private uint unknown1 { get; set; }
         private TGIBlock bonePoseKey { get; set; }
         private TGIBlock deformerMapShapeKey { get; set; }
         private TGIBlock deformerMapNormalKey { get; set; }
@@ -57,6 +56,7 @@ namespace s4pi.Miscellaneous
             this.gender = r.ReadUInt32();
             this.region = r.ReadUInt32();
             this.linkTag = r.ReadUInt32();
+            if (this.version >= 144) this.unknown1 = r.ReadUInt32();
             this.bonePoseKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
             this.deformerMapShapeKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
             this.deformerMapNormalKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
@@ -73,6 +73,7 @@ namespace s4pi.Miscellaneous
             w.Write(this.gender);
             w.Write(this.region);
             w.Write(this.linkTag);
+            if (this.version >= 144) w.Write(this.unknown1);
             if (this.bonePoseKey == null) this.bonePoseKey = new TGIBlock(recommendedApiVersion, OnResourceChanged);
             this.bonePoseKey.UnParse(ms);
             if (this.deformerMapShapeKey == null) this.deformerMapShapeKey = new TGIBlock(recommendedApiVersion, OnResourceChanged);
@@ -305,14 +306,28 @@ namespace s4pi.Miscellaneous
         [ElementPriority(4)]
         public uint LinkTag { get { return this.linkTag; } set { if (!this.linkTag.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.linkTag = value; } } }
         [ElementPriority(5)]
-        public TGIBlock BonePostKey { get { return this.bonePoseKey; } set { if (!this.bonePoseKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.bonePoseKey = value; } } }
+        public uint Unknown1 { get { return this.unknown1; } set { if (!this.unknown1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown1 = value; } } }
         [ElementPriority(6)]
-        public TGIBlock DeformerMapShapeKey { get { return this.deformerMapShapeKey; } set { if (!this.deformerMapShapeKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapShapeKey = value; } } }
+        public TGIBlock BonePostKey { get { return this.bonePoseKey; } set { if (!this.bonePoseKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.bonePoseKey = value; } } }
         [ElementPriority(7)]
-        public TGIBlock DeformerMapNormalKey { get { return this.deformerMapNormalKey; } set { if (!this.deformerMapNormalKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapNormalKey = value; } } }
+        public TGIBlock DeformerMapShapeKey { get { return this.deformerMapShapeKey; } set { if (!this.deformerMapShapeKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapShapeKey = value; } } }
         [ElementPriority(8)]
+        public TGIBlock DeformerMapNormalKey { get { return this.deformerMapNormalKey; } set { if (!this.deformerMapNormalKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapNormalKey = value; } } }
+        [ElementPriority(9)]
         public BoneEntryLIst BoneEntryList { get { return this.boneEntryList; } set { if (!this.boneEntryList.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.boneEntryList = value; } } }
         public string Value { get { return ValueBuilder; } }
+        public override List<string> ContentFields
+        {
+            get
+            {
+                var res = GetContentFields(requestedApiVersion, this.GetType());
+                if (this.version < 144)
+                {
+                    res.Remove("Unknown1");
+                }
+                return res;
+            }
+        } 
         #endregion
     }
 

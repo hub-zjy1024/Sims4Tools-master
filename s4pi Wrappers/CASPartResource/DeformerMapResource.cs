@@ -33,7 +33,6 @@ namespace CASPartResource
     {
         const int recommendedApiVersion = 1;
         public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-        public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
         
         static bool checking = s4pi.Settings.Settings.Checking;
 
@@ -41,6 +40,7 @@ namespace CASPartResource
         private uint doubledWidth;
         private uint height;
         private AgeGenderFlags ageGender;
+        private uint reserved1;     //v6 - must be set to 1
         private Physiques physique;
         private ShapeOrNormals shapeOrNormals;
 
@@ -49,6 +49,10 @@ namespace CASPartResource
         private uint minRow;
         private uint maxRow;
         private RobeChannel robeChannel;
+        private float skinTightMinVal;      //v7 - dynamic range for scaling: minval to (minval + delta)
+        private float skinTightDelta;
+        private float robeMinVal;
+        private float robeDelta;
 
         private ScanLine[] scanLines;
 
@@ -72,6 +76,9 @@ namespace CASPartResource
             this.doubledWidth = r.ReadUInt32();
             this.height = r.ReadUInt32();
             this.ageGender = (AgeGenderFlags)r.ReadUInt32();
+
+            if (version > 5) this.reserved1 = r.ReadUInt32();
+
             this.physique = (Physiques)r.ReadByte();
             this.shapeOrNormals = (ShapeOrNormals)r.ReadByte();
             this.minCol = r.ReadUInt32();
@@ -79,6 +86,16 @@ namespace CASPartResource
             this.minRow = r.ReadUInt32();
             this.maxRow = r.ReadUInt32();
             this.robeChannel = (RobeChannel)r.ReadByte();
+            if (version > 6)
+            {
+                this.skinTightMinVal = r.ReadSingle();
+                this.skinTightDelta = r.ReadSingle();
+                if (this.robeChannel == RobeChannel.ROBECHANNEL_PRESENT)
+                {
+                    this.robeMinVal = r.ReadSingle();
+                    this.robeDelta = r.ReadSingle();
+                }
+            }
             int totalBytes = r.ReadInt32();
             if (totalBytes == 0)
             {
@@ -104,6 +121,9 @@ namespace CASPartResource
             w.Write(this.doubledWidth);
             w.Write(this.height);
             w.Write((uint)this.ageGender);
+
+            if (version > 5) w.Write(this.reserved1);
+
             w.Write((byte)this.physique);
             w.Write((byte)this.shapeOrNormals);
             w.Write(this.minCol);
@@ -111,8 +131,23 @@ namespace CASPartResource
             w.Write(this.minRow);
             w.Write(this.maxRow);
             w.Write((byte)this.robeChannel);
+            if (version > 6)
+            {
+                w.Write(this.skinTightMinVal);
+                w.Write(this.skinTightDelta);
+                if (this.robeChannel == RobeChannel.ROBECHANNEL_PRESENT)
+                {
+                    w.Write(this.robeMinVal);
+                    w.Write(this.robeDelta);
+                }
+            }
             if (this.scanLines == null) this.scanLines = new ScanLine[0];
-            w.Write(this.scanLines.Length);
+            uint dataSize = 0;
+            for (int i = 0; i < this.scanLines.Length; i++)
+            {
+                dataSize += this.scanLines[i].ScanLineDataSize;
+            }
+            w.Write(dataSize);
             for (int i = 0; i < this.scanLines.Length; i++)
             {
                 this.scanLines[i].UnParse(ms);
@@ -292,7 +327,6 @@ namespace CASPartResource
             Skin,
             Robe
         }
-        public Stream GetSkinBitMap() { return this.ToBitMap(OutputType.Skin); }
 
         public Stream ToBitMap(OutputType type)
         {
@@ -495,22 +529,57 @@ namespace CASPartResource
         [ElementPriority(3)]
         public AgeGenderFlags AgeGender { get { return this.ageGender; } set { if (!this.ageGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.ageGender = value; } } }
         [ElementPriority(4)]
-        public Physiques Physique { get { return this.physique; } set { if (!this.physique.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.physique = value; } } }
+        public uint Reserved1 { get { return this.reserved1; } set { if (!(this.reserved1 == value)) { OnResourceChanged(this, EventArgs.Empty); this.reserved1 = value; } } }
         [ElementPriority(5)]
-        public ShapeOrNormals IsShapeOrNormals { get { return this.shapeOrNormals; } set { if (!this.shapeOrNormals.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.shapeOrNormals = value; } } }
+        public Physiques Physique { get { return this.physique; } set { if (!this.physique.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.physique = value; } } }
         [ElementPriority(6)]
-        public uint MinCol { get { return minCol; } set { if (value != minCol) minCol = value; OnResourceChanged(this, EventArgs.Empty); } }
+        public ShapeOrNormals IsShapeOrNormals { get { return this.shapeOrNormals; } set { if (!this.shapeOrNormals.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.shapeOrNormals = value; } } }
         [ElementPriority(7)]
-        public uint MaxCol { get { return maxCol; } set { if (value != maxCol) maxCol = value; OnResourceChanged(this, EventArgs.Empty); } }
+        public uint MinCol { get { return minCol; } set { if (value != minCol) minCol = value; OnResourceChanged(this, EventArgs.Empty); } }
         [ElementPriority(8)]
-        public uint MinRow { get { return minRow; } set { if (value != minRow) minRow = value; OnResourceChanged(this, EventArgs.Empty); } }
+        public uint MaxCol { get { return maxCol; } set { if (value != maxCol) maxCol = value; OnResourceChanged(this, EventArgs.Empty); } }
         [ElementPriority(9)]
-        public uint MaxRow { get { return maxRow; } set { if (value != maxRow) maxRow = value; OnResourceChanged(this, EventArgs.Empty); } }
+        public uint MinRow { get { return minRow; } set { if (value != minRow) minRow = value; OnResourceChanged(this, EventArgs.Empty); } }
         [ElementPriority(10)]
-        public RobeChannel HasRobeChannel { get { return this.robeChannel; } set { if (!this.robeChannel.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.robeChannel = value; } } }
+        public uint MaxRow { get { return maxRow; } set { if (value != maxRow) maxRow = value; OnResourceChanged(this, EventArgs.Empty); } }
         [ElementPriority(11)]
+        public RobeChannel HasRobeChannel { get { return this.robeChannel; } set { if (!this.robeChannel.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.robeChannel = value; } } }
+        [ElementPriority(12)]
+        public float SkinTightMinVal { get { return this.skinTightMinVal; } set { if (!(this.skinTightMinVal == value)) { OnResourceChanged(this, EventArgs.Empty); this.skinTightMinVal = value; } } }
+        [ElementPriority(13)]
+        public float SkinTightDelta { get { return this.skinTightDelta; } set { if (!(this.skinTightDelta == value)) { OnResourceChanged(this, EventArgs.Empty); this.skinTightDelta = value; } } }
+        [ElementPriority(14)]
+        public float RobeMinVal { get { return this.robeMinVal; } set { if (!(this.robeMinVal == value)) { OnResourceChanged(this, EventArgs.Empty); this.robeMinVal = value; } } }
+        [ElementPriority(15)]
+        public float RobeDelta { get { return this.robeDelta; } set { if (!(this.robeDelta == value)) { OnResourceChanged(this, EventArgs.Empty); this.robeDelta = value; } } }
+        [ElementPriority(16)]
         public ScanLine[] ScanLines { get { return this.scanLines; } set { if (!this.scanLines.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.ScanLines = value; } } }
         public string Value { get { return ValueBuilder; } }
+
+        public override List<string> ContentFields
+        {
+            get
+            {
+                var res = GetContentFields(requestedApiVersion, this.GetType());
+                if (this.version < 6)
+                {
+                    res.Remove("Reserved1");
+                }
+                if (this.version < 7)
+                {
+                    res.Remove("SkinTightMinVal");
+                    res.Remove("SkinTightDelta");
+                    res.Remove("RobeMinVal");
+                    res.Remove("RobeDelta");
+                }
+                else if (this.robeChannel != RobeChannel.ROBECHANNEL_PRESENT)
+                {
+                    res.Remove("RobeMinVal");
+                    res.Remove("RobeDelta");
+                }
+                return res;
+            }
+        } 
         #endregion
 
     }
