@@ -237,14 +237,15 @@ namespace meshExpImp.ModelBlocks
             private Int32 mMinVertexIndex;
             private Int32 mVertexCount;
             private Int32 mPrimitiveCount;
-            private GenericRCOLResource.ChunkReference mSkinControllerIndex;
-            private GenericRCOLResource.ChunkReference mScaleOffsetIndex;
-            private UIntList mJointReferences;
             private BoundingBox mBounds;
+            private GenericRCOLResource.ChunkReference mSkinControllerIndex;
+            private UIntList mJointReferences;
+            private GenericRCOLResource.ChunkReference mMeshMaterialIndex;
             private GeometryStateList mGeometryStates;
-            private UInt32 mParentName;
-            private Vector4 mMirrorPlane;
-            private UInt32 mUnknown1;
+            private UInt32 mParentBoneName;
+            private Vector4 mMirrorPlane; 
+            private UInt32 mSortOrderHint;
+            private BoundingBox[] mBoundingBoxBones;
             #endregion
 
             #region Constructors
@@ -261,8 +262,9 @@ namespace meshExpImp.ModelBlocks
                 mSkinControllerIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, 0);
                 mJointReferences = new UIntList(handler);
                 mGeometryStates = new GeometryStateList(handler);
-                mScaleOffsetIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, 0);
+                mMeshMaterialIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, 0);
                 mMirrorPlane = new Vector4(requestedApiVersion, handler);//mOwner.Version > 0x00000201
+                mBoundingBoxBones = new BoundingBox[0];
             }
             public Mesh(int apiVersion, EventHandler handler, Mesh basis)
                 : this(apiVersion, handler, basis.mOwner,
@@ -271,9 +273,9 @@ namespace meshExpImp.ModelBlocks
                 basis.mPrimitiveType, basis.mFlags,
                 basis.mStreamOffset, basis.mStartVertex, basis.mStartIndex, basis.mMinVertexIndex, basis.mVertexCount, basis.mPrimitiveCount,
                 basis.mBounds, basis.mSkinControllerIndex,
-                basis.mJointReferences, basis.mGeometryStates, basis.mScaleOffsetIndex,
-                basis.mParentName, basis.mMirrorPlane,
-                basis.mUnknown1
+                basis.mJointReferences, basis.mGeometryStates, basis.mMeshMaterialIndex,
+                basis.mParentBoneName, basis.mMirrorPlane,
+                basis.mSortOrderHint, basis.mBoundingBoxBones
                 ) { }
             public Mesh(int apiVersion, EventHandler handler, MLOD owner,
                 uint name,
@@ -283,7 +285,7 @@ namespace meshExpImp.ModelBlocks
                 uint streamOffset, int startVertex, int startIndex, int minVertexIndex, int vertexCount, int primitiveCount,
                 BoundingBox bounds, GenericRCOLResource.ChunkReference skinControllerIndex,
                 UIntList jointReferences, GeometryStateList geometryStates, GenericRCOLResource.ChunkReference scaleOffsetIndex,
-                uint parentName, Vector4 mirrorPlane, uint unknown1
+                uint parentName, Vector4 mirrorPlane, uint sortOrderHint, BoundingBox[] boundingBoxBones
                 )
                 : base(apiVersion, handler)
             {
@@ -306,16 +308,25 @@ namespace meshExpImp.ModelBlocks
                 mSkinControllerIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, skinControllerIndex);
                 mJointReferences = jointReferences == null ? null : new UIntList(handler, jointReferences);
                 mGeometryStates = geometryStates == null ? null : new GeometryStateList(handler, geometryStates);
-                mScaleOffsetIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, scaleOffsetIndex);
+                mMeshMaterialIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, scaleOffsetIndex);
                 if (mOwner.Version > 0x00000201)
                 {
-                    mParentName = parentName;
+                    mParentBoneName = parentName;
                     mMirrorPlane = new Vector4(requestedApiVersion, handler, mirrorPlane);
                 }
                 if (mOwner.Version > 0x00000203)
                 {
-                    mUnknown1 = unknown1;
+                    mSortOrderHint = sortOrderHint;
                 }
+                if (boundingBoxBones != null && boundingBoxBones.Length > 0)
+                {
+                    mBoundingBoxBones = new BoundingBox[boundingBoxBones.Length];
+                    for (int i = 0; i < mBoundingBoxBones.Length; i++)
+                    {
+                        mBoundingBoxBones[i] = new BoundingBox(requestedApiVersion, handler, boundingBoxBones[i]);
+                    }
+                }
+
             }
             public Mesh(int apiVersion, EventHandler handler, MLOD owner, Stream s) : base(apiVersion, handler) { mOwner = owner; Parse(s); }
             #endregion
@@ -344,16 +355,24 @@ namespace meshExpImp.ModelBlocks
                 mBounds = new BoundingBox(0, handler, s);
                 mSkinControllerIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, s);
                 mJointReferences = new UIntList(handler, s);
-                mScaleOffsetIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, s);
+                mMeshMaterialIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, s);
                 mGeometryStates = new GeometryStateList(handler, s);
                 if (mOwner.Version > 0x00000201)
                 {
-                    mParentName = br.ReadUInt32();
+                    mParentBoneName = br.ReadUInt32();
                     mMirrorPlane = new Vector4(0, handler, s);
                 }
                 if (mOwner.Version > 0x00000203)
                 {
-                    mUnknown1 = br.ReadUInt32();
+                    mSortOrderHint = br.ReadUInt32();
+                }
+                if (mOwner.Version >= 0x00000206 && ((uint)Flags & 0x4000) > 0 && mJointReferences.Count > 0)
+                {
+                    mBoundingBoxBones = new BoundingBox[mJointReferences.Count];
+                    for (int i = 0; i < mBoundingBoxBones.Length; i++)
+                    {
+                        mBoundingBoxBones[i] = new BoundingBox(0, handler, s);
+                    }
                 }
                 long actualSize = s.Position - start;
                 if (checking && actualSize != expectedSize)
@@ -382,16 +401,24 @@ namespace meshExpImp.ModelBlocks
                 mBounds.UnParse(s);
                 mSkinControllerIndex.UnParse(s);
                 mJointReferences.UnParse(s);
-                mScaleOffsetIndex.UnParse(s);
+                mMeshMaterialIndex.UnParse(s);
                 mGeometryStates.UnParse(s);
                 if (mOwner.Version > 0x00000201)
                 {
-                    bw.Write(mParentName);
+                    bw.Write(mParentBoneName);
                     mMirrorPlane.UnParse(s);
                 }
                 if (mOwner.Version > 0x00000203)
                 {
-                    bw.Write(mUnknown1);
+                    bw.Write(mSortOrderHint);
+                }
+                if (mOwner.Version >= 0x00000206 && ((uint)Flags & 0x4000) > 0 && mJointReferences.Count > 1)
+                {
+                    if (mBoundingBoxBones == null) mBoundingBoxBones = new BoundingBox[0];
+                    for (int i = 0; i < mBoundingBoxBones.Length; i++)
+                    {
+                        mBoundingBoxBones[i].UnParse(s);
+                    }
                 }
                 long end = s.Position;
                 long size = end - start;
@@ -410,12 +437,16 @@ namespace meshExpImp.ModelBlocks
 
                     if (mOwner.Version < 0x00000202)
                     {
-                        fields.Remove("ParentName");
+                        fields.Remove("ParentBoneName");
                         fields.Remove("MirrorPlane");
                     }
                     if (mOwner.Version < 0x00000204)
                     {
-                        fields.Remove("Unknown1");
+                        fields.Remove("SortOrderHint");
+                    }
+                    if (mBoundingBoxBones == null)
+                    {
+                        fields.Remove("BoundingBoxBones");
                     }
                     return fields;
                 }
@@ -443,13 +474,13 @@ namespace meshExpImp.ModelBlocks
                     && mVertexCount.Equals(other.mVertexCount)
                     && mPrimitiveCount.Equals(other.mPrimitiveCount)
                     && mSkinControllerIndex.Equals(other.mSkinControllerIndex)
-                    && mScaleOffsetIndex.Equals(other.mScaleOffsetIndex)
+                    && mMeshMaterialIndex.Equals(other.mMeshMaterialIndex)
                     && mJointReferences.Equals(other.mJointReferences)
                     && mBounds.Equals(other.mBounds)
                     && mGeometryStates.Equals(other.mGeometryStates)
-                    && mParentName.Equals(other.mParentName)
+                    && mParentBoneName.Equals(other.mParentBoneName)
                     && mMirrorPlane.Equals(other.mMirrorPlane)
-                    && mUnknown1.Equals(other.mUnknown1)
+                    && mSortOrderHint.Equals(other.mSortOrderHint)
                     && mOwner.Equals(other.mOwner)
                     ;
             }
@@ -472,13 +503,13 @@ namespace meshExpImp.ModelBlocks
                     ^ mVertexCount.GetHashCode()
                     ^ mPrimitiveCount.GetHashCode()
                     ^ mSkinControllerIndex.GetHashCode()
-                    ^ mScaleOffsetIndex.GetHashCode()
+                    ^ mMeshMaterialIndex.GetHashCode()
                     ^ mJointReferences.GetHashCode()
                     ^ mBounds.GetHashCode()
                     ^ mGeometryStates.GetHashCode()
-                    ^ mParentName.GetHashCode()
+                    ^ mParentBoneName.GetHashCode()
                     ^ mMirrorPlane.GetHashCode()
-                    ^ mUnknown1.GetHashCode()
+                    ^ mSortOrderHint.GetHashCode()
                     ^ mOwner.GetHashCode()
                     ;
             }
@@ -593,10 +624,10 @@ namespace meshExpImp.ModelBlocks
                 set { if (mSkinControllerIndex != value) { mSkinControllerIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, value); OnElementChanged(); } }
             }
             [ElementPriority(16)]
-            public GenericRCOLResource.ChunkReference ScaleOffsetIndex
+            public GenericRCOLResource.ChunkReference MeshMaterialIndex
             {
-                get { return mScaleOffsetIndex; }
-                set { if (mScaleOffsetIndex != value) { mScaleOffsetIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, value); OnElementChanged(); } }
+                get { return mMeshMaterialIndex; }
+                set { if (mMeshMaterialIndex != value) { mMeshMaterialIndex = new GenericRCOLResource.ChunkReference(requestedApiVersion, handler, value); OnElementChanged(); } }
             }
             [ElementPriority(17)]
             public UIntList JointReferences
@@ -611,10 +642,10 @@ namespace meshExpImp.ModelBlocks
                 set { if (mGeometryStates != value) { mGeometryStates = value == null ? null : new GeometryStateList(handler, value); OnElementChanged(); } }
             }
             [ElementPriority(19)]
-            public UInt32 ParentName
+            public UInt32 ParentBoneName
             {
-                get { if (mOwner.Version < 0x0202) throw new InvalidOperationException(); return mParentName; }
-                set { if (mOwner.Version < 0x0202) throw new InvalidOperationException(); if (mParentName != value) { mParentName = value; OnElementChanged(); } }
+                get { if (mOwner.Version < 0x0202) throw new InvalidOperationException(); return mParentBoneName; }
+                set { if (mOwner.Version < 0x0202) throw new InvalidOperationException(); if (mParentBoneName != value) { mParentBoneName = value; OnElementChanged(); } }
             }
             [ElementPriority(20)]
             public Vector4 MirrorPlane
@@ -623,10 +654,16 @@ namespace meshExpImp.ModelBlocks
                 set { if (mOwner.Version < 0x0202) throw new InvalidOperationException(); if (mMirrorPlane != value) { mMirrorPlane = value; OnElementChanged(); } }
             }
             [ElementPriority(21)]
-            public UInt32 Unknown1
+            public UInt32 SortOrderHint
             {
-                get { if (mOwner.Version < 0x0204) throw new InvalidOperationException(); return mUnknown1; }
-                set { if (mOwner.Version < 0x0204) throw new InvalidOperationException(); if (mUnknown1 != value) { mUnknown1 = value; OnElementChanged(); } }
+                get { if (mOwner.Version < 0x0204) throw new InvalidOperationException(); return mSortOrderHint; }
+                set { if (mOwner.Version < 0x0204) throw new InvalidOperationException(); if (mSortOrderHint != value) { mSortOrderHint = value; OnElementChanged(); } }
+            }
+            [ElementPriority(22)]
+            public BoundingBox[] BoundingBoxBones
+            {
+                get { if (mOwner.Version < 0x0206) throw new InvalidOperationException(); return mBoundingBoxBones; }
+                set { if (mOwner.Version < 0x0206) throw new InvalidOperationException(); if (mBoundingBoxBones != value) { mBoundingBoxBones = value; OnElementChanged(); } }
             }
 
             public string Value { get { return ValueBuilder; } }
