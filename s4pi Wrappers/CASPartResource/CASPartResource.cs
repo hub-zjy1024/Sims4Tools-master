@@ -57,8 +57,8 @@ namespace CASPartResource
         private ParmFlag parmFlags;
         private ParmFlag2 parmFlags2;
         private ExcludePartFlag excludePartFlags;
+        private ExcludePartFlag2 excludePartFlags2;           // cmar - added v 0x29
         private ulong excludeModifierRegionFlags;   // cmar - changed from uint to ulong with V 0x25
-        private ulong unknown1;                     // cmar - added v 0x29
         private FlagList flagList;                  // property 16-bit tag / 32-bit value pairs
         private uint deprecatedPrice;               // deprecated
         private uint partTitleKey;
@@ -98,6 +98,7 @@ namespace CASPartResource
         private byte specularMapKey;
         private uint sharedUVMapSpace;
         private byte emissionMapKey;                // cmar - added V 0x1E
+        private byte reservedByte;                  // added V 0x3333333333322A
         private CountedTGIBlockList tgiList;
 
         #endregion
@@ -136,9 +137,9 @@ namespace CASPartResource
             this.parmFlags = (ParmFlag)r.ReadByte();
             if (this.version >= 39) parmFlags2 = (ParmFlag2)r.ReadByte();
             this.excludePartFlags = (ExcludePartFlag)r.ReadUInt64();
+            if (this.version >= 41) this.excludePartFlags2 = (ExcludePartFlag2)r.ReadUInt64();
             if (this.version >= 36) this.excludeModifierRegionFlags = r.ReadUInt64();
             else this.excludeModifierRegionFlags = r.ReadUInt32();
-            if (this.version >= 41) this.unknown1 = r.ReadUInt64();
 
             if (this.version >= 37)
                 this.flagList = new FlagList(this.OnResourceChanged, s);
@@ -237,6 +238,10 @@ namespace CASPartResource
             {
                 this.emissionMapKey = r.ReadByte();
             }
+            if (this.version >= 42)
+            {
+                this.reservedByte = r.ReadByte();
+            }
         }
 
         protected override Stream UnParse()
@@ -255,6 +260,7 @@ namespace CASPartResource
             w.Write((byte)this.parmFlags);
             if (this.version >= 39) w.Write((byte)this.parmFlags2);
             w.Write((ulong)this.excludePartFlags);
+            if (this.version >= 41) w.Write((ulong)this.excludePartFlags2);
             if (this.version >= 36)
             {
                 w.Write(this.excludeModifierRegionFlags);
@@ -263,8 +269,6 @@ namespace CASPartResource
             {
                 w.Write((uint)this.excludeModifierRegionFlags);
             }
-            if (this.version >= 41) w.Write(this.unknown1);
-
             this.flagList = this.flagList ?? new FlagList(this.OnResourceChanged);
             if (this.version >= 37)
             {
@@ -366,6 +370,11 @@ namespace CASPartResource
             {
                 w.Write(this.emissionMapKey);
             }
+            if (this.version >= 42)
+            {
+                w.Write(this.reservedByte);
+            }
+
             var tgiPosition = w.BaseStream.Position;
             w.BaseStream.Position = 4;
             w.Write(tgiPosition - 8);
@@ -531,6 +540,20 @@ namespace CASPartResource
         }
 
         [ElementPriority(11)]
+        public ExcludePartFlag2 ExcludePartFlags2
+        {
+            get { return this.excludePartFlags2; }
+            set
+            {
+                if (!value.Equals(this.excludePartFlags2))
+                {
+                    this.excludePartFlags2 = value;
+                }
+                this.OnResourceChanged(this, EventArgs.Empty);
+            }
+        }
+
+        [ElementPriority(12)]
         public ulong ExcludeModifierRegionFlags
         {
             get { return this.excludeModifierRegionFlags; }
@@ -539,20 +562,6 @@ namespace CASPartResource
                 if (!value.Equals(this.excludeModifierRegionFlags))
                 {
                     this.excludeModifierRegionFlags = value;
-                }
-                this.OnResourceChanged(this, EventArgs.Empty);
-            }
-        }
-
-        [ElementPriority(12)]
-        public ulong Unknown1
-        {
-            get { return this.unknown1; }
-            set
-            {
-                if (!value.Equals(this.unknown1))
-                {
-                    this.unknown1 = value;
                 }
                 this.OnResourceChanged(this, EventArgs.Empty);
             }
@@ -1093,8 +1102,21 @@ namespace CASPartResource
                 this.OnResourceChanged(this, EventArgs.Empty);
             }
         }
-
         [ElementPriority(51)]
+        public byte ReservedByte
+        {
+            get { return this.reservedByte; }
+            set
+            {
+                if (!value.Equals(this.reservedByte))
+                {
+                    this.reservedByte = value;
+                }
+                this.OnResourceChanged(this, EventArgs.Empty);
+            }
+        }
+
+        [ElementPriority(52)]
         public CountedTGIBlockList TGIList
         {
             get { return this.tgiList; }
@@ -1160,7 +1182,11 @@ namespace CASPartResource
                 }
                 if (this.version < 0x29)
                 {
-                    res.Remove("Unknown1");
+                    res.Remove("ExcludePartFlags2");
+                }
+                if (this.version < 0x2A)
+                {
+                    res.Remove("ReservedByte");
                 }
                 return res;
             }

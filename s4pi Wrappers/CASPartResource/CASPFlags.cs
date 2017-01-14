@@ -122,12 +122,20 @@ namespace CASPartResource
         MoleLeftCheek = 0x37,
         MoleRightCheek = 0x38,
         MouthCrease = 0x39,
-        SkinOverlay = 0x3A
+        SkinOverlay = 0x3A,
+        OccultBrow = 0x40,
+        OccultEyeSocket = 0x41,
+        OccultEyeLid = 0x42,
+        OccultMouth = 0x43,
+        OccultLeftCheek = 0x44,
+        OccultRightCheek = 0x45,
+        OccultNeckScar = 0x46
     }
 
     [Flags]
     public enum OccultTypesDisabled : uint
     {
+        Vampire = 1 << 2,
         Alien = 1 << 1,
         Human = 1
     }
@@ -194,6 +202,18 @@ namespace CASPartResource
         BODYTYPE_SKINDETAIL_MOLECHEEKRIGHT = 1ul << 56,
         BODYTYPE_SKINDETAIL_CREASEMOUTH = 1ul << 57,
         BODYTYPE_SKINOVERLAY = 1ul << 58
+    }
+
+    [Flags]
+    public enum ExcludePartFlag2 : ulong
+    {
+        BODYTYPE_OCCULT_BROW = 1,
+        BODYTYPE_OCCULT_EYE_SOCKET = 1ul << 1,
+        BODYTYPE_OCCULT_EYE_LID = 1ul << 2,
+        BODYTYPE_OCCULT_MOUTH = 1ul << 3,
+        BODYTYPE_OCCULT_LEFT_CHEEK = 1ul << 4,
+        BODYTYPE_OCCULT_RIGHT_CHEEK = 1ul << 5,
+        BODYTYPE_OCCULT_NECK_SCAR = 1ul << 6
     }
 
     [Flags]
