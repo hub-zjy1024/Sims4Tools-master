@@ -29,6 +29,7 @@
 0x339BC5BD TS4 XML -- statistic
 0x37B999F1 Renderer_GlobalShadowSettings
 0x37EF2EE7 TS4 XML -- royalty
+0x3C1D8799 TS4 XML -- zonemodifier tuning
 0x3F163505 TS4 XML -- slot_type_set
 0x3FD6243E TS4 XML -- walk_by
 0x4115F9D5 Various sound configs
