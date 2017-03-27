@@ -42,11 +42,6 @@ namespace CASPartResource
             get { return SkinToneResource.recommendedApiVersion; }
         }
 
-        public override List<string> ContentFields
-        {
-            get { return AApiVersionedFields.GetContentFields(this.requestedApiVersion, this.GetType()); }
-        }
-
         private uint version;
         private ulong rleInstance;
         private OverlayReferenceList overlayList;
@@ -58,6 +53,7 @@ namespace CASPartResource
         private SwatchColorList swatchList;
         private float sortOrder;
         private float makeupOpacity2;
+        private ulong tuningInstance;
 
         public SkinToneResource(int APIversion, Stream s) : base(APIversion, s)
         {
@@ -94,6 +90,10 @@ namespace CASPartResource
             this.swatchList = new SwatchColorList(this.OnResourceChanged, s);
             this.sortOrder = reader.ReadSingle();
             this.makeupOpacity2 = reader.ReadSingle();
+            if (this.version >= 8)
+            {
+                this.tuningInstance = reader.ReadUInt64();
+            }
         }
 
         protected override Stream UnParse()
@@ -128,6 +128,10 @@ namespace CASPartResource
             this.swatchList.UnParse(ms);
             w.Write(this.sortOrder);
             w.Write(this.makeupOpacity2);
+            if (this.version >= 8)
+            {
+                w.Write(this.tuningInstance);
+            }
             return ms;
         }
 
@@ -415,9 +419,36 @@ namespace CASPartResource
             }
         }
 
+        [ElementPriority(11)]
+        public ulong TuningDatafileInstance
+        {
+            get { return this.tuningInstance; }
+            set
+            {
+                if (!this.tuningInstance.Equals(value))
+                {
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                    this.tuningInstance = value;
+                }
+            }
+        }
+
         public string Value
         {
             get { return this.ValueBuilder; }
+        }
+
+        public override List<string> ContentFields
+        {
+            get
+            {
+                var res = base.ContentFields;
+                if (this.version < 8)
+                {
+                    res.Remove("TuningDatafileInstance");
+                }
+                return res;
+            }
         }
 
         #endregion
