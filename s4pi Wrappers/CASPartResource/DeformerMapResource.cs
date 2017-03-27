@@ -49,10 +49,26 @@ namespace CASPartResource
         private uint minRow;
         private uint maxRow;
         private RobeChannel robeChannel;
-        private float skinTightMinVal;      //v7 - dynamic range for scaling: minval to (minval + delta)
-        private float skinTightDelta;
-        private float robeMinVal;
-        private float robeDelta;
+        private float skinTightMinVal;      // added in v7, see below
+        private float skinTightDelta;       //    "
+        private float robeMinVal;           //    "
+        private float robeDelta;            //    "
+
+        // Added in v7: dynamic compression range for increased precision. The byte data
+        // coming in with the range of [0-255] is mapped to [MinVal - (MinVal+Delta)]
+        //
+        // V6 and eariler resources will use the old defaults, as follows:
+        //
+        //    if (shapeOrNormals == SHAPE_DEFORMER)
+        //    {
+        //        mSkintightMinVal = mRobeMinVal = -0.2f;
+        //        mSkintightDelta = mRobeDelta = 0.4f;
+        //    }
+        //    else
+        //    {
+        //        mSkintightMinVal = mRobeMinVal = -0.75f;
+        //        mSkintightDelta = mRobeDelta = 1.5f;
+        //    }
 
         private ScanLine[] scanLines;
 
