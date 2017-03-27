@@ -98,7 +98,7 @@ namespace CASPartResource
         private byte specularMapKey;
         private uint sharedUVMapSpace;
         private byte emissionMapKey;                // cmar - added V 0x1E
-        private byte reservedByte;                  // added V 0x3333333333322A
+        private byte reservedByte;                  // added V 0x2A
         private CountedTGIBlockList tgiList;
 
         #endregion
