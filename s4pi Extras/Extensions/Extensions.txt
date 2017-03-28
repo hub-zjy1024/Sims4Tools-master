@@ -255,7 +255,7 @@
 0xE7ADA79D  CFTR   .bnry
 0xE882D22F  _XML   .xml
 0xEA5118B0  _SWB   .bnry
-0xEAA32ADD  UNKN   .bnry
+0xEAA32ADD  CPRE   .caspreset
 0xEB97F823  _XML   .xml
 0xEBCBB16C  CTPT   .trpt
 0xEC3DA10E  _XML   .xml

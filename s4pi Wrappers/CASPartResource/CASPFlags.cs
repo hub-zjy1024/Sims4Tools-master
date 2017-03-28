@@ -291,4 +291,67 @@ namespace CASPartResource
         CASPARTREGION_NECKLACESHADOW, // controls hiding dropshadow for necklaces
         CASPARTREGION_MAX
     }
+
+    [Flags]
+    public enum ArchetypeFlags : uint       //used in CASPreset
+    {
+        ARCHETYPE_NONE = 0x00000000,
+
+        ARCHETYPE_CAUCASIAN = 0x00000001,
+        ARCHETYPE_AFRICAN = 0x00000002,
+        ARCHETYPE_ASIAN = 0x00000004,
+        ARCHETYPE_MIDDLE_EASTERN = 0x00000008,
+        ARCHETYPE_NATIVE_AMERICAN = 0x00000010,
+
+        ARCHETYPE_ALL = 0xffffffff
+    };
+
+
+    public enum SimRegion : uint        //used in CASPreset
+    {
+        SIMREGION_EYES = 0,
+        SIMREGION_FACE_START = SIMREGION_EYES,
+        SIMREGION_NOSE,
+        SIMREGION_MOUTH,
+        SIMREGION_CHEEKS,
+        SIMREGION_CHIN,
+        SIMREGION_JAW,
+        SIMREGION_FOREHEAD,
+
+        // Modifier-only face regions
+        SIMREGION_BROWS = 8,
+        SIMREGION_EARS,
+        SIMREGION_HEAD,
+
+        // Other face regions
+        SIMREGION_FULLFACE = 12,
+        SIMREGION_FACE_END = SIMREGION_FULLFACE,
+
+        // Modifier body regions
+        SIMREGION_CHEST = 14,
+        SIMREGION_BODY_START = SIMREGION_CHEST,
+        SIMREGION_UPPERCHEST,
+        SIMREGION_NECK,
+        SIMREGION_SHOULDERS,
+        SIMREGION_UPPERARM,
+        SIMREGION_LOWERARM,
+        SIMREGION_HANDS,
+        SIMREGION_WAIST,
+        SIMREGION_HIPS,
+        SIMREGION_BELLY,
+        SIMREGION_BUTT,
+        SIMREGION_THIGHS,
+        SIMREGION_LOWERLEG,
+        SIMREGION_FEET,
+
+        // Other body regions
+        SIMREGION_BODY,
+        SIMREGION_UPPERBODY,
+        SIMREGION_LOWERBODY,
+        SIMREGION_BODY_END = SIMREGION_LOWERBODY,   // body end
+
+        SIMREGION_ALL = SIMREGION_BODY_END + 1,     // all
+
+        SIMREGION_INVALID = 32
+    };
 }

@@ -62,6 +62,7 @@
     <Compile Include="BoneResource.cs" />
     <Compile Include="CASPartResource.cs" />
     <Compile Include="CASPFlags.cs" />
+    <Compile Include="CASPreset.cs" />
     <Compile Include="DeformerMapResource.cs" />
     <Compile Include="Handlers\Flag.cs" />
     <Compile Include="Lists\FlagList.cs" />
@@ -98,6 +99,10 @@
       <Project>{374F37CF-1F27-4613-96FD-9B956A3D82B1}</Project>
       <Name>Settings</Name>
       <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\CatalogResource\CatalogResource.csproj">
+      <Project>{0E257AB5-B560-462B-8B6C-631A90380D9E}</Project>
+      <Name>CatalogResource</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
