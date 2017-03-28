@@ -42,6 +42,7 @@ namespace CatalogResource
         private ulong ambienceFileInstanceId;
         private byte isOverrideAmbience;
         private byte unknown01;
+        private ushort unknown02;
         private uint unused0;
         private uint unused1;
         private uint unused2;
@@ -245,6 +246,20 @@ namespace CatalogResource
                 if (this.unknown01 != value)
                 {
                     this.unknown01 = value;
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        [ElementPriority(15)]
+        public ushort Unknown02
+        {
+            get { return this.unknown02; }
+            set
+            {
+                if (this.unknown02 != value)
+                {
+                    this.unknown02 = value;
                     this.OnResourceChanged(this, EventArgs.Empty);
                 }
             }
@@ -484,6 +499,10 @@ namespace CatalogResource
                 {
                     res.Remove("Unknown01");
                 }
+                if (this.auralPropertiesVersion != 5)
+                {
+                    res.Remove("Unknown02");
+                }
                 return res;
             }
         }
@@ -512,6 +531,10 @@ namespace CatalogResource
             if (this.auralPropertiesVersion == 4)
             {
                 this.unknown01 = reader.ReadByte();
+            }
+            if (this.auralPropertiesVersion == 5)
+            {
+                this.unknown02 = reader.ReadUInt16();
             }
             this.unused0 = reader.ReadUInt32();
             this.unused1 = reader.ReadUInt32();
@@ -562,6 +585,10 @@ namespace CatalogResource
             if (this.auralPropertiesVersion == 4)
             {
                 writer.Write(this.unknown01);
+            }
+            if (this.auralPropertiesVersion == 5)
+            {
+                writer.Write(this.unknown02);
             }
             writer.Write(this.unused0);
             writer.Write(this.unused1);
