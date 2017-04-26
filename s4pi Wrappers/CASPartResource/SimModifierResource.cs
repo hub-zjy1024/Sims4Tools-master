@@ -36,7 +36,7 @@ namespace CASPartResource
         private ContexData contexData { get; set; }
         private uint version { get; set; }
         private AgeGenderFlags gender { get; set; }
-        private uint region { get; set; }
+        private SimRegion region { get; set; }
         private uint linkTag { get; set; }
         private uint unknown1 { get; set; }
         private TGIBlock bonePoseKey { get; set; }
@@ -54,7 +54,7 @@ namespace CASPartResource
             this.contexData = new ContexData(recommendedApiVersion, OnResourceChanged, s);
             this.version = r.ReadUInt32();
             this.gender = (AgeGenderFlags)r.ReadUInt32();
-            this.region = r.ReadUInt32();
+            this.region = (SimRegion)r.ReadUInt32();
             this.linkTag = r.ReadUInt32();
             if (this.version >= 144) this.unknown1 = r.ReadUInt32();
             this.bonePoseKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
@@ -71,7 +71,7 @@ namespace CASPartResource
             this.contexData.UnParse(ms);
             w.Write(this.version);
             w.Write((uint)this.gender);
-            w.Write(this.region);
+            w.Write((uint)this.region);
             w.Write(this.linkTag);
             if (this.version >= 144) w.Write(this.unknown1);
             if (this.bonePoseKey == null) this.bonePoseKey = new TGIBlock(recommendedApiVersion, OnResourceChanged);
@@ -214,15 +214,15 @@ namespace CASPartResource
             [ElementPriority(3)]
             public uint DelayLoadKeyCount { get { return this.delayLoadKeyCount; } set { if (!this.delayLoadKeyCount.Equals(value)) { OnElementChanged(); this.delayLoadKeyCount = value; } } }
             [ElementPriority(4)]
-            public uint ObjectKeyCount { get { return this.objectKeyCount; } set { if (!this.objectKeyCount.Equals(value)) { OnElementChanged(); this.objectKeyCount = value; } } }
+            public uint ObjectCount { get { return this.objectKeyCount; } set { if (!this.objectKeyCount.Equals(value)) { OnElementChanged(); this.objectKeyCount = value; } } }
             [ElementPriority(5)]
             public CountedTGIBlockList PublicKey { get { return this.publicKey; } set { if (!this.publicKey.Equals(value)) { OnElementChanged(); this.publicKey = value; } } }
             [ElementPriority(6)]
             public CountedTGIBlockList ExternalKey { get { return this.externalKey; } set { if (!this.externalKey.Equals(value)) { OnElementChanged(); this.externalKey = value; } } }
             [ElementPriority(7)]
-            public CountedTGIBlockList DelayLoadKey { get { return this.delayLoadKey; } set { if (!this.delayLoadKey.Equals(value)) { OnElementChanged(); this.delayLoadKey = value; } } }
+            public CountedTGIBlockList DelayLoadKey_BGEOkey { get { return this.delayLoadKey; } set { if (!this.delayLoadKey.Equals(value)) { OnElementChanged(); this.delayLoadKey = value; } } }
             [ElementPriority(8)]
-            public ObjectDataLIst ObjectKey { get { return this.objectKey; } set { if (!this.objectKey.Equals(value)) { OnElementChanged(); this.objectKey = value; } } }
+            public ObjectDataLIst ObjectInfo { get { return this.objectKey; } set { if (!this.objectKey.Equals(value)) { OnElementChanged(); this.objectKey = value; } } }
             #endregion
             public string Value { get { return ValueBuilder; } }
         }
@@ -293,19 +293,19 @@ namespace CASPartResource
 
         #region Content Fields
         [ElementPriority(0)]
-        public ContexData Contexdata { get { return this.contexData; } set { if (!contexData.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.contexData = value; } } }
+        public ContexData Contextdata { get { return this.contexData; } set { if (!contexData.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.contexData = value; } } }
         [ElementPriority(1)]
         public uint Version { get { return this.version; } set { if (!this.version.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.version = value; } } }
         [ElementPriority(2)]
         public AgeGenderFlags AgeGender { get { return this.gender; } set { if (!this.gender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.gender = value; } } }
         [ElementPriority(3)]
-        public uint Region { get { return this.region; } set { if (!this.region.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.region = value; } } }
+        public SimRegion Region { get { return this.region; } set { if (!this.region.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.region = value; } } }
         [ElementPriority(4)]
         public uint LinkTag { get { return this.linkTag; } set { if (!this.linkTag.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.linkTag = value; } } }
         [ElementPriority(5)]
         public uint Unknown1 { get { return this.unknown1; } set { if (!this.unknown1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown1 = value; } } }
         [ElementPriority(6)]
-        public TGIBlock BonePostKey { get { return this.bonePoseKey; } set { if (!this.bonePoseKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.bonePoseKey = value; } } }
+        public TGIBlock BonePoseKey { get { return this.bonePoseKey; } set { if (!this.bonePoseKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.bonePoseKey = value; } } }
         [ElementPriority(7)]
         public TGIBlock DeformerMapShapeKey { get { return this.deformerMapShapeKey; } set { if (!this.deformerMapShapeKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapShapeKey = value; } } }
         [ElementPriority(8)]
