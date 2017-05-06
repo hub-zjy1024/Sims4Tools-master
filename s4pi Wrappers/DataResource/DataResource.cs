@@ -1388,7 +1388,7 @@ namespace s4pi.DataResource
     {
         public DataResourceHandler()
         {
-            this.Add(typeof(DataResource), new List<string>(new string[] { "0x545AC67A", }));
+            this.Add(typeof(DataResource), new List<string>(new string[] { "0x545AC67A", "0x02D5DF13" }));
         }
     }
 }
