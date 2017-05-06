@@ -56,9 +56,9 @@ namespace s4pi.Animation
             {
                 var sb = new StringBuilder();
                 sb.AppendLine();
-                foreach (var item in this)
+                for (int i = 0; i < this.Count; i++)
                 {
-                    sb.AppendLine(item.Value);
+                    sb.AppendLine("--- IkConfiguration[" + i.ToString("X2") + "] ---" + Environment.NewLine + this[i].Value);
                 }
                 sb.AppendLine();
                 return sb.ToString();
