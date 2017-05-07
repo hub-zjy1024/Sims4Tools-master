@@ -31,7 +31,7 @@ namespace CatalogResource
         const int kRecommendedApiVersion = 1;
         public override int RecommendedApiVersion { get { return kRecommendedApiVersion; } }
 
-        private uint version = 0x0E;
+        private uint version = 0x11;
         private int cstlRefsSize = 25;
         TGIBlock[] cstlRefs;
 
@@ -139,9 +139,13 @@ namespace CatalogResource
             var br = new BinaryReader(s);
             this.version = br.ReadUInt32();
             this.commonA = new CatalogCommon(kRecommendedApiVersion, this.OnResourceChanged, s);
-            if (this.version == 0x0D)
-            { 
+            if (this.version < 17)
+            {
                 cstlRefsSize = 21;
+            }
+            else
+            {
+                cstlRefsSize = 29;
             }
             cstlRefs = new TGIBlock[cstlRefsSize];
             for (int i = 0; i < cstlRefs.Length; i++)
