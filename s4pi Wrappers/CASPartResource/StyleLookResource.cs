@@ -41,19 +41,24 @@ namespace CASPartResource
         private AgeGenderFlags ageGender;
         private ulong groupingID;
         private byte unknown1;
+        private byte unknown2;
         private ulong simOutfitReference;
         private ulong textureReference;
         private ulong simDataReference;
         private uint nameHash;
         private uint descHash;
-        private DataBlobHandler unknown2;
         private uint unknown3;
+        private uint unknown4;
+        private uint unknown5;
+        private float unknown6;
+        private ushort unknown7;
         private ulong animationReference1;
         private string animationStateName1;
         private ulong animationReference2;
         private string animationStateName2;
         private SwatchColorList colorList;
         private FlagList flagList;
+        private byte unknown8;
 
         public StyleLookResource(int APIversion, Stream s) : base(APIversion, s) { if (stream == null || stream.Length == 0) { stream = UnParse(); OnResourceChanged(this, EventArgs.Empty); } stream.Position = 0; Parse(stream); }
         
@@ -66,19 +71,23 @@ namespace CASPartResource
             this.ageGender = (AgeGenderFlags)r.ReadUInt32();
             this.groupingID = r.ReadUInt64();
             this.unknown1 = r.ReadByte();
+            if (version >= 12) this.unknown2 = r.ReadByte();
             this.simOutfitReference = r.ReadUInt64();
             this.textureReference = r.ReadUInt64();
             this.simDataReference = r.ReadUInt64();
             this.nameHash = r.ReadUInt32();
             this.descHash = r.ReadUInt32();
-            this.unknown2 = new DataBlobHandler(recommendedApiVersion, OnResourceChanged, r.ReadBytes(14));
             this.unknown3 = r.ReadUInt32();
+            this.unknown4 = r.ReadUInt32();
+            this.unknown5 = r.ReadUInt32();
+            this.unknown6 = r.ReadSingle();
+            this.unknown7 = r.ReadUInt16();
             this.animationReference1 = r.ReadUInt64();
             this.animationStateName1 = System.Text.Encoding.ASCII.GetString(r.ReadBytes(r.ReadInt32()));
             this.animationReference2 = r.ReadUInt64();
             this.animationStateName2 = System.Text.Encoding.ASCII.GetString(r.ReadBytes(r.ReadInt32()));
             this.colorList = new SwatchColorList(OnResourceChanged, s);
-            if (this.version > 0x0A)
+            if (this.version > 10)
             {
                 this.flagList = new FlagList(this.OnResourceChanged, s);
             }
@@ -86,7 +95,7 @@ namespace CASPartResource
             {
                 this.flagList = FlagList.CreateWithUInt16Flags(this.OnResourceChanged, s, recommendedApiVersion);
             }
-
+            this.unknown8 = r.ReadByte();
         }
 
         protected override Stream UnParse()
@@ -97,13 +106,17 @@ namespace CASPartResource
             w.Write((uint)this.ageGender);
             w.Write(this.groupingID);
             w.Write(this.unknown1);
+            if (version >= 12) w.Write(this.unknown2);
             w.Write(this.simOutfitReference);
             w.Write(this.textureReference);
             w.Write(this.simDataReference);
             w.Write(this.nameHash);
             w.Write(this.descHash);
-            this.unknown2.UnParse(ms);
             w.Write(this.unknown3);
+            w.Write(this.unknown4);
+            w.Write(this.unknown5);
+            w.Write(this.unknown6);
+            w.Write(this.unknown7);
             w.Write(this.animationReference1);
             w.Write(Encoding.ASCII.GetByteCount(this.animationStateName1));
             w.Write(Encoding.ASCII.GetBytes(this.animationStateName1));
@@ -113,7 +126,7 @@ namespace CASPartResource
             if (this.colorList == null) this.colorList = new SwatchColorList(OnResourceChanged);
             this.colorList.UnParse(ms);
             if (this.flagList == null) this.flagList = new FlagList(OnResourceChanged);
-            if (this.version > 6)
+            if (this.version > 10)
             {
                 this.flagList.UnParse(ms);
             }
@@ -121,6 +134,7 @@ namespace CASPartResource
             {
                 this.flagList.WriteUInt16Flags(ms);
             }
+            w.Write(this.unknown8);
             ms.Position = 0;
             return ms;
         }
@@ -137,31 +151,54 @@ namespace CASPartResource
         [ElementPriority(3)]
         public byte Unknown1 { get { return this.unknown1; } set { if (!this.unknown1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown1 = value; } } }
         [ElementPriority(4)]
-        public ulong SimOutfitReference { get { return this.simOutfitReference; } set { if (!this.simOutfitReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.simOutfitReference = value; } } }
+        public byte Unknown2 { get { return this.unknown2; } set { if (!this.unknown2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown2 = value; } } }
         [ElementPriority(5)]
-        public ulong TextureReference { get { return this.textureReference; } set { if (!this.textureReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.textureReference = value; } } }
+        public ulong SimOutfitReference { get { return this.simOutfitReference; } set { if (!this.simOutfitReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.simOutfitReference = value; } } }
         [ElementPriority(6)]
-        public ulong SimDataReference { get { return this.simDataReference; } set { if (!this.simDataReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.simDataReference = value; } } }
+        public ulong TextureReference { get { return this.textureReference; } set { if (!this.textureReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.textureReference = value; } } }
         [ElementPriority(7)]
-        public uint NameHash { get { return this.nameHash; } set { if (!this.nameHash.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.nameHash = value; } } }
+        public ulong SimDataReference { get { return this.simDataReference; } set { if (!this.simDataReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.simDataReference = value; } } }
         [ElementPriority(8)]
-        public uint DescHash { get { return this.descHash; } set { if (!this.descHash.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.descHash = value; } } }
+        public uint NameHash { get { return this.nameHash; } set { if (!this.nameHash.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.nameHash = value; } } }
         [ElementPriority(9)]
-        public DataBlobHandler Unknown2 { get { return this.unknown2; } set { if (!this.unknown2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown2 = value; } } }
+        public uint DescHash { get { return this.descHash; } set { if (!this.descHash.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.descHash = value; } } }
         [ElementPriority(10)]
         public uint Unknown3 { get { return this.unknown3; } set { if (!this.unknown3.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown3 = value; } } }
         [ElementPriority(11)]
-        public ulong AnimationReference1 { get { return this.animationReference1; } set { if (!this.animationReference1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationReference1 = value; } } }
+        public uint Unknown4 { get { return this.unknown4; } set { if (!this.unknown4.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown4 = value; } } }
         [ElementPriority(12)]
-        public string AnimationStateName1 { get { return this.animationStateName1; } set { if (!this.animationStateName1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationStateName1 = value; } } }
+        public uint Unknown5 { get { return this.unknown5; } set { if (!this.unknown5.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown5 = value; } } }
         [ElementPriority(13)]
-        public ulong AnimationReference2 { get { return this.animationReference2; } set { if (!this.animationReference2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationReference2 = value; } } }
+        public float Unknown6 { get { return this.unknown6; } set { if (!this.unknown6.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown6 = value; } } }
         [ElementPriority(14)]
-        public string AnimationStateName2 { get { return this.animationStateName2; } set { if (!this.animationStateName2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationStateName2 = value; } } }
+        public ushort Unknown7 { get { return this.unknown7; } set { if (!this.unknown7.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown7 = value; } } }
         [ElementPriority(15)]
-        public SwatchColorList ColorList { get { return this.colorList; } set { if (!this.colorList.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.colorList = value; } } }
+        public ulong AnimationReference1 { get { return this.animationReference1; } set { if (!this.animationReference1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationReference1 = value; } } }
         [ElementPriority(16)]
+        public string AnimationStateName1 { get { return this.animationStateName1; } set { if (!this.animationStateName1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationStateName1 = value; } } }
+        [ElementPriority(17)]
+        public ulong AnimationReference2 { get { return this.animationReference2; } set { if (!this.animationReference2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationReference2 = value; } } }
+        [ElementPriority(18)]
+        public string AnimationStateName2 { get { return this.animationStateName2; } set { if (!this.animationStateName2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.animationStateName2 = value; } } }
+        [ElementPriority(19)]
+        public SwatchColorList ColorList { get { return this.colorList; } set { if (!this.colorList.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.colorList = value; } } }
+        [ElementPriority(20)]
         public FlagList CASPFlagList { get { return this.flagList; } set { if (!this.CASPFlagList.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.flagList = value; } } }
+        [ElementPriority(21)]
+        public byte Unknown8 { get { return this.unknown8; } set { if (!this.unknown8.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown8 = value; } } }
+
+        protected override List<string> ValueBuilderFields
+        {
+            get
+            {
+                List<string> fields = base.ValueBuilderFields;
+                if (version < 12)
+                {
+                    fields.Remove("Unknown2");
+                }
+                return fields;
+            }
+        }
         #endregion
 
     }
