@@ -161,7 +161,7 @@
 0x86136AA5  _XML   .xml
 0x892C4B8A  UNKN   .bnry
 0x893E429C  _XML   .xml
-0x8B18FF6E  UNKN   .bnry
+0x8B18FF6E  HOTC   .hotspotctrl
 0x8EAF13DE  _RIG   .grannyrig
 0x8FB3E0B1  _XML   .xml
 0x9063660D  WTXT   .wrldtxtrmap
@@ -175,6 +175,7 @@
 0x9C07855F  _XML   .xml
 0x9C925813  THUM   .png
 0x9CC21262  _XML   .xml
+0x9D1AB874  SCPT   .sculpt
 0x9DB989FD  _XML   .xml
 0x9DDB5FDA  _XML   .xml
 0x9DF2F1F2  _XML   .xml
@@ -214,7 +215,7 @@
 0xC202C770  _XML   .xml
 0xC2CAA646  _XML   .xml
 0xC582D2FB  _XML   .xml
-0xC5F6763E  CNTX   .contexdata
+0xC5F6763E  SMOD   .simmodifier
 0xC71CA490  UNKN   .bnry
 0xCB5FDDC7  _XML   .xml
 0xCD9DE247  THUM   .png
