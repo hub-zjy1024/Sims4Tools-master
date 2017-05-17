@@ -43,11 +43,8 @@ namespace meshExpImp.ModelBlocks
         #region Attributes
         uint tag = (uint)FOURCC("BGEO");
         uint version = 0x000000600;
-        uint lodCount;
-        uint totalVertexCount;
-        uint totalVectorCount;
         LodList lodData;
-        ushort[] blendMap;
+        BlendList blendMap;
         VectorList vectorData;
         #endregion
 
@@ -55,23 +52,14 @@ namespace meshExpImp.ModelBlocks
         public BGEO(int apiVersion, EventHandler handler) : base(apiVersion, handler, null) { }
         public BGEO(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler, s) { }
         public BGEO(int apiVersion, EventHandler handler, BGEO basis)
-            : this(apiVersion, handler, basis.version, basis.lodCount, basis.totalVertexCount, basis.totalVectorCount,
-            basis.lodData, basis.blendMap, basis.vectorData) { }
+            : this(apiVersion, handler, basis.version, basis.lodData, basis.blendMap, basis.vectorData) { }
         public BGEO(int apiVersion, EventHandler handler,
-            uint version, uint lodCount, uint totalVertexCount, uint totalVectorCount, LodList lodData, 
-            ushort[] blendMap, VectorList vectorData)
+            uint version, LodList lodData, BlendList blendMap, VectorList vectorData)
             : base(apiVersion, handler, null)
         {
             this.version = version;
-            this.lodCount = lodCount;
-            this.totalVertexCount = totalVertexCount;
-            this.totalVectorCount = totalVectorCount;
             this.lodData = lodData == null ? null : new LodList(handler, lodData);
-            this.blendMap = new ushort[blendMap.Length];
-            for (int i = 0; i < blendMap.Length; i++)
-            {
-                this.blendMap[i] = blendMap[i];
-            }
+            this.blendMap = blendMap == null ? null : new BlendList(handler, blendMap);
             this.vectorData = vectorData == null ? null : new VectorList(handler, vectorData);
         }
         #endregion
@@ -88,24 +76,35 @@ namespace meshExpImp.ModelBlocks
         protected override void Parse(Stream s)
         {
             BinaryReader r = new BinaryReader(s);
+            int runningIndex = 0;
             this.tag = r.ReadUInt32();
             if (checking) if (tag != (uint)FOURCC("BGEO"))
                     throw new InvalidDataException(String.Format("Invalid Tag read: '{0}'; expected: 'BGEO'; at 0x{1:X8}", FOURCC(tag), s.Position));
             version = r.ReadUInt32();
             if (checking) if (version != 0x00000600)
                     throw new InvalidDataException(String.Format("Invalid Version read: '{0}'; expected: '0x00000600'; at 0x{1:X8}", version, s.Position));
-            this.lodCount = r.ReadUInt32();
-            this.totalVertexCount = r.ReadUInt32();
-            this.totalVectorCount = r.ReadUInt32();
-            lodData = new LodList(handler);
+            uint lodCount = r.ReadUInt32();
+            uint totalVertexCount = r.ReadUInt32();
+            uint totalVectorCount = r.ReadUInt32();
+            this.lodData = new LodList(handler);
             for (int i = 0; i < lodCount; i++)
             {
                 lodData.Add(new LOD(this.requestedAPIversion, handler, s));
             }
-            blendMap = new ushort[totalVertexCount];
+            blendMap = new BlendList(handler);
+            int lodCounter = 0;
+            int previousLODnumVerts = 0;
             for (int i = 0; i < totalVertexCount; i++)
             {
-                blendMap[i] = r.ReadUInt16();
+                if (i == lodData[lodCounter].NumberVertices + previousLODnumVerts)
+                {
+                    runningIndex += (int)lodData[lodCounter].NumberDeltaVectors;
+                    previousLODnumVerts += (int)lodData[lodCounter].NumberVertices;
+                    lodCounter++;
+                    if (lodCounter > 3) lodCounter = 3;
+                }
+                blendMap.Add(new Blend(this.requestedApiVersion, handler, s, runningIndex));
+                runningIndex += blendMap[i].Offset;
             }
             vectorData = new VectorList(handler);
             for (int i = 0; i < totalVectorCount; i++)
@@ -123,17 +122,17 @@ namespace meshExpImp.ModelBlocks
             w.Write(version);
             if (lodData == null) lodData = new LodList(handler);
             w.Write(lodData.Count);
-            if (blendMap == null) blendMap = new ushort[0];
-            w.Write(blendMap.Length);
+            if (blendMap == null) blendMap = new BlendList(handler);
+            w.Write(blendMap.Count);
             if (vectorData == null) vectorData = new VectorList(handler);
             w.Write(vectorData.Count);
             for (int i = 0; i < lodData.Count; i++)
             {
                 lodData[i].UnParse(ms);
             }
-            for (int i = 0; i < blendMap.Length; i++)
+            for (int i = 0; i < blendMap.Count; i++)
             {
-                w.Write(blendMap[i]);
+                blendMap[i].UnParse(ms);
             }
             for (int i = 0; i < vectorData.Count; i++)
             {
@@ -157,7 +156,7 @@ namespace meshExpImp.ModelBlocks
             FlagAll      = 3,
             PackIndexScale = 4,
         };
-        const uint packIndexShift = 2;
+        const byte packIndexShift = 2;
 
         public class LOD : AHandlerElement, IEquatable<LOD>
         {
@@ -237,18 +236,127 @@ namespace meshExpImp.ModelBlocks
             protected override void WriteElement(Stream s, LOD element) { element.UnParse(s); }
         }
 
+        public class Blend : AHandlerElement, IEquatable<Blend>
+        {
+            const int recommendedApiVersion = 1;
+
+            #region Attributes
+            bool positionDelta, normalDelta;
+            short offset;
+            internal int index;
+            #endregion
+
+            public Blend(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
+            public Blend(int apiVersion, EventHandler handler, Stream s, int lastIndex) : base(apiVersion, handler) { Parse(s, lastIndex); }
+            public Blend(int apiVersion, EventHandler handler, Blend basis)
+                : this(apiVersion, handler, basis.positionDelta, basis.normalDelta, basis.offset, basis.index) { }
+            public Blend(int apiVersion, EventHandler handler, bool posDelta, bool normDelta, short off, int ind)
+                : base(apiVersion, handler)
+            {
+                this.positionDelta = posDelta;
+                this.normalDelta = normDelta;
+                this.offset = off;
+                this.index = ind;
+            }
+            public Blend(int apiVersion, EventHandler handler, bool posDelta, bool normDelta, short off)
+                : base(apiVersion, handler)
+            {
+                this.positionDelta = posDelta;
+                this.normalDelta = normDelta;
+                this.offset = off;
+                this.index = 0;
+            }
+
+            private void Parse(Stream s, int lastIndex)
+            {
+                BinaryReader r = new BinaryReader(s);
+                short tmp = r.ReadInt16();
+                positionDelta = (tmp & (ushort)BlendMapFlags.FlagPosDelta) > 0;
+                normalDelta = (tmp & (ushort)BlendMapFlags.FlagNorDelta) > 0;
+                offset = (short)(tmp >> packIndexShift);
+                index = offset + lastIndex;
+            }
+            internal void UnParse(Stream s)
+            {
+                BinaryWriter w = new BinaryWriter(s);
+                short tmp = (short)((offset << packIndexShift) + (positionDelta ? (short)BlendMapFlags.FlagPosDelta : 0) + 
+                    (normalDelta ? (short)BlendMapFlags.FlagNorDelta : 0));
+                w.Write(tmp);
+            }
+
+            #region AHandlerElement
+            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
+            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+            #endregion
+
+            #region IEquatable<Vector>
+            public bool Equals(Blend other)
+            {
+                return (this.positionDelta == other.positionDelta) & (this.normalDelta == other.normalDelta) &
+                    (this.offset == other.offset);
+            }
+
+            public override bool Equals(object obj) { return obj is Blend && Equals(obj as Blend); }
+
+            public override int GetHashCode() { return ((offset << packIndexShift) + (positionDelta ? (short)BlendMapFlags.FlagPosDelta : 0) + 
+                    (normalDelta ? (short)BlendMapFlags.FlagNorDelta : 0)).GetHashCode(); }
+            #endregion
+
+            [ElementPriority(1)]
+            public bool HasPositionDelta { get { return positionDelta; } set { if (positionDelta != value) { positionDelta = value; OnElementChanged(); } } }
+            public bool HasNormalDelta { get { return normalDelta; } set { if (normalDelta != value) { normalDelta = value; OnElementChanged(); } } }
+            public short Offset { get { return offset; } set { if (offset != value) { offset = value; OnElementChanged(); } } }
+
+          //  public string Value { get { return string.Join("; ", ValueBuilder.Split('\n')); } }
+            public string Value { get { return ValueBuilder + " (offset: " + offset.ToString("+#;-#;0") + ", index: 0x" + index.ToString("X3") + ")"; } }
+        }
+
+        public class BlendList : DependentList<Blend>
+        {
+            #region Constructors
+            public BlendList(EventHandler handler) : base(handler) { }
+            public BlendList(EventHandler handler, Stream s) : base(handler, s) { }
+            public BlendList(EventHandler handler, IEnumerable<Blend> le) : base(handler, le) { }
+            #endregion
+
+            protected override int ReadCount(Stream s) { return base.ReadCount(s) / 3; }
+            protected override Blend CreateElement(Stream s) { return new Blend(0, elementHandler, s, this.Count > 0 ? this[this.Count - 1].index : 0); }
+            //  protected override void WriteCount(Stream s, int count) { base.WriteCount(s, (int)(count * 3)); }
+            protected override void WriteElement(Stream s, Blend element) { element.UnParse(s); }
+        }
+
         public class Vector : AHandlerElement, IEquatable<Vector>
         {
             const int recommendedApiVersion = 1;
 
             #region Attributes
             ushort[] vector;
+            float[] translatedVector
+            {
+                get
+                {
+                    float[] translated = new float[3];
+                    for (int i = 0; i < 3; i++)
+                    {
+                        int tmp = ((vector[i] ^ 0x8000) << 16) >> 16;   //flip sign bit and move it to high bit
+                        translated[i] = tmp / 6144f;
+                    }
+                    return translated;
+                }
+            }
+
             #endregion
 
             public Vector(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
             public Vector(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
             public Vector(int apiVersion, EventHandler handler, Vector basis)
                 : this(apiVersion, handler, basis.vector) { }
+            /// <summary>
+            /// Creates a new Vector using encoded delta values
+            /// </summary>
+            /// <param name="apiVersion"></param>
+            /// <param name="handler"></param>
+            /// <param name="vector">Encoded ushort vector</param>
             public Vector(int apiVersion, EventHandler handler, ushort[] vector)
                 : base(apiVersion, handler)
             {
@@ -256,6 +364,22 @@ namespace meshExpImp.ModelBlocks
                 for (int i = 0; i < vector.Length; i++)
                 {
                     this.vector[i] = vector[i];
+                }
+            }
+            /// <summary>
+            /// Creates a new vector using float delta values
+            /// </summary>
+            /// <param name="apiVersion"></param>
+            /// <param name="handler"></param>
+            /// <param name="vector">Actual float delta coordinates</param>
+            public Vector(int apiVersion, EventHandler handler, float[] vector)
+                : base(apiVersion, handler)
+            {
+                this.vector = new ushort[vector.Length];
+                for (int i = 0; i < vector.Length; i++)
+                {
+                    int tmp = (Convert.ToInt32(vector[i] * 6144f)) ^ 0x8000;
+                    this.vector[i] = BitConverter.ToUInt16(BitConverter.GetBytes(tmp), 0);
                 }
             }
 
@@ -294,7 +418,9 @@ namespace meshExpImp.ModelBlocks
             [ElementPriority(1)]
             public ushort[] VectorSet { get { return vector; } set { if (vector != value) { vector = value; OnElementChanged(); } } }
 
-            public string Value { get { return string.Join("; ", ValueBuilder.Split('\n')); } }
+         //   public string Value { get { return string.Join("; ", ValueBuilder.Split('\n')); } }
+            public string Value { get { return ValueBuilder + " (" + translatedVector[0].ToString() + ", " +
+                                                    translatedVector[1].ToString() + ", " + translatedVector[2].ToString() + ")"; } }
         }
         public class VectorList : DependentList<Vector>
         {
@@ -317,7 +443,7 @@ namespace meshExpImp.ModelBlocks
         [ElementPriority(2)]
         public LodList LodData { get { return lodData; } set { if (lodData != value) { lodData = value; OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(3)]
-        public ushort[] BlendMap { get { return blendMap; } set { if (blendMap != value) { blendMap = value; OnRCOLChanged(this, EventArgs.Empty); } } }
+        public BlendList BlendMap { get { return blendMap; } set { if (blendMap != value) { blendMap = value; OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(4)]
         public VectorList VectorData { get { return vectorData; } set { if (vectorData != value) { vectorData = value; OnRCOLChanged(this, EventArgs.Empty); } } }
 
