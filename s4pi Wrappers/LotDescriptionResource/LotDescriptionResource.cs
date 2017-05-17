@@ -70,6 +70,7 @@ namespace LotDescriptionResource
         public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
 
         public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+
         #endregion
 
         #region Data I/O
@@ -138,6 +139,8 @@ namespace LotDescriptionResource
             return ms;
         }
         #endregion
+
+        public string Value { get { return this.ValueBuilder; } }
 
         #region Content Fields
         [MinimumVersion(1)]
