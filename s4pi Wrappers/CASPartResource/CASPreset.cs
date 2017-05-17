@@ -165,8 +165,7 @@ namespace CASPartResource
                 w.Write(this.unknown);
             }
             w.Write(this.chanceForRandom);
-
-            this.flagList = this.flagList ?? new FlagList(this.OnResourceChanged);
+            if (this.flagList == null) this.flagList = new FlagList(OnResourceChanged);
             if (this.version >= 10)
             {
                 this.flagList.UnParse(ms);
@@ -204,11 +203,11 @@ namespace CASPartResource
                 }
             }
 
-            public void UnParse(Stream s)
+            public void UnParse(Stream s, uint version)
             {
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write(this.instance);
-                if (parentVersion < 9)
+                if (version < 9)
                 {
                     w.Write(this.region);
                 }
@@ -314,7 +313,7 @@ namespace CASPartResource
                 w.Write(this.Count);
                 foreach (var reference in this)
                 {
-                    reference.UnParse(s);
+                    reference.UnParse(s, parentVersion);
                 }
             }
 
@@ -327,7 +326,7 @@ namespace CASPartResource
 
             protected override void WriteElement(Stream s, Sculpt element)
             {
-                element.UnParse(s);
+                element.UnParse(s, parentVersion);
             }
         }
 
@@ -356,12 +355,12 @@ namespace CASPartResource
                 }
             }
 
-            public void UnParse(Stream s)
+            public void UnParse(Stream s, uint version)
             {
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write(this.instance);
                 w.Write(this.weight);
-                if (parentVersion < 9)
+                if (version < 9)
                 {
                     w.Write(this.region);
                 }
@@ -482,7 +481,7 @@ namespace CASPartResource
                 w.Write(this.Count);
                 foreach (var reference in this)
                 {
-                    reference.UnParse(s);
+                    reference.UnParse(s, parentVersion);
                 }
             }
 
@@ -495,7 +494,7 @@ namespace CASPartResource
 
             protected override void WriteElement(Stream s, Modifier element)
             {
-                element.UnParse(s);
+                element.UnParse(s, parentVersion);
             }
         }
         #endregion
