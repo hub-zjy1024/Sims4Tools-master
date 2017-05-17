@@ -186,6 +186,7 @@
 0xA1FF2FC4  THUM   .png
 0xA576C2E7  _XML   .xml
 0xA5DFFCF3  CPLT   .bnry
+0xA680EA4B  WRLD   .world
 0xA8F7B517  CWNS   .bnry
 0xAC03A936  CMTX   .bnry
 0xAC16FBEC  RMAP   .regionmap
