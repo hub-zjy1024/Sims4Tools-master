@@ -1,5 +1,5 @@
 ﻿/***************************************************************************
- *  Copyright (C) 2009, 2010 by Peter L Jones                              *
+ *  Copyright (C) 2010, 2017 by Peter L Jones                              *
  *  pljones@users.sf.net                                                   *
  *                                                                         *
  *  This file is part of the Sims 3 Package Interface (s3pi)               *
@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using s4pi.Interfaces;
 
 namespace s4pi.GenericRCOLResource
@@ -39,10 +40,10 @@ namespace s4pi.GenericRCOLResource
         #endregion
 
         #region Constructors
-        public LITE(int apiVersion, EventHandler handler) : base(apiVersion, handler, null) { }
-        public LITE(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler, s) { }
-        public LITE(int apiVersion, EventHandler handler, LITE basis)
-            : base(apiVersion, handler, null)
+        public LITE(int APIversion, EventHandler handler) : base(APIversion, handler, null) { }
+        public LITE(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler, s) { }
+        public LITE(int APIversion, EventHandler handler, LITE basis)
+            : base(APIversion, handler, null)
         {
             this.version = basis.version;
             this.unknown1 = basis.unknown1;
@@ -100,87 +101,69 @@ namespace s4pi.GenericRCOLResource
             const int recommendedApiVersion = 1;
 
             #region Attributes
-            LightSourceType lightSource = LightSourceType.Unknown;
+            LightSourceType lightSourceType = LightSourceType.Unknown;
             Vertex transform;
             RGB color;
             float intensity;
-            protected float[] lightSourceDataArray = new float[24];
-
-            GeneralLightSourceType lightSourceData;
-            SpotLightSourceType spotLightSourceData;
-            LampShadeLightSourceType lampShadeLightSourceData;
-            TubeLightSourceType tubeShadeLightSourceData;
-            SquareWindowLightSourceType squareWindowLightSourceData;
-            CircularWindowLightSourceType circularWindowLightSourceData;
-            SquareWindowLightSourceType squareAreaLightSourceData;
-            CircularWindowLightSourceType discAreaLightSourceData;
+            AbstractLightSourceType lightSourceData;
             #endregion
 
             #region Constructors
-            public LightSource(int apiVersion, EventHandler handler)
-                : this(apiVersion, handler, LightSourceType.Unknown,
-                0f, 0f, 0f,
-                0f, 0f, 0f, 0f,
-                new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }) { }
-            public LightSource(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); PointToLightSourceData(); }
-            public LightSource(int apiVersion, EventHandler handler, LightSource basis)
-                : this(apiVersion, handler, basis.lightSource
-                , basis.transform.X, basis.transform.Y, basis.transform.Z
-                , basis.color.X, basis.color.Y, basis.color.Z, basis.intensity
-                , basis.lightSourceDataArray
+            public LightSource(int APIversion, EventHandler handler)
+                : this(APIversion, handler
+                , LightSourceType.Unknown
+                , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                , new RGB(APIversion, handler, 0f, 0f, 0f)
+                , 0f
+                , LightSourceTypeFactory.create(APIversion, handler,
+                    LightSourceType.Unknown,
+                    new GeneralLightSourceType(0, null, new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }))
                 ) { }
-
-            public LightSource(int apiVersion, EventHandler handler, LightSourceType sectionType
-                , float X, float Y, float Z
-                , float R, float G, float B, float intensity
-                , float[] lightSourceData
+            public LightSource(int APIversion, EventHandler handler, LightSource basis)
+                : this(APIversion, handler
+                , basis.lightSourceType
+                , basis.transform
+                , basis.color
+                , basis.intensity
+                , basis.lightSourceData
+                ) { }
+            public LightSource(int APIversion, EventHandler handler
+                , LightSourceType lightSourceType
+                , Vertex transform
+                , RGB color
+                , float intensity
+                , AbstractLightSourceType lightSourceData
                 )
-                : base(apiVersion, handler)
+                : base(APIversion, handler)
             {
-                this.lightSource = sectionType;
-                this.transform = new Vertex(requestedApiVersion, handler, X, Y, Z);
-                this.color = new RGB(requestedApiVersion, handler, R, G, B);
+                this.lightSourceType = lightSourceType;
+                this.transform = new Vertex(requestedApiVersion, handler, transform);
+                this.color = new RGB(requestedApiVersion, handler, color);
                 this.intensity = intensity;
-                if (checking) if (lightSourceData.Length != 24)
-                        throw new ArgumentException("Array length must be 24");
-                this.lightSourceDataArray = (float[])lightSourceData.Clone();
-                PointToLightSourceData();
+                this.lightSourceData = LightSourceTypeFactory.create(APIversion, handler, lightSourceType, lightSourceData);
             }
+            public LightSource(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
             #endregion
-
-            void PointToLightSourceData()
-            {
-                lightSourceData = new GeneralLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                spotLightSourceData = new SpotLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                lampShadeLightSourceData = new LampShadeLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                tubeShadeLightSourceData = new TubeLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                squareWindowLightSourceData = new SquareWindowLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                circularWindowLightSourceData = new CircularWindowLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                squareAreaLightSourceData = new SquareWindowLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-                discAreaLightSourceData = new CircularWindowLightSourceType(requestedApiVersion, handler, lightSourceDataArray);
-            }
 
             #region Data I/O
             void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
-                lightSource = (LightSourceType)r.ReadUInt32();
+                lightSourceType = (LightSourceType)r.ReadUInt32();
                 transform = new Vertex(requestedApiVersion, handler, s);
                 color = new RGB(requestedApiVersion, handler, s);
                 intensity = r.ReadSingle();
-                for (int i = 0; i < lightSourceDataArray.Length; i++)
-                    lightSourceDataArray[i] = r.ReadSingle();
+                lightSourceData = LightSourceTypeFactory.create(requestedApiVersion, handler, lightSourceType, s);
             }
 
             internal void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write((uint)lightSource);
+                w.Write((uint)lightSourceType);
                 transform.UnParse(s);
                 color.UnParse(s);
                 w.Write(intensity);
-                for (int i = 0; i < lightSourceDataArray.Length; i++)
-                    w.Write(lightSourceDataArray[i]);
+                lightSourceData.UnParse(s);
             }
             #endregion
 
@@ -195,6 +178,7 @@ namespace s4pi.GenericRCOLResource
                 get
                 {
                     List<string> res = GetContentFields(requestedApiVersion, this.GetType());
+                    /* Try without this lot for now
                     List<string> removals = new List<string>(new string[]{
                         "LightSourceData",
                         "SpotLightLightSourceData",
@@ -205,7 +189,7 @@ namespace s4pi.GenericRCOLResource
                         "SquareAreaLightSourceData",
                         "DiscAreaLightSourceData",
                     });
-                    switch (lightSource)
+                    switch (lightSourceType)
                     {
                         case LightSourceType.Spot: removals.Remove("SpotLightLightSourceData"); break;
                         case LightSourceType.LampShade: removals.Remove("LampShadeLightSourceData"); break;
@@ -217,6 +201,7 @@ namespace s4pi.GenericRCOLResource
                         default: removals.Remove("LightSourceData"); break;
                     }
                     foreach (var rem in removals) res.Remove(rem);
+                     */
                     return res;
                 }
             }
@@ -226,11 +211,11 @@ namespace s4pi.GenericRCOLResource
 
             public bool Equals(LightSource other)
             {
-                return lightSource.Equals(other.lightSource)
+                return lightSourceType.Equals(other.lightSourceType)
                     && transform.Equals(other.transform)
                     && color.Equals(other.color)
                     && intensity.Equals(other.intensity)
-                    && lightSourceDataArray.Equals<float>(other.lightSourceDataArray)
+                    && lightSourceData.Equals(other.lightSourceData)
                     ;
             }
 
@@ -241,40 +226,24 @@ namespace s4pi.GenericRCOLResource
 
             public override int GetHashCode()
             {
-                return lightSource.GetHashCode()
+                return lightSourceType.GetHashCode()
                     ^ transform.GetHashCode()
                     ^ color.GetHashCode()
                     ^ intensity.GetHashCode()
-                    ^ lightSourceDataArray.GetHashCode()
+                    ^ lightSourceData.GetHashCode()
                     ;
             }
 
             #endregion
-            
-            #region Sub-types
-            public enum LightSourceType : uint
-            {
-                Unknown = 0x00,//unused
-                Ambient = 0x01,//unused
-                Directional = 0x02,//unused
-                Point = 0x03,
-                Spot = 0x04,
-                LampShade = 0x05,
-                TubeLight = 0x06,
-                SquareWindow = 0x07,
-                CircularWindow = 0x08,
-                SquareAreaLight = 0x09,
-                DiscAreaLight = 0x0A,
-                WorldLight = 0x0B,
-            }
 
+            #region Sub-types
             public class RGB : Vertex
             {
                 #region Constructors
-                public RGB(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
-                public RGB(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler, s) { }
-                public RGB(int apiVersion, EventHandler handler, RGB basis) : base(apiVersion, handler, basis.X, basis.Y, basis.Z) { }
-                public RGB(int apiVersion, EventHandler handler, float x, float y, float z) : base(apiVersion, handler, x, y, z) { }
+                public RGB(int APIversion, EventHandler handler) : base(APIversion, handler) { }
+                public RGB(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler, s) { }
+                public RGB(int APIversion, EventHandler handler, RGB basis) : base(APIversion, handler, basis.X, basis.Y, basis.Z) { }
+                public RGB(int APIversion, EventHandler handler, float x, float y, float z) : base(APIversion, handler, x, y, z) { }
                 #endregion
 
                 public override List<string> ContentFields
@@ -297,265 +266,691 @@ namespace s4pi.GenericRCOLResource
                 public float B { get { return Z; } set { Z = value; } }
             }
 
-            public class GeneralLightSourceType : AHandlerElement
+            public enum LightSourceType : uint
             {
-                protected float[] lightSourceData;
+                Unknown = 0x00,//unused
+                Ambient = 0x01,//unused
+                Directional = 0x02,//unused
+                Point = 0x03,
+                Spot = 0x04,
+                LampShade = 0x05,
+                TubeLight = 0x06,
+                SquareWindow = 0x07,
+                CircularWindow = 0x08,
+                SquareAreaLight = 0x09,
+                DiscAreaLight = 0x0A,
+                WorldLight = 0x0B,
+            }
 
-                public GeneralLightSourceType(int apiVersion, EventHandler handler, float[] lightSourceData)
-                    : base(apiVersion, handler)
-                { this.lightSourceData = lightSourceData; }
+            private static class LightSourceTypeFactory
+            {
+                public static AbstractLightSourceType create(int APIversion, EventHandler handler, LightSourceType lightSourceType, Stream s)
+                {
+                    switch (lightSourceType)
+                    {
+                        case LightSourceType.Unknown: break;
+                        case LightSourceType.Ambient: break;
+                        case LightSourceType.Directional: break;
+                        case LightSourceType.Point: break;
+                        case LightSourceType.Spot:
+                            return new SpotLightSourceType(APIversion, handler, s);
+                        case LightSourceType.LampShade:
+                            return new LampShadeLightSourceType(APIversion, handler, s);
+                        case LightSourceType.TubeLight:
+                            return new TubeLightSourceType(APIversion, handler, s);
+                        case LightSourceType.SquareWindow:
+                            return new SquareWindowLightSourceType(APIversion, handler, s);
+                        case LightSourceType.CircularWindow:
+                            return new CircularWindowLightSourceType(APIversion, handler, s);
+                        case LightSourceType.SquareAreaLight: break;
+                        case LightSourceType.DiscAreaLight: break;
+                        case LightSourceType.WorldLight: break;
+                    }
+                    return new GeneralLightSourceType(APIversion, handler, s);
+                }
+                public static AbstractLightSourceType create(int APIversion, EventHandler handler, LightSourceType lightSourceType, AbstractLightSourceType lightSourceData)
+                {
+                    switch (lightSourceType)
+                    {
+                        case LightSourceType.Unknown: break;
+                        case LightSourceType.Ambient: break;
+                        case LightSourceType.Directional: break;
+                        case LightSourceType.Point: break;
+                        case LightSourceType.Spot:
+                            return new SpotLightSourceType(APIversion, handler, (SpotLightSourceType)lightSourceData);
+                        case LightSourceType.LampShade:
+                            return new LampShadeLightSourceType(APIversion, handler, (LampShadeLightSourceType)lightSourceData);
+                        case LightSourceType.TubeLight:
+                            return new TubeLightSourceType(APIversion, handler, (TubeLightSourceType)lightSourceData);
+                        case LightSourceType.SquareWindow:
+                            return new SquareWindowLightSourceType(APIversion, handler, (SquareWindowLightSourceType)lightSourceData);
+                        case LightSourceType.CircularWindow:
+                            return new CircularWindowLightSourceType(APIversion, handler, (CircularWindowLightSourceType)lightSourceData);
+                        case LightSourceType.SquareAreaLight: break;
+                        case LightSourceType.DiscAreaLight: break;
+                        case LightSourceType.WorldLight: break;
+                    }
+                    return new GeneralLightSourceType(APIversion, handler, (GeneralLightSourceType)lightSourceData);
+                }
+            }
+
+            public abstract class AbstractLightSourceType : AHandlerElement
+            {
+                public AbstractLightSourceType(int APIversion, EventHandler handler) : base(APIversion, handler) { }
+                internal abstract void UnParse(Stream s);
 
                 #region AHandlerElement
                 public override int RecommendedApiVersion { get { return 0; } }
                 public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
                 #endregion
 
-                protected void setFloatN(int n, float value) { if (lightSourceData[n] != value) { lightSourceData[n] = value; OnElementChanged(); } }
-                protected void setFloatN(int n, Vertex value)
+                public string Value { get { return ValueBuilder; } }
+            }
+
+            public class GeneralLightSourceType : AbstractLightSourceType
+            {
+                #region Attributes
+                Single[] lightSourceData;
+                #endregion
+
+                #region Constructors
+                public GeneralLightSourceType(int APIversion, EventHandler handler) : this(APIversion, handler, new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }) { }
+                public GeneralLightSourceType(int APIversion, EventHandler handler, GeneralLightSourceType basis) : this(APIversion, handler, basis.lightSourceData) { }
+                public GeneralLightSourceType(int APIversion, EventHandler handler, IEnumerable<Single> lightSourceData)
+                    : base(APIversion, handler)
                 {
-                    if (lightSourceData[n] != value.X || lightSourceData[n + 1] != value.Y || lightSourceData[n + 2] != value.Z)
+                    this.lightSourceData = lightSourceData.ToArray();
+                    if (this.lightSourceData.Length != 24)
+                        throw new ArgumentException("Must provide 24 values", "lightSourceData");
+                }
+                public GeneralLightSourceType(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+                #endregion
+
+                #region Data I/O
+                void Parse(Stream s)
+                {
+                    BinaryReader r = new BinaryReader(s);
+                    this.lightSourceData = new Single[24];
+                    for (int i = 0; i < lightSourceData.Length; lightSourceData[i++] = r.ReadSingle()) { }
+                }
+
+                internal override void UnParse(Stream s)
+                {
+                    BinaryWriter w = new BinaryWriter(s);
+                    lightSourceData.ToList().ForEach(item => w.Write(item));
+                }
+                #endregion
+
+                #region AHandlerElement
+                public override int RecommendedApiVersion { get { return 0; } }
+                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+                #endregion
+
+                [ElementPriority(1)]
+                public float[] LightSourceData
+                {
+                    get { return (float[])lightSourceData.Clone(); ; }
+                    set
                     {
-                        lightSourceData[n] = value.X;
-                        lightSourceData[n + 1] = value.Y;
-                        lightSourceData[n + 2] = value.Z;
-                        OnElementChanged();
+                        if (value.Length != this.lightSourceData.Length) throw new ArgumentLengthException("LightSourceData", this.lightSourceData.Length);
+                        if (!lightSourceData.Equals<float>(value)) { lightSourceData = value == null ? null : (float[])value.Clone(); this.OnElementChanged(); }
                     }
                 }
 
                 public string Value { get { return ValueBuilder; } }
-
-                public float Unknown_F01 { get { return lightSourceData[0]; } set { setFloatN(0, value); } }
-                public float Unknown_F02 { get { return lightSourceData[1]; } set { setFloatN(1, value); } }
-                public float Unknown_F03 { get { return lightSourceData[2]; } set { setFloatN(2, value); } }
-                public float Unknown_F04 { get { return lightSourceData[3]; } set { setFloatN(3, value); } }
-                public float Unknown_F05 { get { return lightSourceData[4]; } set { setFloatN(4, value); } }
-                public float Unknown_F06 { get { return lightSourceData[5]; } set { setFloatN(5, value); } }
-                public float Unknown_F07 { get { return lightSourceData[6]; } set { setFloatN(6, value); } }
-                public float Unknown_F08 { get { return lightSourceData[7]; } set { setFloatN(7, value); } }
-                public float Unknown_F09 { get { return lightSourceData[8]; } set { setFloatN(8, value); } }
-                public float Unknown_F10 { get { return lightSourceData[9]; } set { setFloatN(9, value); } }
-                public float Unknown_F11 { get { return lightSourceData[10]; } set { setFloatN(10, value); } }
-                public float Unknown_F12 { get { return lightSourceData[11]; } set { setFloatN(11, value); } }
-                public float Unknown_F13 { get { return lightSourceData[12]; } set { setFloatN(12, value); } }
-                public float Unknown_F14 { get { return lightSourceData[13]; } set { setFloatN(13, value); } }
-                public float Unknown_F15 { get { return lightSourceData[14]; } set { setFloatN(14, value); } }
-                public float Unknown_F16 { get { return lightSourceData[15]; } set { setFloatN(15, value); } }
-                public float Unknown_F17 { get { return lightSourceData[16]; } set { setFloatN(16, value); } }
-                public float Unknown_F18 { get { return lightSourceData[17]; } set { setFloatN(17, value); } }
-                public float Unknown_F19 { get { return lightSourceData[18]; } set { setFloatN(18, value); } }
-                public float Unknown_F20 { get { return lightSourceData[19]; } set { setFloatN(19, value); } }
-                public float Unknown_F21 { get { return lightSourceData[20]; } set { setFloatN(20, value); } }
-                public float Unknown_F22 { get { return lightSourceData[21]; } set { setFloatN(21, value); } }
-                public float Unknown_F23 { get { return lightSourceData[22]; } set { setFloatN(22, value); } }
-                public float Unknown_F24 { get { return lightSourceData[23]; } set { setFloatN(23, value); } }
             }
 
-            public class SpotLightSourceType : GeneralLightSourceType
+            public class SpotLightSourceType : AbstractLightSourceType
             {
-                public SpotLightSourceType(int apiVersion, EventHandler handler, float[] lightSourceData) : base(apiVersion, handler, lightSourceData) { }
+                #region Attributes
+                Vertex location;
+                Single falloffAngle;
+                Single blurScale;
+                Single[] unusedLightSourceData;
+                #endregion
 
-                #region AHandlerElement
-                public override int RecommendedApiVersion { get { return 0; } }
-                public override List<string> ContentFields
+                #region Constructors
+                public SpotLightSourceType(int APIversion, EventHandler handler, GeneralLightSourceType basis) : this(APIversion, handler, basis.LightSourceData) { }
+                public SpotLightSourceType(int APIversion, EventHandler handler, IEnumerable<Single> lightSourceData)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(0), lightSourceData.ElementAt(1), lightSourceData.ElementAt(2))
+                    , lightSourceData.ElementAt(3)
+                    , lightSourceData.ElementAt(4)
+                    , lightSourceData.Skip(5)
+                    ) { }
+                public SpotLightSourceType(int APIversion, EventHandler handler)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , 0f
+                    , 0f
+                    , new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }
+                    ) { }
+                public SpotLightSourceType(int APIversion, EventHandler handler, SpotLightSourceType basis)
+                    : this(APIversion, handler
+                    , basis.location
+                    , basis.falloffAngle
+                    , basis.blurScale
+                    , basis.unusedLightSourceData
+                    ) { }
+                public SpotLightSourceType(int APIversion, EventHandler handler
+                    , Vertex location
+                    , Single falloffAngle
+                    , Single blurScale
+                    , IEnumerable<Single> unusedLightSourceData
+                    )
+                    : base(APIversion, handler)
                 {
-                    get
-                    {
-                        List<string> res = GetContentFields(requestedApiVersion, this.GetType());
-                        res.Remove("Unknown_F01");
-                        res.Remove("Unknown_F02");
-                        res.Remove("Unknown_F03");
-                        res.Remove("Unknown_F04");
-                        res.Remove("Unknown_F05");
-                        return res;
-                    }
+                    this.location = new Vertex(APIversion, handler, location);
+                    this.falloffAngle = falloffAngle;
+                    this.blurScale = blurScale;
+                    this.unusedLightSourceData = unusedLightSourceData.ToArray();
+                    if (this.unusedLightSourceData.Length != 19)
+                        throw new ArgumentException("Must provide 19 values", "unusedLightSourceData");
+                }
+                public SpotLightSourceType(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+                #endregion
+
+                #region Data I/O
+                void Parse(Stream s)
+                {
+                    BinaryReader r = new BinaryReader(s);
+                    this.location = new Vertex(requestedApiVersion, handler, s);
+                    this.falloffAngle = r.ReadSingle();
+                    this.blurScale = r.ReadSingle();
+                    this.unusedLightSourceData = new Single[19];
+                    for (int i = 0; i < unusedLightSourceData.Length; unusedLightSourceData[i++] = r.ReadSingle()) { }
+                }
+
+                internal override void UnParse(Stream s)
+                {
+                    BinaryWriter w = new BinaryWriter(s);
+                    location.UnParse(s);
+                    w.Write(falloffAngle);
+                    w.Write(blurScale);
+                    unusedLightSourceData.ToList().ForEach(item => w.Write(item));
                 }
                 #endregion
 
-                [ElementPriority(1)]
-                public Vertex At
-                {
-                    get { return new Vertex(0, null, lightSourceData[0], lightSourceData[1], lightSourceData[2]); }
-                    set { setFloatN(0, value); }
-                }
-                [ElementPriority(2)]
-                public float FalloffAngle { get { return lightSourceData[3]; } set { setFloatN(3, value); } }
-                [ElementPriority(3)]
-                public float BlurScale { get { return lightSourceData[4]; } set { setFloatN(4, value); } }
-            }
-
-            public class LampShadeLightSourceType : GeneralLightSourceType
-            {
-                public LampShadeLightSourceType(int apiVersion, EventHandler handler, float[] lightSourceData) : base(apiVersion, handler, lightSourceData) { }
-
                 #region AHandlerElement
                 public override int RecommendedApiVersion { get { return 0; } }
-                public override List<string> ContentFields
-                {
-                    get
-                    {
-                        List<string> res = GetContentFields(requestedApiVersion, this.GetType());
-                        res.Remove("Unknown_F01");
-                        res.Remove("Unknown_F02");
-                        res.Remove("Unknown_F03");
-                        res.Remove("Unknown_F04");
-                        res.Remove("Unknown_F05");
-                        res.Remove("Unknown_F06");
-                        res.Remove("Unknown_F07");
-                        res.Remove("Unknown_F08");
-                        res.Remove("Unknown_F09");
-                        return res;
-                    }
-                }
+                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
                 #endregion
 
                 [ElementPriority(1)]
-                public Vertex At
-                {
-                    get { return new Vertex(0, null, lightSourceData[0], lightSourceData[1], lightSourceData[2]); }
-                    set { setFloatN(0, value); }
-                }
+                public Vertex At { get { return location; } set { if (!location.Equals(value)) { location = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
                 [ElementPriority(2)]
-                public float FalloffAngle { get { return lightSourceData[3]; } set { setFloatN(3, value); } }
+                public Single FalloffAngle { get { return falloffAngle; } set { if (!falloffAngle.Equals(value)) { falloffAngle = value; OnElementChanged(); } } }
                 [ElementPriority(3)]
-                public float ShadeLightRigMultiplier { get { return lightSourceData[4]; } set { setFloatN(4, value); } }
+                public Single BlurScale { get { return blurScale; } set { if (!blurScale.Equals(value)) { blurScale = value; OnElementChanged(); } } }
                 [ElementPriority(4)]
-                public float BottomAngle { get { return lightSourceData[5]; } set { setFloatN(5, value); } }
-                [ElementPriority(5)]
-                public RGB ShadeColor
+                public float[] UnusedLightSourceData
                 {
-                    get { return new RGB(0, null, lightSourceData[6], lightSourceData[7], lightSourceData[8]); }
-                    set { setFloatN(6, value); }
+                    get { return (float[])unusedLightSourceData.Clone(); ; }
+                    set
+                    {
+                        if (value.Length != this.unusedLightSourceData.Length) throw new ArgumentLengthException("UnusedLightSourceData", this.unusedLightSourceData.Length);
+                        if (!unusedLightSourceData.Equals<float>(value)) { unusedLightSourceData = value == null ? null : (float[])value.Clone(); this.OnElementChanged(); }
+                    }
                 }
+
+                public string Value { get { return ValueBuilder; } }
             }
 
-            public class TubeLightSourceType : GeneralLightSourceType
+            public class LampShadeLightSourceType : AbstractLightSourceType
             {
-                public TubeLightSourceType(int apiVersion, EventHandler handler, float[] lightSourceData) : base(apiVersion, handler, lightSourceData) { }
+                #region Attributes
+                Vertex location;
+                Single falloffAngle;
+                Single shadeLightRigMultiplier;
+                Single bottomAngle;
+                RGB shadeColor;
+                Single[] unusedLightSourceData;
+                #endregion
 
-                #region AHandlerElement
-                public override int RecommendedApiVersion { get { return 0; } }
-                public override List<string> ContentFields
+                #region Constructors
+                public LampShadeLightSourceType(int APIversion, EventHandler handler, GeneralLightSourceType basis) : this(APIversion, handler, basis.LightSourceData) { }
+                public LampShadeLightSourceType(int APIversion, EventHandler handler, IEnumerable<Single> lightSourceData)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(0), lightSourceData.ElementAt(1), lightSourceData.ElementAt(2))
+                    , lightSourceData.ElementAt(3)
+                    , lightSourceData.ElementAt(4)
+                    , lightSourceData.ElementAt(5)
+                    , new RGB(APIversion, handler, lightSourceData.ElementAt(6), lightSourceData.ElementAt(7), lightSourceData.ElementAt(8))
+                    , lightSourceData.Skip(9)
+                    ) { }
+                public LampShadeLightSourceType(int APIversion, EventHandler handler)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , 0f
+                    , 0f
+                    , 0f
+                    , new RGB(APIversion, handler, 0f, 0f, 0f)
+                    , new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }
+                    ) { }
+                public LampShadeLightSourceType(int APIversion, EventHandler handler, LampShadeLightSourceType basis)
+                    : this(APIversion, handler
+                    , basis.location
+                    , basis.falloffAngle
+                    , basis.shadeLightRigMultiplier
+                    , basis.bottomAngle
+                    , basis.shadeColor
+                    , basis.unusedLightSourceData
+                    ) { }
+                public LampShadeLightSourceType(int APIversion, EventHandler handler
+                    , Vertex location
+                    , Single falloffAngle
+                    , Single shadeLightRigMultiplier
+                    , Single bottomAngle
+                    , RGB shadeColor
+                    , IEnumerable<Single> unusedLightSourceData
+                    )
+                    : base(APIversion, handler)
                 {
-                    get
-                    {
-                        List<string> res = GetContentFields(requestedApiVersion, this.GetType());
-                        res.Remove("Unknown_F01");
-                        res.Remove("Unknown_F02");
-                        res.Remove("Unknown_F03");
-                        res.Remove("Unknown_F04");
-                        res.Remove("Unknown_F05");
-                        return res;
-                    }
+                    this.location = new Vertex(APIversion, handler, location);
+                    this.falloffAngle = falloffAngle;
+                    this.shadeLightRigMultiplier = shadeLightRigMultiplier;
+                    this.bottomAngle = bottomAngle;
+                    this.shadeColor = new RGB(APIversion, handler, shadeColor);
+                    this.unusedLightSourceData = unusedLightSourceData.ToArray();
+                    if (this.unusedLightSourceData.Length != 15)
+                        throw new ArgumentException("Must provide 15 values", "unusedLightSourceData");
+                }
+                public LampShadeLightSourceType(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+                #endregion
+
+                #region Data I/O
+                void Parse(Stream s)
+                {
+                    BinaryReader r = new BinaryReader(s);
+                    this.location = new Vertex(requestedApiVersion, handler, s);
+                    this.falloffAngle = r.ReadSingle();
+                    this.shadeLightRigMultiplier = r.ReadSingle();
+                    this.bottomAngle = r.ReadSingle();
+                    this.shadeColor = new RGB(requestedApiVersion, handler, s);
+                    this.unusedLightSourceData = new Single[15];
+                    for (int i = 0; i < unusedLightSourceData.Length; unusedLightSourceData[i++] = r.ReadSingle()) { }
+                }
+
+                internal override void UnParse(Stream s)
+                {
+                    BinaryWriter w = new BinaryWriter(s);
+                    location.UnParse(s);
+                    w.Write(falloffAngle);
+                    w.Write(shadeLightRigMultiplier);
+                    w.Write(bottomAngle);
+                    shadeColor.UnParse(s);
+                    unusedLightSourceData.ToList().ForEach(item => w.Write(item));
                 }
                 #endregion
 
-                [ElementPriority(1)]
-                public Vertex At
-                {
-                    get { return new Vertex(0, null, lightSourceData[0], lightSourceData[1], lightSourceData[2]); }
-                    set { setFloatN(0, value); }
-                }
-                [ElementPriority(2)]
-                public float TubeLength { get { return lightSourceData[3]; } set { setFloatN(3, value); } }
-                [ElementPriority(3)]
-                public float BlurScale { get { return lightSourceData[4]; } set { setFloatN(4, value); } }
-            }
-
-            public class SquareWindowLightSourceType : GeneralLightSourceType
-            {
-                public SquareWindowLightSourceType(int apiVersion, EventHandler handler, float[] lightSourceData) : base(apiVersion, handler, lightSourceData) { }
-
                 #region AHandlerElement
                 public override int RecommendedApiVersion { get { return 0; } }
-                public override List<string> ContentFields
-                {
-                    get
-                    {
-                        List<string> res = GetContentFields(requestedApiVersion, this.GetType());
-                        res.Remove("Unknown_F01");
-                        res.Remove("Unknown_F02");
-                        res.Remove("Unknown_F03");
-
-                        res.Remove("Unknown_F04");
-                        res.Remove("Unknown_F05");
-                        res.Remove("Unknown_F06");
-
-                        res.Remove("Unknown_F07");
-                        res.Remove("Unknown_F08");
-                        res.Remove("Unknown_F09");
-                        res.Remove("Unknown_F10");
-                        return res;
-                    }
-                }
+                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
                 #endregion
 
                 [ElementPriority(1)]
-                public Vertex At
-                {
-                    get { return new Vertex(0, null, lightSourceData[0], lightSourceData[1], lightSourceData[2]); }
-                    set { setFloatN(0, value); }
-                }
+                public Vertex At { get { return location; } set { if (!location.Equals(value)) { location = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
                 [ElementPriority(2)]
-                public Vertex Right
-                {
-                    get { return new Vertex(0, null, lightSourceData[3], lightSourceData[4], lightSourceData[5]); }
-                    set { setFloatN(3, value); }
-                }
+                public Single FalloffAngle { get { return falloffAngle; } set { if (!falloffAngle.Equals(value)) { falloffAngle = value; OnElementChanged(); } } }
                 [ElementPriority(3)]
-                public float Width { get { return lightSourceData[6]; } set { setFloatN(6, value); } }
+                public Single ShadeLightRigMultiplier { get { return shadeLightRigMultiplier; } set { if (!shadeLightRigMultiplier.Equals(value)) { shadeLightRigMultiplier = value; OnElementChanged(); } } }
                 [ElementPriority(4)]
-                public float Height { get { return lightSourceData[7]; } set { setFloatN(7, value); } }
+                public Single BottomAngle { get { return bottomAngle; } set { if (!bottomAngle.Equals(value)) { bottomAngle = value; OnElementChanged(); } } }
                 [ElementPriority(5)]
-                public float FalloffAngle { get { return lightSourceData[8]; } set { setFloatN(8, value); } }
+                public RGB ShadeColor { get { return shadeColor; } set { if (!shadeColor.Equals(value)) { shadeColor = new RGB(requestedApiVersion, handler, value); OnElementChanged(); } } }
                 [ElementPriority(6)]
-                public float WindowTopBottomAngle { get { return lightSourceData[9]; } set { setFloatN(9, value); } }
+                public float[] UnusedLightSourceData
+                {
+                    get { return (float[])unusedLightSourceData.Clone(); ; }
+                    set
+                    {
+                        if (value.Length != this.unusedLightSourceData.Length) throw new ArgumentLengthException("UnusedLightSourceData", this.unusedLightSourceData.Length);
+                        if (!unusedLightSourceData.Equals<float>(value)) { unusedLightSourceData = value == null ? null : (float[])value.Clone(); this.OnElementChanged(); }
+                    }
+                }
+
+                public string Value { get { return ValueBuilder; } }
             }
 
-            public class CircularWindowLightSourceType : GeneralLightSourceType
+            public class TubeLightSourceType : AbstractLightSourceType
             {
-                public CircularWindowLightSourceType(int apiVersion, EventHandler handler, float[] lightSourceData) : base(apiVersion, handler, lightSourceData) { }
+                #region Attributes
+                Vertex location;
+                Single tubeLength;
+                Single blurScale;
+                Single[] unusedLightSourceData;
+                #endregion
 
-                #region AHandlerElement
-                public override int RecommendedApiVersion { get { return 0; } }
-                public override List<string> ContentFields
+                #region Constructors
+                public TubeLightSourceType(int APIversion, EventHandler handler, GeneralLightSourceType basis) : this(APIversion, handler, basis.LightSourceData) { }
+                public TubeLightSourceType(int APIversion, EventHandler handler, IEnumerable<Single> lightSourceData)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(0), lightSourceData.ElementAt(1), lightSourceData.ElementAt(2))
+                    , lightSourceData.ElementAt(3)
+                    , lightSourceData.ElementAt(4)
+                    , lightSourceData.Skip(5)
+                    ) { }
+                public TubeLightSourceType(int APIversion, EventHandler handler)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , 0f
+                    , 0f
+                    , new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }
+                    ) { }
+                public TubeLightSourceType(int APIversion, EventHandler handler, TubeLightSourceType basis)
+                    : this(APIversion, handler
+                    , basis.location
+                    , basis.tubeLength
+                    , basis.blurScale
+                    , basis.unusedLightSourceData
+                    ) { }
+                public TubeLightSourceType(int APIversion, EventHandler handler
+                    , Vertex location
+                    , Single tubeLength
+                    , Single blurScale
+                    , IEnumerable<Single> unusedLightSourceData
+                    )
+                    : base(APIversion, handler)
                 {
-                    get
-                    {
-                        List<string> res = GetContentFields(requestedApiVersion, this.GetType());
-                        res.Remove("Unknown_F01");
-                        res.Remove("Unknown_F02");
-                        res.Remove("Unknown_F03");
+                    this.location = new Vertex(APIversion, handler, location);
+                    this.tubeLength = tubeLength;
+                    this.blurScale = blurScale;
+                    this.unusedLightSourceData = unusedLightSourceData.ToArray();
+                    if (this.unusedLightSourceData.Length != 19)
+                        throw new ArgumentException("Must provide 19 values", "unusedLightSourceData");
+                }
+                public TubeLightSourceType(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+                #endregion
 
-                        res.Remove("Unknown_F04");
-                        res.Remove("Unknown_F05");
-                        res.Remove("Unknown_F06");
+                #region Data I/O
+                void Parse(Stream s)
+                {
+                    BinaryReader r = new BinaryReader(s);
+                    this.location = new Vertex(requestedApiVersion, handler, s);
+                    this.tubeLength = r.ReadSingle();
+                    this.blurScale = r.ReadSingle();
+                    this.unusedLightSourceData = new Single[19];
+                    for (int i = 0; i < unusedLightSourceData.Length; unusedLightSourceData[i++] = r.ReadSingle()) { }
+                }
 
-                        res.Remove("Unknown_F07");
-                        return res;
-                    }
+                internal override void UnParse(Stream s)
+                {
+                    BinaryWriter w = new BinaryWriter(s);
+                    location.UnParse(s);
+                    w.Write(tubeLength);
+                    w.Write(blurScale);
+                    unusedLightSourceData.ToList().ForEach(item => w.Write(item));
                 }
                 #endregion
 
+                #region AHandlerElement
+                public override int RecommendedApiVersion { get { return 0; } }
+                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+                #endregion
+
                 [ElementPriority(1)]
-                public Vertex At
-                {
-                    get { return new Vertex(0, null, lightSourceData[0], lightSourceData[1], lightSourceData[2]); }
-                    set { setFloatN(0, value); }
-                }
+                public Vertex At { get { return location; } set { if (!location.Equals(value)) { location = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
                 [ElementPriority(2)]
-                public Vertex Right
-                {
-                    get { return new Vertex(0, null, lightSourceData[3], lightSourceData[4], lightSourceData[5]); }
-                    set { setFloatN(3, value); }
-                }
+                public Single TubeLength { get { return tubeLength; } set { if (!tubeLength.Equals(value)) { tubeLength = value; OnElementChanged(); } } }
                 [ElementPriority(3)]
-                public float Radius { get { return lightSourceData[6]; } set { setFloatN(6, value); } }
+                public Single BlurScale { get { return blurScale; } set { if (!blurScale.Equals(value)) { blurScale = value; OnElementChanged(); } } }
+                [ElementPriority(4)]
+                public float[] UnusedLightSourceData
+                {
+                    get { return (float[])unusedLightSourceData.Clone(); ; }
+                    set
+                    {
+                        if (value.Length != this.unusedLightSourceData.Length) throw new ArgumentLengthException("UnusedLightSourceData", this.unusedLightSourceData.Length);
+                        if (!unusedLightSourceData.Equals<float>(value)) { unusedLightSourceData = value == null ? null : (float[])value.Clone(); this.OnElementChanged(); }
+                    }
+                }
+
+                public string Value { get { return ValueBuilder; } }
+            }
+
+            public class SquareWindowLightSourceType : AbstractLightSourceType
+            {
+                #region Attributes
+                Vertex location;
+                Vertex right;
+                Single width;
+                Single height;
+                Single falloffAngle;
+                Single windowTopBottomAngle;
+                Single[] unusedLightSourceData;
+                #endregion
+
+                #region Constructors
+                public SquareWindowLightSourceType(int APIversion, EventHandler handler, GeneralLightSourceType basis) : this(APIversion, handler, basis.LightSourceData) { }
+                public SquareWindowLightSourceType(int APIversion, EventHandler handler, IEnumerable<Single> lightSourceData)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(0), lightSourceData.ElementAt(1), lightSourceData.ElementAt(2))
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(3), lightSourceData.ElementAt(4), lightSourceData.ElementAt(5))
+                    , lightSourceData.ElementAt(6)
+                    , lightSourceData.ElementAt(7)
+                    , lightSourceData.ElementAt(8)
+                    , lightSourceData.ElementAt(9)
+                    , lightSourceData.Skip(10)
+                    ) { }
+                public SquareWindowLightSourceType(int APIversion, EventHandler handler)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , 0f
+                    , 0f
+                    , 0f
+                    , 0f
+                    , new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }
+                    ) { }
+                public SquareWindowLightSourceType(int APIversion, EventHandler handler, SquareWindowLightSourceType basis)
+                    : this(APIversion, handler
+                    , basis.location
+                    , basis.right
+                    , basis.width
+                    , basis.height
+                    , basis.falloffAngle
+                    , basis.windowTopBottomAngle
+                    , basis.unusedLightSourceData
+                    ) { }
+                public SquareWindowLightSourceType(int APIversion, EventHandler handler
+                    , Vertex location
+                    , Vertex right
+                    , Single width
+                    , Single height
+                    , Single falloffAngle
+                    , Single windowTopBottomAngle
+                    , IEnumerable<Single> unusedLightSourceData
+                    )
+                    : base(APIversion, handler)
+                {
+                    this.location = new Vertex(APIversion, handler, location);
+                    this.right = new Vertex(APIversion, handler, right);
+                    this.width = width;
+                    this.height = height;
+                    this.falloffAngle = falloffAngle;
+                    this.windowTopBottomAngle = windowTopBottomAngle;
+                    this.unusedLightSourceData = unusedLightSourceData.ToArray();
+                    if (this.unusedLightSourceData.Length != 17)
+                        throw new ArgumentException("Must provide 17 values", "unusedLightSourceData");
+                }
+                public SquareWindowLightSourceType(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+                #endregion
+
+                #region Data I/O
+                void Parse(Stream s)
+                {
+                    BinaryReader r = new BinaryReader(s);
+                    this.location = new Vertex(requestedApiVersion, handler, s);
+                    this.right = new Vertex(requestedApiVersion, handler, s);
+                    this.width = r.ReadSingle();
+                    this.height = r.ReadSingle();
+                    this.falloffAngle = r.ReadSingle();
+                    this.windowTopBottomAngle = r.ReadSingle();
+                    this.unusedLightSourceData = new Single[14];
+                    for (int i = 0; i < unusedLightSourceData.Length; unusedLightSourceData[i++] = r.ReadSingle()) { }
+                }
+
+                internal override void UnParse(Stream s)
+                {
+                    BinaryWriter w = new BinaryWriter(s);
+                    location.UnParse(s);
+                    right.UnParse(s);
+                    w.Write(width);
+                    w.Write(height);
+                    w.Write(falloffAngle);
+                    w.Write(windowTopBottomAngle);
+                    unusedLightSourceData.ToList().ForEach(item => w.Write(item));
+                }
+                #endregion
+
+                #region AHandlerElement
+                public override int RecommendedApiVersion { get { return 0; } }
+                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+                #endregion
+
+                [ElementPriority(1)]
+                public Vertex At { get { return location; } set { if (!location.Equals(value)) { location = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
+                [ElementPriority(2)]
+                public Vertex Right { get { return right; } set { if (!right.Equals(value)) { right = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
+                [ElementPriority(3)]
+                public Single Width { get { return width; } set { if (!width.Equals(value)) { width = value; OnElementChanged(); } } }
+                [ElementPriority(4)]
+                public Single Height { get { return height; } set { if (!height.Equals(value)) { height = value; OnElementChanged(); } } }
+                [ElementPriority(5)]
+                public Single FalloffAngle { get { return falloffAngle; } set { if (!falloffAngle.Equals(value)) { falloffAngle = value; OnElementChanged(); } } }
+                [ElementPriority(6)]
+                public Single WindowTopBottomAngle { get { return windowTopBottomAngle; } set { if (!windowTopBottomAngle.Equals(value)) { windowTopBottomAngle = value; OnElementChanged(); } } }
+                [ElementPriority(7)]
+                public float[] UnusedLightSourceData
+                {
+                    get { return (float[])unusedLightSourceData.Clone(); ; }
+                    set
+                    {
+                        if (value.Length != this.unusedLightSourceData.Length) throw new ArgumentLengthException("UnusedLightSourceData", this.unusedLightSourceData.Length);
+                        if (!unusedLightSourceData.Equals<float>(value)) { unusedLightSourceData = value == null ? null : (float[])value.Clone(); this.OnElementChanged(); }
+                    }
+                }
+
+                public string Value { get { return ValueBuilder; } }
+            }
+
+            public class CircularWindowLightSourceType : AbstractLightSourceType
+            {
+                #region Attributes
+                Vertex location;
+                Vertex right;
+                Single radius;
+                Single[] unusedLightSourceData;
+                #endregion
+
+                #region Constructors
+                public CircularWindowLightSourceType(int APIversion, EventHandler handler, GeneralLightSourceType basis) : this(APIversion, handler, basis.LightSourceData) { }
+                public CircularWindowLightSourceType(int APIversion, EventHandler handler, IEnumerable<Single> lightSourceData)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(0), lightSourceData.ElementAt(1), lightSourceData.ElementAt(2))
+                    , new Vertex(APIversion, handler, lightSourceData.ElementAt(3), lightSourceData.ElementAt(4), lightSourceData.ElementAt(5))
+                    , lightSourceData.ElementAt(6)
+                    , lightSourceData.Skip(7)
+                    ) { }
+                public CircularWindowLightSourceType(int APIversion, EventHandler handler)
+                    : this(APIversion, handler
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , new Vertex(APIversion, handler, 0f, 0f, 0f)
+                    , 0f
+                    , new float[] { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, }
+                    ) { }
+                public CircularWindowLightSourceType(int APIversion, EventHandler handler, CircularWindowLightSourceType basis)
+                    : this(APIversion, handler
+                    , basis.location
+                    , basis.right
+                    , basis.radius
+                    , basis.unusedLightSourceData
+                    ) { }
+                public CircularWindowLightSourceType(int APIversion, EventHandler handler
+                    , Vertex location
+                    , Vertex right
+                    , Single radius
+                    , IEnumerable<Single> unusedLightSourceData
+                    )
+                    : base(APIversion, handler)
+                {
+                    this.location = new Vertex(APIversion, handler, location);
+                    this.right = new Vertex(APIversion, handler, right);
+                    this.radius = radius;
+                    this.unusedLightSourceData = unusedLightSourceData.ToArray();
+                    if (this.unusedLightSourceData.Length != 19)
+                        throw new ArgumentException("Must provide 19 values", "unusedLightSourceData");
+                }
+                public CircularWindowLightSourceType(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+                #endregion
+
+                #region Data I/O
+                void Parse(Stream s)
+                {
+                    BinaryReader r = new BinaryReader(s);
+                    this.location = new Vertex(requestedApiVersion, handler, s);
+                    this.right = new Vertex(requestedApiVersion, handler, s);
+                    this.radius = r.ReadSingle();
+                    this.unusedLightSourceData = new Single[19];
+                    for (int i = 0; i < unusedLightSourceData.Length; unusedLightSourceData[i++] = r.ReadSingle()) { }
+                }
+
+                internal override void UnParse(Stream s)
+                {
+                    BinaryWriter w = new BinaryWriter(s);
+                    location.UnParse(s);
+                    right.UnParse(s);
+                    w.Write(radius);
+                    unusedLightSourceData.ToList().ForEach(item => w.Write(item));
+                }
+                #endregion
+
+                #region AHandlerElement
+                public override int RecommendedApiVersion { get { return 0; } }
+                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+                #endregion
+
+                [ElementPriority(1)]
+                public Vertex At { get { return location; } set { if (!location.Equals(value)) { location = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
+                [ElementPriority(2)]
+                public Vertex Right { get { return right; } set { if (!right.Equals(value)) { right = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
+                [ElementPriority(3)]
+                public Single Radius { get { return radius; } set { if (!radius.Equals(value)) { radius = value; OnElementChanged(); } } }
+                [ElementPriority(4)]
+                public float[] UnusedLightSourceData
+                {
+                    get { return (float[])unusedLightSourceData.Clone(); ; }
+                    set
+                    {
+                        if (value.Length != this.unusedLightSourceData.Length) throw new ArgumentLengthException("UnusedLightSourceData", this.unusedLightSourceData.Length);
+                        if (!unusedLightSourceData.Equals<float>(value)) { unusedLightSourceData = value == null ? null : (float[])value.Clone(); this.OnElementChanged(); }
+                    }
+                }
+
+                public string Value { get { return ValueBuilder; } }
             }
             #endregion
-            
+
             #region Content Fields
             [ElementPriority(1)]
-            public LightSourceType LightType { get { return lightSource; } set { if (lightSource != value) { lightSource = value; PointToLightSourceData(); OnElementChanged(); } } }
+            public LightSourceType LightType
+            {
+                get { return lightSourceType; }
+                set
+                {
+                    if (lightSourceType != value)
+                    {
+                        lightSourceType = value;
+                        MemoryStream s = new MemoryStream();
+                        lightSourceData.UnParse(s);
+                        s.Flush();
+                        s.Seek(0, 0);
+                        lightSourceData = LightSourceTypeFactory.create(requestedApiVersion, handler, lightSourceType, s);
+                        s.Close();
+                        OnElementChanged();
+                    }
+                }
+            }
             [ElementPriority(2)]
             public Vertex Transform { get { return transform; } set { if (!transform.Equals(value)) { transform = new Vertex(requestedApiVersion, handler, value); OnElementChanged(); } } }
             [ElementPriority(3)]
@@ -563,21 +958,24 @@ namespace s4pi.GenericRCOLResource
             [ElementPriority(4)]
             public float Intensity { get { return intensity; } set { if (intensity != value) { intensity = value; OnElementChanged(); } } }
             [ElementPriority(5)]
-            public GeneralLightSourceType LightSourceData { get { return lightSourceData; } set { } }
-            [ElementPriority(5)]
-            public SpotLightSourceType SpotLightLightSourceData { get { return spotLightSourceData; } set { } }
-            [ElementPriority(5)]
-            public LampShadeLightSourceType LampShadeLightSourceData { get { return lampShadeLightSourceData; } set { } }
-            [ElementPriority(5)]
-            public TubeLightSourceType TubeLightLightSourceData { get { return tubeShadeLightSourceData; } set { } }
-            [ElementPriority(5)]
-            public SquareWindowLightSourceType SquareWindowLightSourceData { get { return squareWindowLightSourceData; } set { } }
-            [ElementPriority(5)]
-            public CircularWindowLightSourceType CircularWindowLightSourceData { get { return circularWindowLightSourceData; } set { } }
-            [ElementPriority(5)]
-            public SquareWindowLightSourceType SquareAreaLightSourceData { get { return squareAreaLightSourceData; } set { } }
-            [ElementPriority(5)]
-            public CircularWindowLightSourceType DiscAreaLightSourceData { get { return discAreaLightSourceData; } set { } }
+            public AbstractLightSourceType LightSourceData
+            {
+                get { return lightSourceData; }
+                set
+                {
+                    if (value.GetType() != lightSourceData.GetType())
+                        throw new InvalidCastException();
+
+                    if (!lightSourceData.Equals(value))
+                    {
+                        MemoryStream s = new MemoryStream();
+                        value.UnParse(s);
+                        lightSourceData = LightSourceTypeFactory.create(requestedApiVersion, handler, lightSourceType, s);
+                        s.Close();
+                        OnElementChanged();
+                    }
+                }
+            }
 
             public string Value { get { return ValueBuilder; } }
             #endregion
@@ -617,14 +1015,14 @@ namespace s4pi.GenericRCOLResource
             #endregion
 
             #region Constructors
-            public Occluder(int apiVersion, EventHandler handler)
-                : this(apiVersion, handler, Occluder.OccluderType.Disc,
+            public Occluder(int APIversion, EventHandler handler)
+                : this(APIversion, handler, Occluder.OccluderType.Disc,
                     new Vertex(0, null, 0f, 0f, 0f), new Vertex(0, null, 0f, 0f, 0f), new Vertex(0, null, 0f, 0f, 0f), new Vertex(0, null, 0f, 0f, 0f), 0f) { }
-            public Occluder(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
-            public Occluder(int apiVersion, EventHandler handler, Occluder basis)
-                : this(apiVersion, handler, basis.occluderType, basis.origin, basis.normal, basis.xAxis, basis.yAxis, basis.pairOffset) { }
-            public Occluder(int apiVersion, EventHandler handler, OccluderType occluderType, Vertex origin, Vertex normal, Vertex xAxis, Vertex yAxis, float pairOffset)
-                : base(apiVersion, handler)
+            public Occluder(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+            public Occluder(int APIversion, EventHandler handler, Occluder basis)
+                : this(APIversion, handler, basis.occluderType, basis.origin, basis.normal, basis.xAxis, basis.yAxis, basis.pairOffset) { }
+            public Occluder(int APIversion, EventHandler handler, OccluderType occluderType, Vertex origin, Vertex normal, Vertex xAxis, Vertex yAxis, float pairOffset)
+                : base(APIversion, handler)
             {
                 this.occluderType = occluderType;
                 this.origin = new Vertex(requestedApiVersion, handler, origin);
