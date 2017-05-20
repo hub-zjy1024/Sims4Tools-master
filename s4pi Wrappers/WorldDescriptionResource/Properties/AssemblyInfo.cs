@@ -5,12 +5,16 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("WorldDescriptionResource")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("World Description Resource wrapper")]
+[assembly: AssemblyDescription("Wrapper for Sims4 World Description resources.")]
+#if DEBUG
+[assembly: AssemblyConfiguration("[DEBUG]")]
+#else
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("WorldDescriptionResource")]
-[assembly: AssemblyCopyright("Copyright ©  2017")]
+#endif
+[assembly: AssemblyCompany("Peter L Jones")]
+[assembly: AssemblyProduct("sims4tools")]
+[assembly: AssemblyCopyright("Copyright © 2017  Peter L Jones.  Released under GPL 3.  See gpl-3.0.txt")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +36,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+//[assembly: AssemblyVersion("1.0.0.0")]
+//[assembly: AssemblyFileVersion("1.0.0.0")]
