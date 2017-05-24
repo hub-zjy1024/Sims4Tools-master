@@ -272,6 +272,7 @@
 0xF958A092  _XML   .xml
 0xFA0FFA34  _XML   .xml
 0xFBC3AEEB  _XML   .xml
+0xFCB1A1E4  WOBD   .worldobjdata
 0xFCEAB65B  THUM   .png
 0xFD04E3BE  PRPX   .propx
 *           UNKN   .bnry
