@@ -179,7 +179,7 @@ namespace s4pi.GenericRCOLResource
             public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
             #endregion
 
-            #region IEquatable<LightSource> Members
+            #region IEquatable<LotInfoElement> Members
 
             public bool Equals(LotInfoElement other)
             {
@@ -252,7 +252,7 @@ namespace s4pi.GenericRCOLResource
         [ElementPriority(15)]
         public Vertex CameraDirection { get { return cameraDirection; } set { if (cameraDirection != value) { cameraDirection = value == null ? null : new Vertex(requestedApiVersion, handler, value); OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(16)]
-        public LotInfoList LotInfo { get { return lotInfo; } set { if (lotInfo != value) { lotInfo = value == null ? null : new LotInfoList(handler, value); OnRCOLChanged(this, EventArgs.Empty); } } }
+        public LotInfoList LotInfo { get { return lotInfo; } set { if (!lotInfo.Equals(value)) { lotInfo = value == null ? null : new LotInfoList(handler, value); OnRCOLChanged(this, EventArgs.Empty); } } }
         #endregion
 
         public string Value { get { return ValueBuilder; } }
