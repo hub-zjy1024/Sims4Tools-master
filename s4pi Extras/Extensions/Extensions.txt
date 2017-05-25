@@ -227,7 +227,7 @@
 0xD33C281E  _BPI   .bpi
 0xD382BF57  FTPT   .footprint
 0xD5F0F921  CWAL   .wall
-0xD65DAFF9  UNKN   .bnry
+0xD65DAFF9  REGD   .regiondescription
 0xD70DD79E  _XML   .xml
 0xD83892B7  _XML   .xml
 0xD84E7FC5  ICON   .png
