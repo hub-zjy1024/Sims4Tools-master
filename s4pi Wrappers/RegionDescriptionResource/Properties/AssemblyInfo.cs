@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("World Object Data Resource wrapper")]
-[assembly: AssemblyDescription("Wrapper for Sims4 World Object Data resources.")]
+[assembly: AssemblyTitle("Region Description Resource wrapper")]
+[assembly: AssemblyDescription("Wrapper for Sims4 Region Description resources.")]
 #if DEBUG
 [assembly: AssemblyConfiguration("[DEBUG]")]
 #else
@@ -24,7 +24,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("2d513253-6833-47a6-b1e8-dd2555781d56")]
+[assembly: Guid("cb658515-99c2-4adf-8091-3e5f3c8d5fda")]
 
 // Version information for an assembly consists of the following four values:
 //
