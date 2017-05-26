@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F4E52414-B7CC-4920-9546-0711D5A1F4C9}</ProjectGuid>
+    <ProjectGuid>{DA02A213-A2D9-422B-9214-51B86378CFBB}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LotDescriptionResource</RootNamespace>
-    <AssemblyName>s4pi.LotDescriptionResource</AssemblyName>
+    <RootNamespace>WorldObjectDataResource</RootNamespace>
+    <AssemblyName>s4pi.WorldObjectDataResource</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -32,13 +32,18 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="LotDescriptionResource.cs" />
+    <Compile Include="WorldObjectDataResource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\CS System Classes\CS System Classes.csproj">
+      <Project>{00200e76-c245-42a7-b567-5c30edbce977}</Project>
+      <Name>CS System Classes</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\s4pi\Interfaces\Interfaces.csproj">
       <Project>{51023bd2-9139-438d-b794-95e5ec023537}</Project>
       <Name>Interfaces</Name>
