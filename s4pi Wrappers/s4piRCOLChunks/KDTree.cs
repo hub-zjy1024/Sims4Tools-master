@@ -169,7 +169,7 @@ namespace s4pi.GenericRCOLResource
             public bool Equals(Branch other) { return type.Equals(other.type) && offsetToLeftRightNodePair.Equals(other.offsetToLeftRightNodePair); }
             public override bool Equals(Node other) { return other as Branch != null && this.Equals(other as Branch); }
             public override bool Equals(object other) { return other as Branch != null && this.Equals(other as Branch); }
-            public override int GetHashCode() { return (int)(type ^ offsetToLeftRightNodePair); }
+            public override int GetHashCode() { return type.GetHashCode() ^ offsetToLeftRightNodePair.GetHashCode(); }
             #endregion
 
             #region Content Fields
@@ -245,7 +245,7 @@ namespace s4pi.GenericRCOLResource
             public bool Equals(Leaf other) { return type.Equals(other.type) && triangleStart.Equals(other.triangleStart) && triangleSCount.Equals(other.triangleSCount); }
             public override bool Equals(Node other) { return other as Leaf != null && this.Equals(other as Leaf); }
             public override bool Equals(object other) { return other as Leaf != null && this.Equals(other as Leaf); }
-            public override int GetHashCode() { return (int)(type ^ triangleStart ^ triangleSCount); }
+            public override int GetHashCode() { return type.GetHashCode() ^ triangleStart.GetHashCode() ^ triangleSCount.GetHashCode(); }
             #endregion
 
             #region Content Fields
