@@ -17,6 +17,7 @@
 0x0229684F IBUF N Index Buffer(Used in shadow meshes)
 ;0x02D5DF13 Jazz Y Animation Sequences
 0x033260E3 TkMk Y
+0x033B2B66 KDTR Y KD Tree
 0x0355E0A6 *    Y Slot Adjusts 
 0x03B4C61D LITE Y
 0x067CAA11 BGEO Y Blend Geometry

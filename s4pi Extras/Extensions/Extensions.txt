@@ -15,7 +15,7 @@
 0x02D5DF13  JAZZ   .jazz
 0x033260E3  TkMk   .trackmask
 0x0333406C  _XML   .xml
-0x033B2B66  UNKN   .bnry
+0x033B2B66  KDTR   .kdtree
 0x034AEECB  CASP   .caspart
 0x0354796A  TONE   .skintone
 0x03555BA8  TONE   .hairtone
