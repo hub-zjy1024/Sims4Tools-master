@@ -106,6 +106,7 @@
 0x3C1AF1F2  THUM   .png
 0x3C1D8799  _XML   .xml
 0x3C2A8647  THUM   .png
+0x3D8632D0  TNBM   .terrainblendmap
 0x3F0C529A  CSPN   .bnry
 0x3F163505  _XML   .xml
 0x3F8662EA  JPEG   .jpg
