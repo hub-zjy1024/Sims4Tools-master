@@ -65,6 +65,7 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AHandlerDictionary.cs" />
     <Compile Include="ArgumentLengthException.cs" />
     <Compile Include="AHandlerList.cs" />
     <Compile Include="Extensions.cs" />
