@@ -971,9 +971,43 @@ namespace s4pi.Interfaces
     }
 
     /// <summary>
+    /// Commonly used simple list.  The list count is an integer stored immediately before the list.  The elements are UInt64.
+    /// </summary>
+    public class UInt64List : SimpleList<UInt64>
+    {
+        #region Constructors
+        /// <summary>
+        /// Create an empty UInt64List.
+        /// </summary>
+        /// <param name="handler">Event handler.</param>
+        /// <param name="size">Optional list size.</param>
+        public UInt64List(EventHandler handler, long size = -1) : base(handler, ReadUInt64, WriteUInt64, size) { }
+        /// <summary>
+        /// Create a UInt64List populated from an existing set of values.
+        /// </summary>
+        /// <param name="handler">Event handler.</param>
+        /// <param name="basis">Basis on which to populate the list.</param>
+        /// <param name="size">Optional list size.</param>
+        public UInt64List(EventHandler handler, IEnumerable<UInt64> basis, long size = -1) : base(handler, basis, ReadUInt64, WriteUInt64, size) { }
+        /// <summary>
+        /// Create a UInt64List populated from a <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="handler">Event handler.</param>
+        /// <param name="s"><see cref="Stream"/> from which to read elements.</param>
+        /// <param name="size">Optional list size.</param>
+        public UInt64List(EventHandler handler, Stream s, long size = -1) : base(handler, s, ReadUInt64, WriteUInt64, size) { }
+        #endregion
+
+        #region Data I/O
+        static UInt64 ReadUInt64(Stream s) { return new BinaryReader(s).ReadUInt64(); }
+        static void WriteUInt64(Stream s, UInt64 value) { new BinaryWriter(s).Write(value); }
+        #endregion
+    }
+
+    /// <summary>
     /// Commonly used simple list.  The list count is an integer stored immediately before the list.  The elements are UInt32.
     /// </summary>
-    public class UIntList : SimpleList<uint>
+    public class UIntList : SimpleList<UInt32>
     {
         #region Constructors
         /// <summary>
@@ -988,7 +1022,7 @@ namespace s4pi.Interfaces
         /// <param name="handler">Event handler.</param>
         /// <param name="basis">Basis on which to populate the list.</param>
         /// <param name="size">Optional list size.</param>
-        public UIntList(EventHandler handler, IEnumerable<uint> basis, long size = -1) : base(handler, basis, ReadUInt32, WriteUInt32, size) { }
+        public UIntList(EventHandler handler, IEnumerable<UInt32> basis, long size = -1) : base(handler, basis, ReadUInt32, WriteUInt32, size) { }
         /// <summary>
         /// Create a UIntList populated from a <see cref="Stream"/>.
         /// </summary>
@@ -1008,7 +1042,7 @@ namespace s4pi.Interfaces
     /// Commonly used simple list.  The list count is an integer stored immediately before the list.  The elements are Int32.
     /// </summary>
     /// <seealso cref="Int32IndexList"/>
-    public class IntList : SimpleList<int>
+    public class IntList : SimpleList<Int32>
     {
         #region Constructors
         /// <summary>
@@ -1023,7 +1057,7 @@ namespace s4pi.Interfaces
         /// <param name="handler">Event handler.</param>
         /// <param name="basis">Basis on which to populate the list.</param>
         /// <param name="size">Optional list size.</param>
-        public IntList(EventHandler handler, IEnumerable<int> basis, long size = -1) : base(handler, basis, ReadInt32, WriteInt32, size) { }
+        public IntList(EventHandler handler, IEnumerable<Int32> basis, long size = -1) : base(handler, basis, ReadInt32, WriteInt32, size) { }
         /// <summary>
         /// Create an IntList populated from a <see cref="Stream"/>.
         /// </summary>
@@ -1036,6 +1070,40 @@ namespace s4pi.Interfaces
         #region Data I/O
         static Int32 ReadInt32(Stream s) { return new BinaryReader(s).ReadInt32(); }
         static void WriteInt32(Stream s, Int32 value) { new BinaryWriter(s).Write(value); }
+        #endregion
+    }
+
+    /// <summary>
+    /// Commonly used simple list.  The list count is an integer stored immediately before the list.  The elements are Single.
+    /// </summary>
+    public class SingleList : SimpleList<Single>
+    {
+        #region Constructors
+        /// <summary>
+        /// Create an empty SingleList.
+        /// </summary>
+        /// <param name="handler">Event handler.</param>
+        /// <param name="size">Optional list size.</param>
+        public SingleList(EventHandler handler, long size = -1) : base(handler, ReadSingle, WriteSingle, size) { }
+        /// <summary>
+        /// Create an SingleList populated from an existing set of values.
+        /// </summary>
+        /// <param name="handler">Event handler.</param>
+        /// <param name="basis">Basis on which to populate the list.</param>
+        /// <param name="size">Optional list size.</param>
+        public SingleList(EventHandler handler, IEnumerable<Single> basis, long size = -1) : base(handler, basis, ReadSingle, WriteSingle, size) { }
+        /// <summary>
+        /// Create an SingleList populated from a <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="handler">Event handler.</param>
+        /// <param name="s"><see cref="Stream"/> from which to read elements.</param>
+        /// <param name="size">Optional list size.</param>
+        public SingleList(EventHandler handler, Stream s, long size = -1) : base(handler, s, ReadSingle, WriteSingle, size) { }
+        #endregion
+
+        #region Data I/O
+        static Single ReadSingle(Stream s) { return new BinaryReader(s).ReadSingle(); }
+        static void WriteSingle(Stream s, Single value) { new BinaryWriter(s).Write(value); }
         #endregion
     }
 }
