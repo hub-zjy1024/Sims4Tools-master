@@ -310,7 +310,7 @@ namespace CASPartResource
     public enum SimRegion : uint        //used in CASPreset
     {
         SIMREGION_EYES = 0,
-        SIMREGION_FACE_START = SIMREGION_EYES,
+     //   SIMREGION_FACE_START = SIMREGION_EYES,
         SIMREGION_NOSE,
         SIMREGION_MOUTH,
         SIMREGION_CHEEKS,
@@ -325,11 +325,11 @@ namespace CASPartResource
 
         // Other face regions
         SIMREGION_FULLFACE = 12,
-        SIMREGION_FACE_END = SIMREGION_FULLFACE,
+      //  SIMREGION_FACE_END = SIMREGION_FULLFACE,
 
         // Modifier body regions
         SIMREGION_CHEST = 14,
-        SIMREGION_BODY_START = SIMREGION_CHEST,
+     //   SIMREGION_BODY_START = SIMREGION_CHEST,
         SIMREGION_UPPERCHEST,
         SIMREGION_NECK,
         SIMREGION_SHOULDERS,
@@ -348,9 +348,9 @@ namespace CASPartResource
         SIMREGION_BODY,
         SIMREGION_UPPERBODY,
         SIMREGION_LOWERBODY,
-        SIMREGION_BODY_END = SIMREGION_LOWERBODY,   // body end
+      //  SIMREGION_BODY_END = SIMREGION_LOWERBODY,   // body end
 
-        SIMREGION_ALL = SIMREGION_BODY_END + 1,     // all
+        SIMREGION_ALL = SIMREGION_LOWERBODY + 1,     // all
 
         SIMREGION_INVALID = 32
     };
