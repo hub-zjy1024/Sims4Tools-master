@@ -103,8 +103,8 @@ namespace s4pi.Interfaces
 		///     Read list entries from a stream
 		/// </summary>
 		/// <param name="s">Stream containing list entries</param>
-		//// <remarks>This method bypasses <see cref="DependentList{T}.Add(object[])"/>
-		//// because <see cref="CreateElement(Stream, out bool)"/> must take care of the same issues.</remarks>
+		/// <remarks>This method bypasses <see cref="DependentList{T}.Add(object[])"/>
+		/// because <see cref="CreateElement(Stream, out bool)"/> must take care of the same issues.</remarks>
 		protected virtual void Parse(Stream s)
 		{
 			this.Clear();

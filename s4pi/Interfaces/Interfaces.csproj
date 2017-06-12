@@ -71,6 +71,7 @@
     <Compile Include="AResourceHandler.cs" />
     <Compile Include="AResourceKey.cs" />
     <Compile Include="BoundingBox.cs" />
+    <Compile Include="DependentDictionary.cs" />
     <Compile Include="IndexList.cs" />
     <Compile Include="IWrapperCloneable.cs" />
     <Compile Include="Quaternion.cs" />
