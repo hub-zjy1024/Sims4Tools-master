@@ -35,16 +35,17 @@ namespace CASPartResource
     {
         const int recommendedApiVersion = 1;
         public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-        public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
         static bool checking = s4pi.Settings.Settings.Checking;
 
         private uint version;
         private AgeGenderFlags ageGender;
         private uint unknown1;
-        private byte zoomLevel;
+        private HotSpotLevel zoomLevel;
         private byte sliderID;
-        private ushort unknown2;
-        private ulong unknown3;
+        private SliderCursor cursor;
+        private SimRegion region;
+        private uint unknown3;
+        private BodyFrameGender frameGender;
         private ulong textureReference;
         private uint unknown4;
         private SliderList sliderDescriptions;
@@ -58,11 +59,16 @@ namespace CASPartResource
             s.Position = 0;
             this.version = r.ReadUInt32();
             this.ageGender = (AgeGenderFlags)r.ReadUInt32();
-            this.unknown1 = r.ReadUInt32();
-            this.zoomLevel = r.ReadByte();
+            if (version >= 0x0E) this.unknown1 = r.ReadUInt32();
+            this.zoomLevel = (HotSpotLevel)r.ReadByte();
             this.sliderID = r.ReadByte();
-            this.unknown2 = r.ReadUInt16();
-            this.unknown3 = r.ReadUInt64();
+            this.cursor = (SliderCursor)r.ReadByte();
+            this.region = (SimRegion)r.ReadUInt32();
+            if (version >= 0x0E)
+            {
+                this.unknown3 = r.ReadUInt32();
+                this.frameGender = (BodyFrameGender)r.ReadByte();
+            }
             this.textureReference = r.ReadUInt64();
             this.unknown4 = r.ReadUInt32();
             byte sliderCount = r.ReadByte();
@@ -79,11 +85,16 @@ namespace CASPartResource
             BinaryWriter w = new BinaryWriter(ms);
             w.Write(this.version);
             w.Write((uint)this.ageGender);
-            w.Write(this.unknown1);
-            w.Write(this.zoomLevel);
+            if (version >= 0x0E) w.Write(this.unknown1);
+            w.Write((byte)this.zoomLevel);
             w.Write(this.sliderID);
-            w.Write(this.unknown2);
-            w.Write(this.unknown3);
+            w.Write((byte)this.cursor);
+            w.Write((uint)this.region);
+            if (version >= 0x0E)
+            {
+                w.Write(this.unknown3);
+                w.Write((byte)this.frameGender);
+            }
             w.Write(this.textureReference);
             w.Write(this.unknown4);
             w.Write((byte)this.sliderDescriptions.Count);
@@ -97,8 +108,6 @@ namespace CASPartResource
         #endregion
 
         #region Content Fields
-        public string Value { get { return ValueBuilder; } }
-
         [ElementPriority(0)]
         public uint Version { get { return this.version; } set { if (!this.version.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.version = value; } } }
         [ElementPriority(1)]
@@ -106,20 +115,41 @@ namespace CASPartResource
         [ElementPriority(2)]
         public uint Unknown1 { get { return this.unknown1; } set { if (!this.unknown1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown1 = value; } } }
         [ElementPriority(3)]
-        public byte DetailLevel { get { return this.zoomLevel; } set { if (!this.zoomLevel.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.zoomLevel = value; } } }
+        public HotSpotLevel DetailLevel { get { return this.zoomLevel; } set { if (!this.zoomLevel.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.zoomLevel = value; } } }
         [ElementPriority(4)]
         public byte SliderID { get { return this.sliderID; } set { if (!this.sliderID.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.sliderID = value; } } }
         [ElementPriority(5)]
-        public ushort Unknown2 { get { return this.unknown2; } set { if (!this.unknown2.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown2 = value; } } }
+        public SliderCursor CursorSymbol { get { return this.cursor; } set { if (!this.cursor.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.cursor = value; } } }
         [ElementPriority(6)]
-        public ulong Unknown3 { get { return this.unknown3; } set { if (!this.unknown3.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown3 = value; } } }
+        public SimRegion Region { get { return this.region; } set { if (!this.region.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.region = value; } } }
         [ElementPriority(7)]
-        public ulong TextureReference { get { return this.textureReference; } set { if (!this.textureReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.textureReference = value; } } }
+        public uint Unknown3 { get { return this.unknown3; } set { if (!this.unknown3.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown3 = value; } } }
+        [ElementPriority(7)]
+        public BodyFrameGender FrameGender { get { return this.frameGender; } set { if (!this.frameGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.frameGender = value; } } }
         [ElementPriority(8)]
-        public uint Unknown4 { get { return this.unknown4; } set { if (!this.unknown4.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown4 = value; } } }
+        public ulong TextureReference { get { return this.textureReference; } set { if (!this.textureReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.textureReference = value; } } }
         [ElementPriority(9)]
+        public uint Unknown4 { get { return this.unknown4; } set { if (!this.unknown4.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown4 = value; } } }
+        [ElementPriority(10)]
         public SliderList SliderDescription { get { return this.sliderDescriptions; } set { if (!this.sliderDescriptions.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.sliderDescriptions = value; } } }
         
+        public string Value { get { return ValueBuilder; } }
+
+        public override List<string> ContentFields
+        {
+            get
+            {
+                var res = base.ContentFields;
+                if (this.version < 0x0E)
+                {
+                    res.Remove("Unknown1");
+                    res.Remove("Unknown3");
+                    res.Remove("FrameGender");
+                }
+                return res;
+            }
+        }
+
         #endregion
 
         #region Sub-Types
@@ -128,7 +158,8 @@ namespace CASPartResource
             const int recommendedApiVersion = 1;
 
             #region Attributes
-            private ushort unknown6;
+            private ViewAngle angle;
+            private bool flip;
             private float[] unknown7;       //2 floats
             private ulong[] simModifierReference;      //4 Instance IDs
             #endregion
@@ -136,11 +167,12 @@ namespace CASPartResource
             public SliderDesc(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
             public SliderDesc(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
             public SliderDesc(int apiVersion, EventHandler handler, SliderDesc basis)
-                : this(apiVersion, handler, basis.unknown6, basis.unknown7, basis.simModifierReference) { }
-            public SliderDesc(int apiVersion, EventHandler handler, ushort unknown6, float[] unknown7, ulong[] simModifierReference)
+                : this(apiVersion, handler, basis.angle, basis.flip, basis.unknown7, basis.simModifierReference) { }
+            public SliderDesc(int apiVersion, EventHandler handler, ViewAngle angle, bool flip, float[] unknown7, ulong[] simModifierReference)
                 : base(apiVersion, handler)
             {
-                this.unknown6 = unknown6;
+                this.angle = angle;
+                this.flip = flip;
                 this.unknown7 = new float[unknown7.Length];
                 for (int i = 0; i < this.unknown7.Length; i++) this.unknown7[i] = unknown7[i];
                 this.simModifierReference = new ulong[simModifierReference.Length];
@@ -150,7 +182,8 @@ namespace CASPartResource
             private void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
-                this.unknown6 = r.ReadUInt16();
+                this.angle = (ViewAngle)r.ReadByte();
+                this.flip = r.ReadBoolean();
                 this.unknown7 = new float[2];
                 for (int i = 0; i < 2; i++) { this.unknown7[i] = r.ReadSingle(); }
                 this.simModifierReference = new ulong[4];
@@ -160,7 +193,8 @@ namespace CASPartResource
             internal void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write(this.unknown6);
+                w.Write((byte)this.angle);
+                w.Write(this.flip);
                 for (int i = 0; i < 2; i++) { w.Write(this.unknown7[i]); }
                 for (int i = 0; i < 4; i++) { w.Write(this.simModifierReference[i]); }
             }
@@ -173,19 +207,21 @@ namespace CASPartResource
             #region IEquatable<Vector>
             public bool Equals(SliderDesc other)
             {
-                return this.unknown6 == other.unknown6 && this.unknown7.SequenceEqual(other.unknown7) && this.simModifierReference.SequenceEqual(other.simModifierReference);
+                return this.angle == other.angle && this.flip == other.flip && this.unknown7.SequenceEqual(other.unknown7) && this.simModifierReference.SequenceEqual(other.simModifierReference);
             }
 
             public override bool Equals(object obj) { return obj is SliderDesc && Equals(obj as SliderDesc); }
 
-            public override int GetHashCode() { return this.unknown6.GetHashCode() + this.unknown7.GetHashCode() + this.simModifierReference.GetHashCode(); }
+            public override int GetHashCode() { return this.angle.GetHashCode() + this.flip.GetHashCode() + this.unknown7.GetHashCode() + this.simModifierReference.GetHashCode(); }
             #endregion
 
             [ElementPriority(10)]
-            public ushort Unknown6 { get { return this.unknown6; } set { if (!this.unknown6.Equals(value)) { this.unknown6 = value; OnElementChanged(); } } }
+            public ViewAngle ViewingAngle { get { return this.angle; } set { if (!this.angle.Equals(value)) { this.angle = value; OnElementChanged(); } } }
             [ElementPriority(11)]
-            public float[] Unknown7 { get { return this.unknown7; } set { if (!this.unknown7.Equals(value)) { this.unknown7 = value; OnElementChanged(); } } }
+            public bool FlipDirections { get { return this.flip; } set { if (!this.flip.Equals(value)) { this.flip = value; OnElementChanged(); } } }
             [ElementPriority(12)]
+            public float[] Unknown7 { get { return this.unknown7; } set { if (!this.unknown7.Equals(value)) { this.unknown7 = value; OnElementChanged(); } } }
+            [ElementPriority(13)]
             public ulong[] SimModifierReference { get { return this.simModifierReference; } set { if (!this.simModifierReference.Equals(value)) { this.simModifierReference = value; OnElementChanged(); } } }
 
             public string Value { get { return ValueBuilder; } }
@@ -202,6 +238,44 @@ namespace CASPartResource
             protected override SliderDesc CreateElement(Stream s) { return new SliderDesc(0, elementHandler, s); }
             //  protected override void WriteCount(Stream s, int count) { base.WriteCount(s, (int)(count * 3)); }
             protected override void WriteElement(Stream s, SliderDesc element) { element.UnParse(s); }
+        }
+
+        public enum HotSpotLevel : byte
+        {
+            Macro = 0,
+            Micro = 1,
+            Special = 2
+        }
+
+        [Flags]
+        public enum ViewAngle : byte
+        {
+            None = 0,
+            FrontView = 1,
+            FrontUnknown1 = 1 << 1,
+            FrontUnknown2 = 1 << 2,
+            SideUnknown = 1 << 3,
+            SideView = 1 << 4,
+            BackView = 1 << 5,
+            BackUnknown = 1 << 6
+        }
+
+        [Flags]
+        public enum BodyFrameGender : byte
+        {
+            None = 0,
+            Male = 1,
+            Female = 2
+        }
+
+        public enum SliderCursor : byte
+        {
+            None = 0,
+            HorizontalAndVerticalArrows = 1,
+            HorizontalArrows = 2,
+            VerticalArrows = 3,
+            Diagonal = 4,
+            Rotation = 5
         }
         #endregion
     }
