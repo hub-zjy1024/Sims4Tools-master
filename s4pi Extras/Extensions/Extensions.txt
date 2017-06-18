@@ -206,7 +206,7 @@
 0xB7FF8F95  _XML   .xml
 0xB8444447  UNKN   .bnry
 0xB91E18DB  UNKN   .bnry
-0xB93A9915  UNKN   .bnry
+0xB93A9915  TMCT   .thumbcache
 0xB9881120  _XML   .xml
 0xBA7B60B8  _XML   .xml
 0xBA856C78  RLES   .rles

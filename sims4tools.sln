@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2013 for Windows Desktop
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreateAssemblyVersion", "s4pi\CreateAssemblyVersion\CreateAssemblyVersion.csproj", "{114622FB-D6BF-4EA7-9BB9-FB06B5A01212}"
 EndProject
@@ -67,6 +67,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "s4pe", "s4pe\s4pe.csproj", 
 		{F2E30D04-82C7-487F-B9E8-E8BABB1C94E1} = {F2E30D04-82C7-487F-B9E8-E8BABB1C94E1}
 		{DA02A213-A2D9-422B-9214-51B86378CFBB} = {DA02A213-A2D9-422B-9214-51B86378CFBB}
 		{F4E52414-B7CC-4920-9546-0711D5A1F4C9} = {F4E52414-B7CC-4920-9546-0711D5A1F4C9}
+		{B8796317-C2C8-4315-9F4F-0130DD78646B} = {B8796317-C2C8-4315-9F4F-0130DD78646B}
 		{3D2A241B-533B-47B5-A8D1-DB3B7953E6A7} = {3D2A241B-533B-47B5-A8D1-DB3B7953E6A7}
 		{513B8C1F-2BE4-46D6-B95D-836A1F36855E} = {513B8C1F-2BE4-46D6-B95D-836A1F36855E}
 		{E8176722-BE4E-47FF-A8A6-BFF4BE7A5DE8} = {E8176722-BE4E-47FF-A8A6-BFF4BE7A5DE8}
@@ -138,6 +139,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegionDescriptionResource", "s4pi Wrappers\RegionDescriptionResource\RegionDescriptionResource.csproj", "{03C47845-A16F-492F-B06F-9D6622E13374}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerrainBlendMapResource", "s4pi Wrappers\TerrainBlendMapResource\TerrainBlendMapResource.csproj", "{ABE6CF97-3F4D-4F2C-8A9C-B09491CB5843}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThumbnailCacheResource", "s4pi Wrappers\ThumbnailCacheTableResource\ThumbnailCacheResource.csproj", "{B8796317-C2C8-4315-9F4F-0130DD78646B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -619,6 +622,16 @@ Global
 		{ABE6CF97-3F4D-4F2C-8A9C-B09491CB5843}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{ABE6CF97-3F4D-4F2C-8A9C-B09491CB5843}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{ABE6CF97-3F4D-4F2C-8A9C-B09491CB5843}.Release|x86.ActiveCfg = Release|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{B8796317-C2C8-4315-9F4F-0130DD78646B}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
