@@ -87,7 +87,6 @@ namespace s4pi.Interfaces
 		/// </summary>
 		/// <param name="handler">The <see cref="EventHandler" /> to call on changes to the list or its elements.</param>
 		/// <param name="s">The <see cref="System.IO.Stream" /> to read for the initial content of the list.</param>
-		/// <param name="maxSize">Optional; -1 for unlimited size, otherwise the maximum number of elements in the list.</param>
 		/// <exception cref="System.InvalidOperationException">Thrown when list size exceeded.</exception>
         protected DependentDictionary(EventHandler handler, Stream s)
 			: base(null)
@@ -105,7 +104,7 @@ namespace s4pi.Interfaces
         ///     Read list entries from a stream
         /// </summary>
         /// <param name="s">Stream containing list entries</param>
-        /// <remarks>This method bypasses <see cref="DependentList{T}.Add(object[])"/> because
+        /// <remarks>This method bypasses <see cref="DependentDictionary{TKey, TValue}.Add(TKey, TValue)"/> because
         /// <see cref="CreateKey(Stream, out bool)"/> and <see cref="CreateValue(Stream, out bool)"/>
         /// must take care of the same issues.</remarks>
         protected virtual void Parse(Stream s)
@@ -197,14 +196,14 @@ namespace s4pi.Interfaces
         /// <summary>
         ///     Write a key to the stream.
         /// </summary>
-        /// <param name="s"><see cref="System.IO.Stream" /> to write <paramref name="element" /> to.</param>
+        /// <param name="s"><see cref="System.IO.Stream" /> to write <paramref name="key" /> to.</param>
         /// <param name="key">The key to write to <see cref="System.IO.Stream" /> <paramref name="s" />.</param>
         protected abstract void WriteKey(Stream s, TKey key);
 
         /// <summary>
         ///     Write a value to the stream.
         /// </summary>
-        /// <param name="s"><see cref="System.IO.Stream" /> to write <paramref name="element" /> to.</param>
+        /// <param name="s"><see cref="System.IO.Stream" /> to write <paramref name="value" /> to.</param>
         /// <param name="value">The value to write to <see cref="System.IO.Stream" /> <paramref name="s" />.</param>
         protected abstract void WriteValue(Stream s, TValue value);
 
@@ -268,7 +267,7 @@ namespace s4pi.Interfaces
         }
 
         /// <summary>
-        ///     Adds an entry to a <see cref="DependentDictionary{T}" />, setting the element change handler.
+        ///     Adds an entry to a <see cref="DependentDictionary{TKey, TValue}" />, setting the element change handler.
         /// </summary>
         /// <param name="key">The key of the element to add.</param>
         /// <param name="value">An instance of type <c>{TValue}</c> to add to the list.</param>
@@ -285,7 +284,7 @@ namespace s4pi.Interfaces
         ///     The dictionary change handler will only be called once for the collection.
         /// </summary>
         /// <param name="collection">A collection of <see cref="KeyValuePair{TKey, TValue}" /> items to add.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="key"/> is null in one of the items in the collection.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="collection"/> is null or the key of one of the items in the collection is null.</exception>
         /// <exception cref="System.ArgumentException">An element with the same key already exists in the <see cref="AHandlerDictionary{TKey,TValue}"/>.</exception>
         public virtual void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> collection)
         {
@@ -306,6 +305,13 @@ namespace s4pi.Interfaces
     
     }
 
+    /// <summary>
+    /// A flexible generic list that implements <see cref="DependentDictionary{TKey, TValue}"/> for
+    /// a simple value data type (such as <see cref="UInt32"/>).
+    /// </summary>
+    /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
+    /// <typeparam name="TValue">A simple data type (such as <see cref="UInt32"/>).</typeparam>
+    /// <seealso cref="HandlerElement{T}"/>
     public abstract class SimpleDictionary<TKey, TValue> : DependentDictionary<TKey, HandlerElement<TValue>>, IDictionary<TKey, HandlerElement<TValue>>
         where TValue : struct, IComparable, IConvertible, IEquatable<TValue>, IComparable<TValue>
     {
@@ -314,7 +320,6 @@ namespace s4pi.Interfaces
         WriteValueMethod writeValue;
         ReadCountMethod readCount;
         WriteCountMethod writeCount;
-        private SimpleDictionary<ulong, float> dictionary;
         #endregion
 
         #region Constructors
@@ -436,7 +441,7 @@ namespace s4pi.Interfaces
         ///     Add a default element to a <see cref="SimpleDictionary{TKey, TValue}" />.
         /// </summary>
         /// <param name="key">The key of the element to add.</param>
-        /// <exception cref="NotImplementedException"><typeparamref name="T" /> is abstract.</exception>
+        /// <exception cref="NotImplementedException"><typeparamref name="TKey" /> is abstract.</exception>
         /// <exception cref="InvalidOperationException">Thrown when list size exceeded.</exception>
         /// <exception cref="NotSupportedException">The <see cref="DependentList{T}" /> is read-only.</exception>
         public override void Add(TKey key)
@@ -458,7 +463,7 @@ namespace s4pi.Interfaces
         ///     The dictionary change handler will only be called once for the collection.
         /// </summary>
         /// <param name="collection">A collection of <see cref="KeyValuePair{TKey, TValue}" /> items to add.</param>
-        /// <exception cref="System.ArgumentNullException"><paramref name="key"/> is null in one of the items in the collection.</exception>
+        /// <exception cref="System.ArgumentNullException"><paramref name="collection"/> is null or one of the items in the collection is null.</exception>
         /// <exception cref="System.ArgumentException">An element with the same key already exists in the <see cref="AHandlerDictionary{TKey,TValue}"/>.</exception>
         public virtual void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> collection)
         {
