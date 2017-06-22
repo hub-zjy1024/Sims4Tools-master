@@ -1,5 +1,5 @@
 ﻿/***************************************************************************
- *  Copyright (C) 2016 by Cmar, Peter Jones                                *
+ *  Copyright (C) 2016 by Peter Jones, s4pe Group                          *
  *                                                                         *
  *  This file is part of the Sims 4 Package Interface (s4pi)               *
  *                                                                         *

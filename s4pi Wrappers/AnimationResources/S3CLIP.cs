@@ -389,12 +389,12 @@ namespace s4pi.Animation
                 Parse(s, startPos);
             }
 
-            protected S3Channel(int apiVersion, EventHandler handler, S3Channel basis)
+            public S3Channel(int apiVersion, EventHandler handler, S3Channel basis)
                 : this(apiVersion, handler, basis.target, basis.offset, basis.scale, basis.channelType, basis.channelSubTarget, basis.frames)
             {
             }
 
-            protected S3Channel(int APIversion, EventHandler handler, uint target, float offset, float scale, ChannelType channelType, SubTargetType channelSubTarget, FrameList frames)
+            public S3Channel(int APIversion, EventHandler handler, uint target, float offset, float scale, ChannelType channelType, SubTargetType channelSubTarget, FrameList frames)
                 : base(APIversion, handler)
             {
                 this.target = target;
