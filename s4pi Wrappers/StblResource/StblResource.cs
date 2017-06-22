@@ -137,7 +137,7 @@ namespace StblResource
             }
             writer.Write(this.reserved);
 
-            writer.Write(this.StringDataLength);
+            writer.Write((uint)this.entries.StringEntriesLength);
             this.entries.UnParse(memoryStream);
 
             memoryStream.Position = 0;
@@ -200,7 +200,7 @@ namespace StblResource
         [ElementPriority(4)]
         public uint StringDataLength
         {
-            get { return (uint)this.entries.StringEntriesLength; }
+            get { return this.stringLength; }
             set { }
         }
 
