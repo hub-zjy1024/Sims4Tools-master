@@ -147,7 +147,7 @@ namespace System.Collections.Generic
         public new virtual void Add(TKey key, TValue value) { base.Add(key, value); OnDictionaryChanged(); }
 
         /// <summary>
-        /// Removes all keys and values from the <see cref="AHandlerDictionary<TKey,TValue>"/>.
+        /// Removes all keys and values from the <see cref="AHandlerDictionary{TKey,TValue}"/>.
         /// </summary>
         public new virtual void Clear() { base.Clear(); OnDictionaryChanged(); }
 
@@ -156,7 +156,7 @@ namespace System.Collections.Generic
         /// </summary>
         /// <param name="key">The key of the element to remove.</param>
         /// <returns><c>true</c> if the element is successfully found and removed; otherwise, <c>false</c>.
-        /// This method returns <c>false</c> if <paramref name="key"/> is not found in the <see cref="AHandlerDictionary<TKey,TValue>"/>.
+        /// This method returns <c>false</c> if <paramref name="key"/> is not found in the <see cref="AHandlerDictionary{TKey,TValue}"/>.
         /// </returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="key"/> is null.</exception>
         public new virtual bool Remove(TKey key) { if (base.Remove(key)) { OnDictionaryChanged(); return true; } else return false; }

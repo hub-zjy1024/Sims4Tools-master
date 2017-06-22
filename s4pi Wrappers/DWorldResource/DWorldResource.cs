@@ -335,7 +335,7 @@ namespace DWorldResource
 
             #region IEquatable<OMGSChunk> Members
             public bool Equals(OMGSChunk other) { return tag.Equals(other.tag) && omgsChunks.Equals(other.omgsChunks); }
-            public override bool Equals(TagLengthValue other) { return other is OMGSChunk != null && Equals(other as OMGSChunk); }
+            public override bool Equals(TagLengthValue other) { return other as OMGSChunk != null && Equals(other as OMGSChunk); }
             public override int GetHashCode() { return tag.GetHashCode() ^ omgsChunks.GetHashCode(); }
             #endregion
 
@@ -368,7 +368,7 @@ namespace DWorldResource
 
             #region IEquatable<OMGRChunk> Members
             public bool Equals(OMGRChunk other) { return tag.Equals(other.tag) && omgrChunks.Equals(other.omgrChunks); }
-            public override bool Equals(TagLengthValue other) { return other is OMGRChunk != null && Equals(other as OMGRChunk); }
+            public override bool Equals(TagLengthValue other) { return other as OMGRChunk != null && Equals(other as OMGRChunk); }
             public override int GetHashCode() { return tag.GetHashCode() ^ omgrChunks.GetHashCode(); }
             #endregion
 
@@ -451,7 +451,7 @@ namespace DWorldResource
 
             #region IEquatable<LOT_Chunk> Members
             public bool Equals(LOT_Chunk other) { return tag.Equals(other.tag) && lotChunks.Equals(other.lotChunks); }
-            public override bool Equals(TagLengthValue other) { return other is LOT_Chunk != null && Equals(other as LOT_Chunk); }
+            public override bool Equals(TagLengthValue other) { return other as LOT_Chunk != null && Equals(other as LOT_Chunk); }
             public override int GetHashCode() { return tag.GetHashCode() ^ lotChunks.GetHashCode(); }
             #endregion
 
@@ -512,7 +512,7 @@ namespace DWorldResource
 
             #region IEquatable<OBJ_Chunk> Members
             public bool Equals(OBJ_Chunk other) { return tag.Equals(other.tag) && objChunks.Equals(other.objChunks); }
-            public override bool Equals(TagLengthValue other) { return other is OBJ_Chunk != null && Equals(other as OBJ_Chunk); }
+            public override bool Equals(TagLengthValue other) { return other as OBJ_Chunk != null && Equals(other as OBJ_Chunk); }
             public override int GetHashCode() { return tag.GetHashCode() ^ objChunks.GetHashCode(); }
             #endregion
 
