@@ -16,6 +16,7 @@ namespace s4pi.Interfaces
         /// </summary>
         /// <param name="hashsalt">Hash salt to renumber the fields</param>
         /// <param name="renumber">If true, preset fields will be renumbered</param>
+        /// <param name="isStandAlone">Unused, like the whole of this interface, by the look of it.</param>
         /// <returns>T</returns>
         T CloneWrapper(string hashsalt, bool renumber = true, bool isStandAlone = true);
     }

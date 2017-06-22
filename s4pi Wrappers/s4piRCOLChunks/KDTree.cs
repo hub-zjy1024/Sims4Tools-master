@@ -393,7 +393,7 @@ namespace s4pi.GenericRCOLResource
             #region Constructors
             public CountedUInt16List(EventHandler handler) : base(handler, ReadUInt16, WriteUInt16) { }
             public CountedUInt16List(EventHandler handler, IEnumerable<UInt16> basis) : base(handler, basis, ReadUInt16, WriteUInt16) { }
-            public CountedUInt16List(EventHandler handler, Stream s, UInt32 indexCount) : base(handler, s, ReadUInt16, WriteUInt16) { }
+            public CountedUInt16List(EventHandler handler, Stream s, UInt32 indexCount) : base(handler, ReadUInt16, WriteUInt16) { this.indexCount = indexCount; elementHandler = handler; Parse(s); this.handler = handler; }
             #endregion
 
             #region Data I/O

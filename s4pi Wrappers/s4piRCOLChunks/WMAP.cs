@@ -225,8 +225,6 @@ namespace s4pi.GenericRCOLResource
 
         public class LotInfoList : DependentList<LotInfoElement>
         {
-            int count;
-
             #region Constructors
             public LotInfoList(EventHandler handler) : base(handler) { }
             public LotInfoList(EventHandler handler, Stream s) : base(handler, s) { }

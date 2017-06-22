@@ -398,8 +398,6 @@ namespace s4pi.GenericRCOLResource
                     }
                 }
                 #endregion
-
-                public string Value { get { return ValueBuilder; } }
             }
 
             public class SpotLightSourceType : AbstractLightSourceType
@@ -496,8 +494,6 @@ namespace s4pi.GenericRCOLResource
                     }
                 }
                 #endregion
-
-                public string Value { get { return ValueBuilder; } }
             }
 
             public class LampShadeLightSourceType : AbstractLightSourceType
@@ -614,8 +610,6 @@ namespace s4pi.GenericRCOLResource
                     }
                 }
                 #endregion
-
-                public string Value { get { return ValueBuilder; } }
             }
 
             public class TubeLightSourceType : AbstractLightSourceType
@@ -712,8 +706,6 @@ namespace s4pi.GenericRCOLResource
                     }
                 }
                 #endregion
-
-                public string Value { get { return ValueBuilder; } }
             }
 
             public class SquareWindowLightSourceType : AbstractLightSourceType
@@ -840,8 +832,6 @@ namespace s4pi.GenericRCOLResource
                     }
                 }
                 #endregion
-
-                public string Value { get { return ValueBuilder; } }
             }
 
             public class CircularWindowLightSourceType : AbstractLightSourceType
@@ -938,8 +928,6 @@ namespace s4pi.GenericRCOLResource
                     }
                 }
                 #endregion
-
-                public string Value { get { return ValueBuilder; } }
             }
             #endregion
 

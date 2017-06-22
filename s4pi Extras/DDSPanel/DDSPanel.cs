@@ -239,9 +239,13 @@ namespace System.Windows.Forms
         /// </summary>
         [ReadOnly(true), Description("The size of the current mask (or Size.Empty if no mask loaded).")]
         public Size MaskSize { get { return MaskLoaded ? ddsMask.Size : Size.Empty; } }
+
+        /// <summary>
+        /// Indicates the image is not a native DDS image.
+        /// </summary>
+        public bool IsShuffled { get; private set; }
         #endregion
 
-        public bool IsShuffled { get; private set; }
         #region Events
         /// <summary>
         /// Raised to indicate Fit value changed.
