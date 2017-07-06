@@ -33,12 +33,16 @@ namespace CASPartResource
 
         static bool checking = s4pi.Settings.Settings.Checking;
 
-        private ContexData contexData { get; set; }
+        private uint contextVersion;
+        private TGIBlock[] publicKey { get; set; }
+        private TGIBlock[] externalKey { get; set; }
+        private TGIBlock[] delayLoadKey { get; set; }
+        private ObjectData[] objects { get; set; }
         private uint version { get; set; }
         private AgeGenderFlags gender { get; set; }
         private SimRegion region { get; set; }
-        private uint linkTag { get; set; }
-        private uint unknown1 { get; set; }
+        private uint reserved0 { get; set; }
+        private LinkTags linkTag { get; set; }
         private TGIBlock bonePoseKey { get; set; }
         private TGIBlock deformerMapShapeKey { get; set; }
         private TGIBlock deformerMapNormalKey { get; set; }
@@ -51,12 +55,36 @@ namespace CASPartResource
         void Parse(Stream s)
         {
             BinaryReader r = new BinaryReader(s);
-            this.contexData = new ContexData(recommendedApiVersion, OnResourceChanged, s);
+            this.contextVersion = r.ReadUInt32();
+            uint publicKeyCount = r.ReadUInt32();
+            uint externalKeyCount = r.ReadUInt32();
+            uint delayLoadKeyCount = r.ReadUInt32();
+            uint objectCount = r.ReadUInt32();
+            this.publicKey = new TGIBlock[publicKeyCount];
+            for (int i = 0; i < publicKeyCount; i++)
+            {
+                this.publicKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
+            }
+            this.externalKey = new TGIBlock[externalKeyCount];
+            for (int i = 0; i < externalKeyCount; i++)
+            {
+                this.externalKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
+            }
+            this.delayLoadKey = new TGIBlock[delayLoadKeyCount];
+            for (int i = 0; i < delayLoadKeyCount; i++)
+            {
+                this.delayLoadKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
+            }
+            this.objects = new ObjectData[objectCount];
+            for (int i = 0; i < objectCount; i++)
+            {
+                objects[i] = new ObjectData(recommendedApiVersion, OnResourceChanged, s);
+            }
             this.version = r.ReadUInt32();
             this.gender = (AgeGenderFlags)r.ReadUInt32();
             this.region = (SimRegion)r.ReadUInt32();
-            this.linkTag = r.ReadUInt32();
-            if (this.version >= 144) this.unknown1 = r.ReadUInt32();
+            if (this.version >= 144) this.reserved0 = r.ReadUInt32();
+            this.linkTag = (LinkTags)r.ReadUInt32();
             this.bonePoseKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
             this.deformerMapShapeKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
             this.deformerMapNormalKey = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
@@ -67,13 +95,36 @@ namespace CASPartResource
         {
             MemoryStream ms = new MemoryStream();
             BinaryWriter w = new BinaryWriter(ms);
-            if (this.contexData == null) this.contexData = new ContexData(recommendedApiVersion, OnResourceChanged);
-            this.contexData.UnParse(ms);
+            w.Write(this.contextVersion);
+            w.Write(this.publicKey.Length);
+            w.Write(this.externalKey.Length);
+            w.Write(this.delayLoadKey.Length);
+            w.Write(this.objects.Length);
+            if (this.publicKey == null) this.publicKey = new TGIBlock[0];
+            for (int i = 0; i < publicKey.Length; i++)
+            {
+                this.publicKey[i].UnParse(ms);
+            }
+            if (this.externalKey == null) this.externalKey = new TGIBlock[0];
+            for (int i = 0; i < externalKey.Length; i++)
+            {
+                this.externalKey[i].UnParse(ms);
+            }
+            if (this.delayLoadKey == null) this.delayLoadKey = new TGIBlock[0];
+            for (int i = 0; i < delayLoadKey.Length; i++)
+            {
+                this.delayLoadKey[i].UnParse(ms);
+            }
+            if (this.objects == null) this.objects = new ObjectData[0];
+            for (int i = 0; i < this.objects.Length; i++)
+            {
+                this.objects[i].UnParse(ms);
+            }
             w.Write(this.version);
             w.Write((uint)this.gender);
             w.Write((uint)this.region);
-            w.Write(this.linkTag);
-            if (this.version >= 144) w.Write(this.unknown1);
+            if (this.version >= 144) w.Write(this.reserved0);
+            w.Write((uint)this.linkTag);
             if (this.bonePoseKey == null) this.bonePoseKey = new TGIBlock(recommendedApiVersion, OnResourceChanged);
             this.bonePoseKey.UnParse(ms);
             if (this.deformerMapShapeKey == null) this.deformerMapShapeKey = new TGIBlock(recommendedApiVersion, OnResourceChanged);
@@ -86,144 +137,38 @@ namespace CASPartResource
         }
         #endregion
 
-        #region Sub-Class
-        public class ContexData: AHandlerElement
+        #region Sub Class
+        public class ObjectData : AHandlerElement, IEquatable<ObjectData>
         {
-            private uint contexVersion;
-            private uint publicKeyCount;
-            private uint externalKeyCount;
-            private uint delayLoadKeyCount;
-            private uint objectKeyCount;
-
-            private CountedTGIBlockList publicKey;
-            private CountedTGIBlockList externalKey;
-            private CountedTGIBlockList delayLoadKey;
-            private ObjectDataLIst objectKey;
-
-            public ContexData(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
-            public ContexData(int apiVersion, EventHandler handler) : base(apiVersion, handler) { this.UnParse(new MemoryStream()); }
-
-            #region Data I/O
+            public uint position { get; set; }
+            public uint length { get; set; }
+            public ObjectData(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
             public void Parse(Stream s)
             {
                 BinaryReader r = new BinaryReader(s);
-                this.contexVersion = r.ReadUInt32();
-                this.publicKeyCount = r.ReadUInt32();
-                this.externalKeyCount = r.ReadUInt32();
-                this.delayLoadKeyCount = r.ReadUInt32();
-                this.objectKeyCount = r.ReadUInt32();
-                this.publicKey = new CountedTGIBlockList(null, "ITG");
-                for (int i = 0; i < publicKeyCount; i++) publicKey.Add(new TGIBlock(1, handler, "ITG", s));
-                this.externalKey = new CountedTGIBlockList(null, "ITG");
-                for (int i = 0; i < externalKeyCount; i++) externalKey.Add(new TGIBlock(1, handler, "ITG", s));
-                this.delayLoadKey = new CountedTGIBlockList(null, "ITG");
-                for (int i = 0; i < delayLoadKeyCount; i++) delayLoadKey.Add(new TGIBlock(1, handler, "ITG", s));
-                this.objectKey = new ObjectDataLIst(handler, s, objectKeyCount);
-                
+                this.position = r.ReadUInt32();
+                this.length = r.ReadUInt32();
             }
 
             public void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write(this.contexVersion);
-                if (this.publicKey == null) this.publicKey = new CountedTGIBlockList(handler);
-                w.Write(this.publicKey.Count);
-                if (this.externalKey == null) this.externalKey = new CountedTGIBlockList(handler);
-                w.Write(this.externalKey.Count);
-                if (this.delayLoadKey == null) this.delayLoadKey = new CountedTGIBlockList(handler);
-                w.Write(this.delayLoadKey.Count);
-                if (this.objectKey == null) this.objectKey = new ObjectDataLIst(handler);
-                w.Write(this.objectKey.Count);
-                foreach (var tgi in this.publicKey) tgi.UnParse(s);
-                foreach (var tgi in this.externalKey) tgi.UnParse(s);
-                foreach (var tgi in this.delayLoadKey) tgi.UnParse(s);
-                foreach (var obj in this.objectKey) obj.UnParse(s);
+                w.Write(this.position);
+                w.Write(this.length);
             }
-            #endregion
 
             #region AHandlerElement Members
             public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
             public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
             #endregion
 
-            #region Sub Class
-            public class ObjectData : AHandlerElement, IEquatable<ObjectData>
+            #region IEquatable
+            public bool Equals(ObjectData other)
             {
-                public uint position { get; set; }
-                public uint length { get; set; }
-                public ObjectData(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
-                public void Parse(Stream s)
-                {
-                    BinaryReader r = new BinaryReader(s);
-                    this.position = r.ReadUInt32();
-                    this.length = r.ReadUInt32();
-                }
-
-                public void UnParse(Stream s)
-                {
-                    BinaryWriter w = new BinaryWriter(s);
-                    w.Write(this.position);
-                    w.Write(this.length);
-                }
-
-                #region AHandlerElement Members
-                public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-                public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
-                #endregion
-
-                #region IEquatable
-                public bool Equals(ObjectData other)
-                {
-                    return this.position == other.position && this.length == other.length;
-                }
-                #endregion
-
-                public string Value { get { return ValueBuilder; } }
+                return this.position == other.position && this.length == other.length;
             }
-
-            public class ObjectDataLIst : DependentList<ObjectData>
-            {
-                public ObjectDataLIst(EventHandler handler) : base(handler) { }
-                public ObjectDataLIst(EventHandler handler, Stream s, uint count) : base(handler) { Parse(s, count); }
-
-                #region Data I/O
-                protected void Parse(Stream s, uint count)
-                {
-                    for (uint i = 0; i < count; i++) this.Add(new ObjectData(recommendedApiVersion, handler, s));
-                }
-
-                public override void UnParse(Stream s)
-                {
-                    foreach (var bone in this) bone.UnParse(s);
-                }
-
-                protected override ObjectData CreateElement(Stream s) { return new ObjectData(1, handler, s); }
-                protected override void WriteElement(Stream s, ObjectData element) { element.UnParse(s); }
-                #endregion
-            }
-
             #endregion
 
-            #region Content Fields
-            [ElementPriority(0)]
-            public uint ContexVersion { get { return this.contexVersion; } set { if (!this.contexVersion.Equals(value)) { OnElementChanged(); this.contexVersion = value; } } }
-            [ElementPriority(1)]
-            public uint PublicKeyCount { get { return this.publicKeyCount; } set { if (!this.publicKeyCount.Equals(value)) { OnElementChanged(); this.publicKeyCount = value; } } }
-            [ElementPriority(2)]
-            public uint ExternalKeyCount { get { return this.externalKeyCount; } set { if (!this.externalKeyCount.Equals(value)) { OnElementChanged(); this.externalKeyCount = value; } } }
-            [ElementPriority(3)]
-            public uint DelayLoadKeyCount { get { return this.delayLoadKeyCount; } set { if (!this.delayLoadKeyCount.Equals(value)) { OnElementChanged(); this.delayLoadKeyCount = value; } } }
-            [ElementPriority(4)]
-            public uint ObjectCount { get { return this.objectKeyCount; } set { if (!this.objectKeyCount.Equals(value)) { OnElementChanged(); this.objectKeyCount = value; } } }
-            [ElementPriority(5)]
-            public CountedTGIBlockList PublicKey { get { return this.publicKey; } set { if (!this.publicKey.Equals(value)) { OnElementChanged(); this.publicKey = value; } } }
-            [ElementPriority(6)]
-            public CountedTGIBlockList ExternalKey { get { return this.externalKey; } set { if (!this.externalKey.Equals(value)) { OnElementChanged(); this.externalKey = value; } } }
-            [ElementPriority(7)]
-            public CountedTGIBlockList DelayLoadKey_BGEOkey { get { return this.delayLoadKey; } set { if (!this.delayLoadKey.Equals(value)) { OnElementChanged(); this.delayLoadKey = value; } } }
-            [ElementPriority(8)]
-            public ObjectDataLIst ObjectInfo { get { return this.objectKey; } set { if (!this.objectKey.Equals(value)) { OnElementChanged(); this.objectKey = value; } } }
-            #endregion
             public string Value { get { return ValueBuilder; } }
         }
 
@@ -288,29 +233,36 @@ namespace CASPartResource
 
             public string Value { get { return ValueBuilder; } }
         }
-
         #endregion
 
         #region Content Fields
         [ElementPriority(0)]
-        public ContexData Contextdata { get { return this.contexData; } set { if (!contexData.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.contexData = value; } } }
+        public uint ContextVersion { get { return this.contextVersion; } set { if (!this.contextVersion.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.contextVersion = value; } } }
         [ElementPriority(1)]
-        public uint Version { get { return this.version; } set { if (!this.version.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.version = value; } } }
+        public TGIBlock[] PublicKey { get { return this.publicKey; } set { if (!this.publicKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.publicKey = value; } } }
         [ElementPriority(2)]
-        public AgeGenderFlags AgeGender { get { return this.gender; } set { if (!this.gender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.gender = value; } } }
+        public TGIBlock[] ExternalKey { get { return this.externalKey; } set { if (!this.externalKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.externalKey = value; } } }
         [ElementPriority(3)]
-        public SimRegion Region { get { return this.region; } set { if (!this.region.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.region = value; } } }
+        public TGIBlock[] BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!this.delayLoadKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
         [ElementPriority(4)]
-        public uint LinkTag { get { return this.linkTag; } set { if (!this.linkTag.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.linkTag = value; } } }
+        public ObjectData[] ObjectInfo { get { return this.objects; } set { if (!this.objects.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.objects = value; } } }
         [ElementPriority(5)]
-        public uint Unknown1 { get { return this.unknown1; } set { if (!this.unknown1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown1 = value; } } }
+        public uint Version { get { return this.version; } set { if (!this.version.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.version = value; } } }
         [ElementPriority(6)]
-        public TGIBlock BonePoseKey { get { return this.bonePoseKey; } set { if (!this.bonePoseKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.bonePoseKey = value; } } }
+        public AgeGenderFlags AgeGender { get { return this.gender; } set { if (!this.gender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.gender = value; } } }
         [ElementPriority(7)]
-        public TGIBlock DeformerMapShapeKey { get { return this.deformerMapShapeKey; } set { if (!this.deformerMapShapeKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapShapeKey = value; } } }
+        public SimRegion Region { get { return this.region; } set { if (!this.region.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.region = value; } } }
         [ElementPriority(8)]
-        public TGIBlock DeformerMapNormalKey { get { return this.deformerMapNormalKey; } set { if (!this.deformerMapNormalKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapNormalKey = value; } } }
+        public uint Reserved0 { get { return this.reserved0; } set { if (!this.reserved0.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.reserved0 = value; } } }
         [ElementPriority(9)]
+        public LinkTags LinkTag { get { return this.linkTag; } set { if (!this.linkTag.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.linkTag = value; } } }
+        [ElementPriority(10)]
+        public TGIBlock BonePoseKey { get { return this.bonePoseKey; } set { if (!this.bonePoseKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.bonePoseKey = value; } } }
+        [ElementPriority(11)]
+        public TGIBlock DeformerMapShapeKey { get { return this.deformerMapShapeKey; } set { if (!this.deformerMapShapeKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapShapeKey = value; } } }
+        [ElementPriority(12)]
+        public TGIBlock DeformerMapNormalKey { get { return this.deformerMapNormalKey; } set { if (!this.deformerMapNormalKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.deformerMapNormalKey = value; } } }
+        [ElementPriority(13)]
         public BoneEntryLIst BoneEntryList { get { return this.boneEntryList; } set { if (!this.boneEntryList.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.boneEntryList = value; } } }
         public string Value { get { return ValueBuilder; } }
         public override List<string> ContentFields
@@ -320,12 +272,18 @@ namespace CASPartResource
                 var res = GetContentFields(requestedApiVersion, this.GetType());
                 if (this.version < 144)
                 {
-                    res.Remove("Unknown1");
+                    res.Remove("Reserved0");
                 }
                 return res;
             }
         } 
         #endregion
+    }
+
+    public enum LinkTags : uint
+    {
+        None = 0x00000000,
+        UseBlendLink = 0x30000001
     }
 
     public class SimModifierHandler : AResourceHandler

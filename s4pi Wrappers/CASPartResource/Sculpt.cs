@@ -122,7 +122,7 @@ namespace CASPartResource
             AgeGenderFlags ageGender;
             SimRegion region;
             uint unknown5;
-            byte[] unknown6;
+            LinkTags linkTag;
             TGIBlock textureRef;
             TGIBlock specularRef;
             TGIBlock imageRef;
@@ -142,7 +142,7 @@ namespace CASPartResource
                 this.ageGender = (AgeGenderFlags)r.ReadUInt32();
                 this.region = (SimRegion)r.ReadUInt32();
                 this.unknown5 = r.ReadUInt32();
-                this.unknown6 = r.ReadBytes(4);
+                this.linkTag = (LinkTags)r.ReadUInt32();
                 this.textureRef = new TGIBlock(RecommendedApiVersion, handler, "ITG", s);
                 this.specularRef = new TGIBlock(RecommendedApiVersion, handler, "ITG", s);
                 this.imageRef = new TGIBlock(RecommendedApiVersion, handler, "ITG", s);
@@ -161,7 +161,7 @@ namespace CASPartResource
                 w.Write((uint)this.ageGender);
                 w.Write((uint)this.region);
                 w.Write(this.unknown5);
-                w.Write(this.unknown6);
+                w.Write((uint)this.linkTag);
                 this.textureRef.UnParse(s);
                 this.specularRef.UnParse(s);
                 this.imageRef.UnParse(s);
@@ -180,7 +180,7 @@ namespace CASPartResource
             {
                 return this.unknown1 == other.unknown1 && this.unknown2 == other.unknown2 && this.unknown3 == other.unknown3 &&
                     this.ageGender == other.ageGender && this.region == other.region && this.unknown5 == other.unknown5 &&
-                    this.unknown6 == other.unknown6 && this.textureRef == other.textureRef && this.specularRef == other.specularRef &&
+                    this.linkTag == other.linkTag && this.textureRef == other.textureRef && this.specularRef == other.specularRef &&
                     this.imageRef == other.imageRef && this.unknown7 == other.unknown7 && this.dmapRef == other.dmapRef &&
                     this.unknown8 == other.unknown8;
             }
@@ -199,7 +199,7 @@ namespace CASPartResource
             [ElementPriority(5)]
             public uint Unknown5 { get { return this.unknown5; } set { if (!value.Equals(this.unknown5)) { this.unknown5 = value; OnElementChanged(); } } }
             [ElementPriority(6)]
-            public byte[] Unknown6 { get { return this.unknown6; } set { if (!value.Equals(this.unknown6)) { this.unknown6 = value; OnElementChanged(); } } }
+            public LinkTags LinkTag { get { return this.linkTag; } set { if (!value.Equals(this.linkTag)) { this.linkTag = value; OnElementChanged(); } } }
             [ElementPriority(7)]
             public TGIBlock TextureRef { get { return this.textureRef; } set { if (!value.Equals(this.textureRef)) { this.textureRef = value; OnElementChanged(); } } }
             [ElementPriority(8)]
@@ -227,7 +227,7 @@ namespace CASPartResource
         [ElementPriority(2)]
         public TGIBlock[] ExternalKey { get { return this.externalKey; } set { if (!value.Equals(this.externalKey)) { OnResourceChanged(this, EventArgs.Empty); this.externalKey = value; } } }
         [ElementPriority(3)]
-        public TGIBlock[] BGEO_Key { get { return this.delayLoadKey; } set { if (!value.Equals(this.delayLoadKey)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
+        public TGIBlock[] BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!value.Equals(this.delayLoadKey)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
         [ElementPriority(4)]
         public SculptBlock[] SculptsBlocks { get { return this.sculpts; } set { if (!value.Equals(this.sculpts)) { OnResourceChanged(this, EventArgs.Empty); this.sculpts = value; } } }
         #endregion
