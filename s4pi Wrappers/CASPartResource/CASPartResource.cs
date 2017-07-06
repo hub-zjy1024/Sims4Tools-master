@@ -89,7 +89,7 @@ namespace CASPartResource
         private int sortLayer;
         private LODBlockList lodBlockList;
         private SimpleList<byte> slotKey;
-        private byte diffuseShadowKey;
+        private byte diffuseKey;
         private byte shadowKey;
         private byte compositionMethod;
         private byte regionMapKey;
@@ -223,7 +223,7 @@ namespace CASPartResource
                 this.slotKey.Add(r.ReadByte());
             }
 
-            this.diffuseShadowKey = r.ReadByte();
+            this.diffuseKey = r.ReadByte();
             this.shadowKey = r.ReadByte();
             this.compositionMethod = r.ReadByte();
             this.regionMapKey = r.ReadByte();
@@ -351,7 +351,7 @@ namespace CASPartResource
             {
                 w.Write(b);
             }
-            w.Write(this.diffuseShadowKey);
+            w.Write(this.diffuseKey);
             w.Write(this.shadowKey);
             w.Write(this.compositionMethod);
             w.Write(this.regionMapKey);
@@ -971,14 +971,14 @@ namespace CASPartResource
         }
 
         [ElementPriority(42), TGIBlockListContentField("TGIList")]
-        public byte DiffuseShadowKey
+        public byte DiffuseKey
         {
-            get { return this.diffuseShadowKey; }
+            get { return this.diffuseKey; }
             set
             {
-                if (!value.Equals(this.diffuseShadowKey))
+                if (!value.Equals(this.diffuseKey))
                 {
-                    this.diffuseShadowKey = value;
+                    this.diffuseKey = value;
                 }
                 this.OnResourceChanged(this, EventArgs.Empty);
             }
