@@ -31,6 +31,8 @@ namespace s4pi.DataResource
     using System.Diagnostics;
     using System.IO;
     using System.Security.Cryptography;
+    using System.Xml;
+    using System.Xml.Linq;
     using s4pi.Interfaces;
     using s4pi.Settings;
     using FieldDataTypeFlags = s4pi.DataResource.DataResourceFlags.FieldDataTypeFlags;
@@ -44,12 +46,14 @@ namespace s4pi.DataResource
 
         #region Attributes
 
+        private bool isXMLdoc = false;
         private uint version = 0x100;
         private uint dataTablePosition;
         private uint structureTablePosition;
         private StructureList structureList;
         private DataList dataList;
         private byte[] rawData;
+        private XmlDocument xml;
 
         #endregion
 
@@ -76,53 +80,76 @@ namespace s4pi.DataResource
             get { return recommendedApiVersion; }
         }
 
-        public override List<string> ContentFields
-        {
-            get { return GetContentFields(this.requestedApiVersion, this.GetType()); }
-        }
-
         public void Parse(Stream s)
         {
             BinaryReader reader = new BinaryReader(s);
 
             uint magic = reader.ReadUInt32();
+            long pos = s.Position;
 
-            if (checking)
+            if (magic == FOURCC("<?xm"))        //xml format
             {
-                if (magic != FOURCC("DATA"))
+                try
+                {
+                    s.Position = 0;
+                    XmlReaderSettings xrs = new XmlReaderSettings();
+                    xrs.CloseInput = false;
+                    xrs.IgnoreComments = false;
+                    xrs.IgnoreProcessingInstructions = false;
+                    xrs.IgnoreWhitespace = false;
+                    xrs.ValidationType = ValidationType.None;
+
+                    xml = new XmlDocument();
+                    this.stream.Position = 0;
+                    xml.Load(XmlReader.Create(this.stream, xrs));
+                    this.isXMLdoc = true;
+                }
+                catch
                 {
                     throw new InvalidDataException(
-                        string.Format("Expected magic tag 0x{0:X8}; read 0x{1:X8}; position 0x{2:X8}",
-                            FOURCC("DATA"),
-                            magic,
-                            s.Position));
+                    string.Format("Expected xml format"));
                 }
             }
 
-            this.version = reader.ReadUInt32();
-
-            if (!reader.GetOffset(out this.dataTablePosition))
+            else
             {
-                string message = string.Format("Invalid Data Table Position: 0x{0:X8}", this.dataTablePosition);
-                throw new InvalidDataException(message);
+                if (checking)
+                {
+                    if (magic != FOURCC("DATA"))
+                    {
+                        throw new InvalidDataException(
+                            string.Format("Expected magic tag 0x{0:X8}; read 0x{1:X8}; position 0x{2:X8}",
+                                FOURCC("DATA"),
+                                magic,
+                                s.Position));
+                    }
+                }
+
+                this.version = reader.ReadUInt32();
+
+                if (!reader.GetOffset(out this.dataTablePosition))
+                {
+                    string message = string.Format("Invalid Data Table Position: 0x{0:X8}", this.dataTablePosition);
+                    throw new InvalidDataException(message);
+                }
+
+                int dataCount = reader.ReadInt32();
+                if (!reader.GetOffset(out this.structureTablePosition))
+                {
+                    string message = string.Format("Invalid Structure Table Position: 0x{0:X8}", this.StructureTablePosition);
+                    throw new InvalidDataException(message);
+                }
+
+                int structureCount = reader.ReadInt32();
+
+                // Structure table
+                this.structureList = new StructureList(this.OnResourceChanged,
+                    this.structureTablePosition,
+                    structureCount,
+                    reader);
+
+                this.dataList = new DataList(this.OnResourceChanged, this, dataCount, reader);
             }
-
-            int dataCount = reader.ReadInt32();
-            if (!reader.GetOffset(out this.structureTablePosition))
-            {
-                string message = string.Format("Invalid Structure Table Position: 0x{0:X8}", this.StructureTablePosition);
-                throw new InvalidDataException(message);
-            }
-
-            int structureCount = reader.ReadInt32();
-
-            // Structure table
-            this.structureList = new StructureList(this.OnResourceChanged,
-                this.structureTablePosition,
-                structureCount,
-                reader);
-
-            this.dataList = new DataList(this.OnResourceChanged, this, dataCount, reader);
 
             s.Position = 0;
             this.rawData = reader.ReadBytes((int)s.Length);
@@ -225,6 +252,9 @@ namespace s4pi.DataResource
 
         #region Content Fields
 
+        [ElementPriority(0)]
+        public String XML { get { return XElement.Parse(this.xml.OuterXml).ToString(); } }
+
         [ElementPriority(1)]
         public uint Version
         {
@@ -305,6 +335,28 @@ namespace s4pi.DataResource
         {
             get { return this.ValueBuilder; }
         }
+
+        public override List<string> ContentFields
+        {
+            get
+            {
+                var res = base.ContentFields;
+                if (this.isXMLdoc)
+                {
+                    res.Remove("Version");
+                    res.Remove("DataTablePosition");
+                    res.Remove("StructureTablePosition");
+                    res.Remove("StructureTable");
+                    res.Remove("DataTable");
+                }
+                else
+                {
+                    res.Remove("XML");
+                }
+                return res;
+            }
+        }
+
 
         #region Nested Types
 
@@ -1388,7 +1440,7 @@ namespace s4pi.DataResource
     {
         public DataResourceHandler()
         {
-            this.Add(typeof(DataResource), new List<string>(new string[] { "0x545AC67A", "0x02D5DF13" }));
+            this.Add(typeof(DataResource), new List<string>(new string[] { "0x545AC67A", "0x02D5DF13", "0x62E94D38" }));
         }
     }
 }
