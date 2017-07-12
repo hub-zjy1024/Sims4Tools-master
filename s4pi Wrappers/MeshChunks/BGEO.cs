@@ -328,6 +328,7 @@ namespace meshExpImp.ModelBlocks
         public class Vector : AHandlerElement, IEquatable<Vector>
         {
             const int recommendedApiVersion = 1;
+            const float conversionFactor = 8000f;
 
             #region Attributes
             ushort[] vector;
@@ -339,7 +340,7 @@ namespace meshExpImp.ModelBlocks
                     for (int i = 0; i < 3; i++)
                     {
                         int tmp = ((vector[i] ^ 0x8000) << 16) >> 16;   //flip sign bit and move it to high bit
-                        translated[i] = tmp / 6144f;
+                        translated[i] = tmp / conversionFactor;
                     }
                     return translated;
                 }
@@ -378,7 +379,7 @@ namespace meshExpImp.ModelBlocks
                 this.vector = new ushort[vector.Length];
                 for (int i = 0; i < vector.Length; i++)
                 {
-                    int tmp = (Convert.ToInt32(vector[i] * 6144f)) ^ 0x8000;
+                    int tmp = (Convert.ToInt32(vector[i] * conversionFactor)) ^ 0x8000;
                     this.vector[i] = BitConverter.ToUInt16(BitConverter.GetBytes(tmp), 0);
                 }
             }
