@@ -36,7 +36,7 @@ namespace CASPartResource
         private uint contextVersion;
         private TGIBlock[] publicKey { get; set; }
         private TGIBlock[] externalKey { get; set; }
-        private TGIBlock[] delayLoadKey { get; set; }
+        private TGIBlockList delayLoadKey { get; set; }
         private ObjectData[] objects { get; set; }
         private uint version { get; set; }
         private AgeGenderFlags gender { get; set; }
@@ -70,10 +70,10 @@ namespace CASPartResource
             {
                 this.externalKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
             }
-            this.delayLoadKey = new TGIBlock[delayLoadKeyCount];
+            this.delayLoadKey = new TGIBlockList(OnResourceChanged);
             for (int i = 0; i < delayLoadKeyCount; i++)
             {
-                this.delayLoadKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
+                this.delayLoadKey.Add(new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s));
             }
             this.objects = new ObjectData[objectCount];
             for (int i = 0; i < objectCount; i++)
@@ -98,7 +98,7 @@ namespace CASPartResource
             w.Write(this.contextVersion);
             w.Write(this.publicKey.Length);
             w.Write(this.externalKey.Length);
-            w.Write(this.delayLoadKey.Length);
+            w.Write(this.delayLoadKey.Count);
             w.Write(this.objects.Length);
             if (this.publicKey == null) this.publicKey = new TGIBlock[0];
             for (int i = 0; i < publicKey.Length; i++)
@@ -110,10 +110,13 @@ namespace CASPartResource
             {
                 this.externalKey[i].UnParse(ms);
             }
-            if (this.delayLoadKey == null) this.delayLoadKey = new TGIBlock[0];
-            for (int i = 0; i < delayLoadKey.Length; i++)
+            if (this.delayLoadKey == null) this.delayLoadKey = new TGIBlockList(OnResourceChanged);
+            for (int i = 0; i < delayLoadKey.Count; i++)
             {
-                this.delayLoadKey[i].UnParse(ms);
+
+                w.Write(this.delayLoadKey[i].Instance);
+                w.Write(this.delayLoadKey[i].ResourceType);
+                w.Write(this.delayLoadKey[i].ResourceGroup);
             }
             if (this.objects == null) this.objects = new ObjectData[0];
             for (int i = 0; i < this.objects.Length; i++)
@@ -243,7 +246,7 @@ namespace CASPartResource
         [ElementPriority(2)]
         public TGIBlock[] ExternalKey { get { return this.externalKey; } set { if (!this.externalKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.externalKey = value; } } }
         [ElementPriority(3)]
-        public TGIBlock[] BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!this.delayLoadKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
+        public TGIBlockList BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!this.delayLoadKey.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
         [ElementPriority(4)]
         public ObjectData[] ObjectInfo { get { return this.objects; } set { if (!this.objects.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.objects = value; } } }
         [ElementPriority(5)]
