@@ -41,7 +41,7 @@ namespace CASPartResource
         private uint contextVersion;
         private TGIBlock[] publicKey { get; set; }
         private TGIBlock[] externalKey { get; set; }
-        private TGIBlock[] delayLoadKey { get; set; }
+        private TGIBlockList delayLoadKey { get; set; }
         private SculptBlock[] sculpts { get; set; }
         #endregion
 
@@ -67,10 +67,10 @@ namespace CASPartResource
             {
                 this.externalKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
             }
-            this.delayLoadKey = new TGIBlock[delayLoadKeyCount];
+            this.delayLoadKey = new TGIBlockList(OnResourceChanged);
             for (int i = 0; i < delayLoadKeyCount; i++)
             {
-                this.delayLoadKey[i] = new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s);
+                this.delayLoadKey.Add(new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s));
             }
             this.sculpts = new SculptBlock[objectCount];
             for (int i = 0; i < objectCount; i++)
@@ -87,7 +87,7 @@ namespace CASPartResource
             w.Write(this.contextVersion);
             w.Write(this.publicKey.Length);
             w.Write(this.externalKey.Length);
-            w.Write(this.delayLoadKey.Length);
+            w.Write(this.delayLoadKey.Count);
             w.Write(this.sculpts.Length);
 
             for (int i = 0; i < publicKey.Length; i++)
@@ -98,9 +98,11 @@ namespace CASPartResource
             {
                 this.externalKey[i].UnParse(ms);
             }
-            for (int i = 0; i < delayLoadKey.Length; i++)
+            for (int i = 0; i < delayLoadKey.Count; i++)
             {
-                this.delayLoadKey[i].UnParse(ms);
+                w.Write(this.delayLoadKey[i].Instance);
+                w.Write(this.delayLoadKey[i].ResourceType);
+                w.Write(this.delayLoadKey[i].ResourceGroup);
             }
             for (int i = 0; i < sculpts.Length; i++)
             {
@@ -227,7 +229,7 @@ namespace CASPartResource
         [ElementPriority(2)]
         public TGIBlock[] ExternalKey { get { return this.externalKey; } set { if (!value.Equals(this.externalKey)) { OnResourceChanged(this, EventArgs.Empty); this.externalKey = value; } } }
         [ElementPriority(3)]
-        public TGIBlock[] BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!value.Equals(this.delayLoadKey)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
+        public TGIBlockList BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!value.Equals(this.delayLoadKey)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
         [ElementPriority(4)]
         public SculptBlock[] SculptsBlocks { get { return this.sculpts; } set { if (!value.Equals(this.sculpts)) { OnResourceChanged(this, EventArgs.Empty); this.sculpts = value; } } }
         #endregion
