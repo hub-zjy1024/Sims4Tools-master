@@ -205,6 +205,7 @@
 0xB734E44F  FTPT   .ftpt
 0xB7FF8F95  _XML   .xml
 0xB8444447  UNKN   .bnry
+0xB8BF1A63  _XML   .zonemod
 0xB91E18DB  UNKN   .bnry
 0xB93A9915  TMCT   .thumbcache
 0xB9881120  _XML   .xml

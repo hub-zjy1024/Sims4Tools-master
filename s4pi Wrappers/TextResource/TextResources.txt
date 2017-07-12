@@ -70,6 +70,7 @@
 0xAFADAC48 TS4 XML -- away_action
 0xB61DE6B4 TS4 XML -- object
 0xB7FF8F95 TS4 XML -- subroot
+0xB8BF1A63 TS4 XML -- ZoneModifierDisplayInfo
 0xB9881120 TS4 XML -- ensemble
 0xBA7B60B8 TS4 XML -- mood
 0xBE04173A TS4 XML -- spaction (StoryProgressionActionCareer)
