@@ -46,21 +46,23 @@ namespace CASPartResource
         private uint version;
         private AgeGenderFlags ageGender;
         private AgeGenderFlags bodyFrameGender;
-        private uint reserved_set_to_1;
+        private uint species;
         private SimRegion region;
-        private uint reserved_set_to_0;
+        private uint bodySubType;
         private ArchetypeFlags archetype;
         private float displayIndex;
         private uint presetNameKey;
         private uint presetDescKey;
         private SculptList sculpts;
         private ModifierList modifiers;
-        private byte unknown;
         private bool isPhysiqueSet;
         private float heavyValue;
         private float fitValue;
         private float leanValue;
         private float bonyValue;
+        private bool isPartSet;
+        private ulong partSetInstance;
+        private uint partSetBodyType;
         private float chanceForRandom;
         private FlagList flagList; 
 
@@ -89,12 +91,12 @@ namespace CASPartResource
             }
             if (this.version >= 8)
             {
-                this.reserved_set_to_1 = reader.ReadUInt32();
+                this.species = reader.ReadUInt32();
             }
             this.region = (SimRegion)reader.ReadUInt32();
             if (this.version >= 9)
             {
-                this.reserved_set_to_0 = reader.ReadUInt32();
+                this.bodySubType = reader.ReadUInt32();
             }
             this.archetype = (ArchetypeFlags)reader.ReadUInt32();
             this.displayIndex = reader.ReadSingle();
@@ -112,7 +114,12 @@ namespace CASPartResource
             }
             if (this.version >= 12)
             {
-                this.unknown = reader.ReadByte();
+                this.isPartSet = reader.ReadBoolean();
+                if (this.isPartSet)
+                {
+                    this.partSetInstance = reader.ReadUInt64();
+                    this.partSetBodyType = reader.ReadUInt32();
+                }
             }
             this.chanceForRandom = reader.ReadSingle();
             if (this.version >= 10)
@@ -137,12 +144,12 @@ namespace CASPartResource
             }
             if (this.version >= 8)
             {
-                w.Write(this.reserved_set_to_1);
+                w.Write(this.species);
             }
             w.Write((uint)this.region);
             if (this.version >= 9)
             {
-                w.Write(this.reserved_set_to_0);
+                w.Write(this.bodySubType);
             }
             w.Write((uint)this.archetype);
             w.Write(this.displayIndex);
@@ -162,7 +169,12 @@ namespace CASPartResource
             }
             if (this.version >= 12)
             {
-                w.Write(this.unknown);
+                w.Write(this.isPartSet);
+                if (this.isPartSet)
+                {
+                    w.Write(this.partSetInstance);
+                    w.Write(this.partSetBodyType);
+                }
             }
             w.Write(this.chanceForRandom);
             if (this.flagList == null) this.flagList = new FlagList(OnResourceChanged);
@@ -544,15 +556,15 @@ namespace CASPartResource
         }
 
         [ElementPriority(3)]
-        public uint ReservedSetTo1
+        public uint Species
         {
-            get { return this.reserved_set_to_1; }
+            get { return this.species; }
             set
             {
-                if (!this.reserved_set_to_1.Equals(value))
+                if (!this.species.Equals(value))
                 {
                     this.OnResourceChanged(this, EventArgs.Empty);
-                    this.reserved_set_to_1 = value;
+                    this.species = value;
                 }
             }
         }
@@ -572,15 +584,15 @@ namespace CASPartResource
         }
 
         [ElementPriority(5)]
-        public uint ReservedSetTo0
+        public uint BodySubType
         {
-            get { return this.reserved_set_to_0; }
+            get { return this.bodySubType; }
             set
             {
-                if (!this.reserved_set_to_0.Equals(value))
+                if (!this.bodySubType.Equals(value))
                 {
                     this.OnResourceChanged(this, EventArgs.Empty);
-                    this.reserved_set_to_0 = value;
+                    this.bodySubType = value;
                 }
             }
         }
@@ -670,20 +682,6 @@ namespace CASPartResource
         }
 
         [ElementPriority(12)]
-        public byte Unknown
-        {
-            get { return this.unknown; }
-            set
-            {
-                if (!this.unknown.Equals(value))
-                {
-                    this.OnResourceChanged(this, EventArgs.Empty);
-                    this.unknown = value;
-                }
-            }
-        }
-
-        [ElementPriority(13)]
         public bool IsPhysiqueSet
         {
             get { return this.isPhysiqueSet; }
@@ -697,7 +695,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(14)]
+        [ElementPriority(13)]
         public float HeavyValue
         {
             get { return this.heavyValue; }
@@ -711,7 +709,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(15)]
+        [ElementPriority(14)]
         public float FitValue
         {
             get { return this.fitValue; }
@@ -725,7 +723,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(16)]
+        [ElementPriority(15)]
         public float LeanValue
         {
             get { return this.leanValue; }
@@ -739,7 +737,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(17)]
+        [ElementPriority(16)]
         public float BonyValue
         {
             get { return this.bonyValue; }
@@ -753,7 +751,49 @@ namespace CASPartResource
             }
         }
 
+        [ElementPriority(17)]
+        public Boolean IsPartSet
+        {
+            get { return this.isPartSet; }
+            set
+            {
+                if (!this.isPartSet.Equals(value))
+                {
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                    this.isPartSet = value;
+                }
+            }
+        }
+
         [ElementPriority(18)]
+        public UInt64 PartSetInstance
+        {
+            get { return this.partSetInstance; }
+            set
+            {
+                if (!this.partSetInstance.Equals(value))
+                {
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                    this.partSetInstance = value;
+                }
+            }
+        }
+
+        [ElementPriority(19)]
+        public UInt32 PartSetBodyType
+        {
+            get { return this.partSetBodyType; }
+            set
+            {
+                if (!this.partSetBodyType.Equals(value))
+                {
+                    this.OnResourceChanged(this, EventArgs.Empty);
+                    this.partSetBodyType = value;
+                }
+            }
+        }
+
+        [ElementPriority(20)]
         public float ChanceForRandom
         {
             get { return this.chanceForRandom; }
@@ -767,7 +807,7 @@ namespace CASPartResource
             }
         }
 
-        [ElementPriority(19)]
+        [ElementPriority(21)]
         public FlagList PresetFlagList
         {
             get { return this.flagList; }

@@ -65,9 +65,9 @@ namespace CASPartResource
         private uint partDesptionKey;
         private byte uniqueTextureSpace;
         private BodyType bodyType;
-        int bodySubType;                            // cmar - changed from unused with V 0x25
+        private BodySubType bodySubType;            // cmar - changed from unused with V 0x25
         private AgeGenderFlags ageGender;
-        private uint reserved1;                     // cmar - added V 0x20, set to 1
+        private Species species;                     
         short packID;                               // cmar - added V 0x25
         PackFlag packFlags;                         // cmar - added V 0x25
         byte[] reserved2;                           // cmar - added V 0x25, nine bytes, set to 0
@@ -153,11 +153,11 @@ namespace CASPartResource
             this.partDesptionKey = r.ReadUInt32();
             this.uniqueTextureSpace = r.ReadByte();
             this.bodyType = (BodyType)r.ReadInt32();
-            this.bodySubType = r.ReadInt32();
+            this.bodySubType = (BodySubType)r.ReadInt32();
             this.ageGender = (AgeGenderFlags)r.ReadUInt32();
             if (this.version >= 0x20)
             {
-                this.reserved1 = r.ReadUInt32();
+                this.species = (Species)r.ReadUInt32();
             }
             if (this.version >= 34)
             {
@@ -283,11 +283,11 @@ namespace CASPartResource
             w.Write(this.partDesptionKey);
             w.Write(this.uniqueTextureSpace);
             w.Write((uint)this.bodyType);
-            w.Write(this.bodySubType);
+            w.Write((uint)this.bodySubType);
             w.Write((uint)this.ageGender);
             if (this.version >= 0x20)
             {
-                w.Write(this.reserved1);
+                w.Write((uint)this.species);
             }
             if (this.version >= 34)
             {
@@ -652,7 +652,7 @@ namespace CASPartResource
         }
 
         [ElementPriority(19)]
-        public int BodySubType
+        public BodySubType BodySubType
         {
             get { return this.bodySubType; }
             set
@@ -680,14 +680,14 @@ namespace CASPartResource
         }
 
         [ElementPriority(21)]
-        public uint Reserved1
+        public Species Species
         {
-            get { return this.reserved1; }
+            get { return this.species; }
             set
             {
-                if (!value.Equals(this.reserved1))
+                if (!value.Equals(this.species))
                 {
-                    this.reserved1 = value;
+                    this.species = value;
                 }
                 this.OnResourceChanged(this, EventArgs.Empty);
             }

@@ -62,6 +62,14 @@ namespace CASPartResource
         Female = 0x00002000
     }
 
+    public enum Species : uint
+    {
+        Human = 1,
+        Dog = 2,
+        Cat = 3,
+        LargeDog = 4
+    }
+
     public enum BodyType : uint
     {
         All = 0,
@@ -123,6 +131,11 @@ namespace CASPartResource
         MoleRightCheek = 0x38,
         MouthCrease = 0x39,
         SkinOverlay = 0x3A,
+        Fur = 0x3B,
+        AnimalEars = 0x3C,
+        Tail = 0x3D,
+        NoseColor = 0x3E,
+        SecondaryEyeColor = 0x3F,
         OccultBrow = 0x40,
         OccultEyeSocket = 0x41,
         OccultEyeLid = 0x42,
@@ -130,6 +143,17 @@ namespace CASPartResource
         OccultLeftCheek = 0x44,
         OccultRightCheek = 0x45,
         OccultNeckScar = 0x46
+    }
+
+    public enum BodySubType : uint
+    {
+        None = 0,
+        EarsUp = 1,
+        EarsDown = 2,
+        TailLong = 3,
+        TailRing = 4,
+        TailScrew = 5,
+        TailStub = 6
     }
 
     [Flags]
