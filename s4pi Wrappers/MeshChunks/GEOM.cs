@@ -41,7 +41,7 @@ namespace meshExpImp.ModelBlocks
 
         #region Attributes
         uint tag = (uint)FOURCC("GEOM");
-        uint version = 0x0000000D;
+        uint version = 0x0000000E;
         ShaderType shader;
         MTNF mtnf = null;
         uint mergeGroup;
@@ -89,7 +89,7 @@ namespace meshExpImp.ModelBlocks
             this.skinIndex = skinIndex;
             this.uvStitchList = uvStitchList == null ? null : new UVStitchList(handler, uvStitchList);
             this.seamStitchList = seamStitchList == null ? null : new SeamStitchList(handler, seamStitchList);
-            this.slotrayIntersectionList = slotrayIntersectionList == null ? null : new SlotrayIntersectionList(handler, slotrayIntersectionList);
+            this.slotrayIntersectionList = slotrayIntersectionList == null ? null : new SlotrayIntersectionList(handler, this.version, slotrayIntersectionList);
             this.boneHashes = boneHashes == null ? null : new UIntList(handler, boneHashes);
             this.tgiBlockList = tgiBlockList == null ? null : new TGIBlockList(handler, tgiBlockList);
 
@@ -116,8 +116,8 @@ namespace meshExpImp.ModelBlocks
             if (checking) if (tag != (uint)FOURCC("GEOM"))
                     throw new InvalidDataException(String.Format("Invalid Tag read: '{0}'; expected: 'GEOM'; at 0x{1:X8}", FOURCC(tag), s.Position));
             version = r.ReadUInt32();
-            if (checking) if (version != 0x00000005 && version != 0x0000000C && version != 0x0000000D)
-                    throw new InvalidDataException(String.Format("Invalid Version read: '{0}'; expected: '0x00000005', '0x0000000C' or '0x0000000D'; at 0x{1:X8}", version, s.Position));
+            if (checking) if (version != 0x00000005 && version != 0x0000000C && version != 0x0000000D && version != 0x0000000E)
+                    throw new InvalidDataException(String.Format("Invalid Version read: '{0}'; expected: '0x00000005', '0x0000000C', '0x0000000D' or '0x0000000E'; at 0x{1:X8}", version, s.Position));
 
             long tgiPosn = r.ReadUInt32() + s.Position;
             long tgiSize = r.ReadUInt32();
@@ -161,7 +161,7 @@ namespace meshExpImp.ModelBlocks
                 {
                     seamStitchList = new SeamStitchList(handler, s);
                 }
-                slotrayIntersectionList = new SlotrayIntersectionList(handler, s);
+                slotrayIntersectionList = new SlotrayIntersectionList(handler, version, s);
             }
             boneHashes = new UIntList(handler, s);
 
@@ -217,7 +217,7 @@ namespace meshExpImp.ModelBlocks
                     if (seamStitchList == null) seamStitchList = new SeamStitchList(handler);
                     seamStitchList.UnParse(ms);
                 }
-                if (slotrayIntersectionList == null) slotrayIntersectionList = new SlotrayIntersectionList(handler);
+                if (slotrayIntersectionList == null) slotrayIntersectionList = new SlotrayIntersectionList(handler, this.version);
                 slotrayIntersectionList.UnParse(ms);
             }
             if (boneHashes == null) boneHashes = new UIntList(handler);
@@ -1149,21 +1149,23 @@ namespace meshExpImp.ModelBlocks
             Vector3 slotAveragePosOS;
             Quaternion transformToLS;
             byte pivotBoneIdx;
+            uint pivotBoneHash;
+            uint parentVersion;
             #endregion
 
-            public SlotrayIntersection(int apiVersion, EventHandler handler) : base(apiVersion, handler) { }
-            public SlotrayIntersection(int apiVersion, EventHandler handler, Stream s) : base(apiVersion, handler) { Parse(s); }
+            public SlotrayIntersection(int apiVersion, EventHandler handler, uint version) : base(apiVersion, handler) { this.parentVersion = version; }
+            public SlotrayIntersection(int apiVersion, EventHandler handler, uint version, Stream s) : base(apiVersion, handler) { this.parentVersion = version; Parse(s); }
             public SlotrayIntersection(int apiVersion, EventHandler handler, SlotrayIntersection basis)
                 : this(apiVersion, handler, basis.slotIndex,
                 basis.indices, basis.coordinates,
                 basis.distance, basis.offsetFromIntersectionOS,
                 basis.slotAveragePosOS, 
-                basis.transformToLS, basis.pivotBoneIdx) { }
+                basis.transformToLS, basis.pivotBoneIdx, basis.pivotBoneHash, basis.parentVersion) { }
             public SlotrayIntersection(int apiVersion, EventHandler handler, uint slotIndex,
                 ushort[] indices, float[] coordinates,
                 float distance, Vector3 offsetFromIntersectionOS,
                 Vector3 slotAveragePosOS,
-                Quaternion transformToLS, byte pivotBoneIdx)
+                Quaternion transformToLS, byte pivotBoneIdx, uint pivotBoneHash, uint parentVersion)
                 : base(apiVersion, handler)
             {
                 this.slotIndex = slotIndex;
@@ -1182,6 +1184,8 @@ namespace meshExpImp.ModelBlocks
                 this.slotAveragePosOS = new Vector3(apiVersion, this.handler, slotAveragePosOS);
                 this.transformToLS = new Quaternion(apiVersion, this.handler, transformToLS);
                 this.pivotBoneIdx = pivotBoneIdx;
+                this.pivotBoneHash = pivotBoneHash;
+                this.parentVersion = parentVersion;
             }
 
             private void Parse(Stream s)
@@ -1202,7 +1206,14 @@ namespace meshExpImp.ModelBlocks
                 offsetFromIntersectionOS = new Vector3(this.RecommendedApiVersion, this.handler, s);
                 slotAveragePosOS = new Vector3(this.RecommendedApiVersion, this.handler, s);
                 transformToLS = new Quaternion(this.RecommendedApiVersion, this.handler, s);
-                pivotBoneIdx = r.ReadByte();
+                if (this.parentVersion >= 0x0E)
+                {
+                    this.pivotBoneHash = r.ReadUInt32();
+                }
+                else
+                {
+                    pivotBoneIdx = r.ReadByte();
+                }
             }
             internal void UnParse(Stream s)
             {
@@ -1222,13 +1233,19 @@ namespace meshExpImp.ModelBlocks
                 offsetFromIntersectionOS.UnParse(s);
                 slotAveragePosOS.UnParse(s);
                 transformToLS.UnParse(s);
-                w.Write(pivotBoneIdx);
+                if (this.parentVersion >= 0x0E)
+                {
+                    w.Write(this.pivotBoneHash);
+                }
+                else
+                {
+                    w.Write(pivotBoneIdx);
+                }
             }
 
             #region AHandlerElement
             // public override UnknownThing Clone(EventHandler handler) { return new UnknownThing(requestedApiVersion, handler, this); }
             public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
             #endregion
 
             #region IEquatable<SlotrayIntersection>
@@ -1241,16 +1258,19 @@ namespace meshExpImp.ModelBlocks
                     && this.offsetFromIntersectionOS.Equals(other.offsetFromIntersectionOS)
                     && this.slotAveragePosOS.Equals(other.slotAveragePosOS)
                     && this.transformToLS.Equals(other.transformToLS)
-                    && this.pivotBoneIdx.Equals(other.pivotBoneIdx);
+                    && this.pivotBoneIdx.Equals(other.pivotBoneIdx)
+                    && this.pivotBoneHash.Equals(other.pivotBoneHash);
             }
 
             public override bool Equals(object obj) { return obj is SlotrayIntersection && Equals(obj as SlotrayIntersection); }
 
             public override int GetHashCode() { return slotIndex.GetHashCode() ^ indices.GetHashCode() ^ coordinates.GetHashCode() ^ distance.GetHashCode() ^
-                offsetFromIntersectionOS.GetHashCode() ^ slotAveragePosOS.GetHashCode() ^ transformToLS.GetHashCode() ^ pivotBoneIdx.GetHashCode(); }
+                offsetFromIntersectionOS.GetHashCode() ^ slotAveragePosOS.GetHashCode() ^ transformToLS.GetHashCode() ^ pivotBoneIdx.GetHashCode() ^ pivotBoneHash.GetHashCode(); }
             #endregion
             [ElementPriority(1)]
             public uint SlotIndex { get { return slotIndex; } set { if (slotIndex != value) { slotIndex = value; OnElementChanged(); } } }
+            [ElementPriority(1)]
+            public uint SlotHash { get { return slotIndex; } set { if (slotIndex != value) { slotIndex = value; OnElementChanged(); } } }
             [ElementPriority(2)]
             public ushort[] FacePointIndices { get { return indices; } set { if (indices != value) { indices = value; OnElementChanged(); } } }
             [ElementPriority(5)]
@@ -1265,18 +1285,49 @@ namespace meshExpImp.ModelBlocks
             public Quaternion TransformToLocalSpace { get { return transformToLS; } set { if (transformToLS != value) { transformToLS = value; OnElementChanged(); } } }
             [ElementPriority(18)]
             public byte PivotBoneIndex { get { return pivotBoneIdx; } set { if (pivotBoneIdx != value) { pivotBoneIdx = value; OnElementChanged(); } } }
+            [ElementPriority(18)]
+            public uint PivotBoneHash { get { return pivotBoneHash; } set { if (pivotBoneHash != value) { pivotBoneHash = value; OnElementChanged(); } } }
 
             public string Value { get { return ValueBuilder; } }
+
+            public override List<string> ContentFields
+            {
+                get
+                {
+                    var res = GetContentFields(requestedApiVersion, this.GetType());
+                    if (this.parentVersion >= 0x0E)
+                    {
+                        res.Remove("SlotIndex");
+                        res.Remove("PivotBoneIndex");
+                    }
+                    else
+                    {
+                        res.Remove("SlotHash");
+                        res.Remove("PivotBoneHash");
+                    }
+                    return res;
+                }
+            } 
         }
         public class SlotrayIntersectionList : DependentList<SlotrayIntersection>
         {
+            uint parentVersion;
             #region Constructors
-            public SlotrayIntersectionList(EventHandler handler) : base(handler) { }
-            public SlotrayIntersectionList(EventHandler handler, Stream s) : base(handler, s) { }
-            public SlotrayIntersectionList(EventHandler handler, IEnumerable<SlotrayIntersection> le) : base(handler, le) { }
+            public SlotrayIntersectionList(EventHandler handler, uint version) : base(handler) { this.parentVersion = version; }
+            public SlotrayIntersectionList(EventHandler handler, uint version, Stream s) : base(null) { this.parentVersion = version; elementHandler = handler; Parse(s); this.handler = handler; }
+            public SlotrayIntersectionList(EventHandler handler, uint version, IEnumerable<SlotrayIntersection> le) 
+            : base(null)
+            {
+                elementHandler = handler;
+                this.parentVersion = version;
+                foreach (SlotrayIntersection sr in le)
+                    this.Add(new SlotrayIntersection(0, elementHandler, sr));
+                this.handler = handler;
+            }
+
             #endregion
 
-            protected override SlotrayIntersection CreateElement(Stream s) { return new SlotrayIntersection(0, elementHandler, s); }
+            protected override SlotrayIntersection CreateElement(Stream s) { return new SlotrayIntersection(0, elementHandler, parentVersion, s); }
             protected override void WriteElement(Stream s, SlotrayIntersection element) { element.UnParse(s); }
         }
         #endregion
@@ -1329,7 +1380,7 @@ namespace meshExpImp.ModelBlocks
         [ElementPriority(20)]
         public SeamStitchList SeamStitchData { get { return seamStitchList; } set { if (!seamStitchList.Equals(value)) { seamStitchList = value == null ? null : new SeamStitchList(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(20)]
-        public SlotrayIntersectionList SlotrayIntersectionData { get { return slotrayIntersectionList; } set { if (!slotrayIntersectionList.Equals(value)) { slotrayIntersectionList = value == null ? null : new SlotrayIntersectionList(OnRCOLChanged, value); OnRCOLChanged(this, EventArgs.Empty); } } }
+        public SlotrayIntersectionList SlotrayIntersectionData { get { return slotrayIntersectionList; } set { if (!slotrayIntersectionList.Equals(value)) { slotrayIntersectionList = value == null ? null : new SlotrayIntersectionList(OnRCOLChanged, this.version, value); OnRCOLChanged(this, EventArgs.Empty); } } }
         [ElementPriority(21)]
         public UIntList BoneHashes
         {
