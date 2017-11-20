@@ -34,7 +34,7 @@ namespace ThumbnailCacheResource
         #region Attributes
         private UInt32 version;
         private UInt64 nextInstanceValue;
-        private ThumnailList thumbnails;
+        private ThumbnailList thumbnails;
         #endregion
 
         #region Constructors
@@ -52,9 +52,9 @@ namespace ThumbnailCacheResource
             BinaryReader br = new BinaryReader(s);
             version = br.ReadUInt32();
             nextInstanceValue = br.ReadUInt64();
-            if (checking) if (version != 6)
-                    throw new InvalidDataException(String.Format("{0}: unsupported 'version'.  Read '0x{1:X8}', supported: '0x00000006'", this.GetType().Name, version));
-            thumbnails = new ThumnailList(OnResourceChanged, s);
+            //if (checking) if (version != 6)
+            //        throw new InvalidDataException(String.Format("{0}: unsupported 'version'.  Read '0x{1:X8}', supported: '0x00000006'", this.GetType().Name, version));
+            thumbnails = new ThumbnailList(OnResourceChanged, s);
         }
 
         protected override Stream UnParse()
@@ -65,7 +65,7 @@ namespace ThumbnailCacheResource
             bw.Write(version);
             bw.Write(nextInstanceValue);
 
-            if (thumbnails == null) thumbnails = new ThumnailList(OnResourceChanged);
+            if (thumbnails == null) thumbnails = new ThumbnailList(OnResourceChanged);
             thumbnails.UnParse(ms);
 
             bw.Flush();
@@ -143,6 +143,177 @@ namespace ThumbnailCacheResource
             EXTRALARGE,
             ENORMOUS,
             MAX
+        }
+
+        public class ThumbnailList : DependentList<Thumbnail>
+        {
+            #region Constructors
+            public ThumbnailList(EventHandler handler) : base(handler) { }
+            public ThumbnailList(EventHandler handler, Stream s) : base(handler, s) { }
+            public ThumbnailList(EventHandler handler, IEnumerable<Thumbnail> llp) : base(handler, llp) { }
+            #endregion
+
+            #region Data I/O
+            protected override Thumbnail CreateElement(Stream s) { return new Thumbnail(0, elementHandler, s); }
+            protected override void WriteElement(Stream s, Thumbnail element) { element.UnParse(s); }
+            #endregion
+        }
+
+        public class Thumbnail : AHandlerElement, IEquatable<Thumbnail>
+        {
+            #region Attributes
+            ThumbnailType type;
+            ThumbnailSize size;
+            UInt32 versionType;
+            UInt64 resourceID;
+            UInt32 index;
+            ThumbnailDataList data;
+            TGIBlock resourceKey;
+            Boolean isAlias;
+            #endregion
+
+            #region Constructors
+            public Thumbnail(int apiVersion, EventHandler handler)
+                : this(apiVersion, handler,
+                ThumbnailType.OBJECT, ThumbnailSize.SMALL, 0, 0, 0, new ThumbnailDataList(null, ThumbnailType.OBJECT), new TGIBlock(apiVersion, null), false) { }
+            public Thumbnail(int apiVersion, EventHandler handler, Thumbnail basis)
+                : this(apiVersion, handler,
+                basis.type, basis.size, basis.versionType, basis.resourceID, basis.index, basis.data, basis.resourceKey, basis.isAlias) { }
+            public Thumbnail(int apiVersion, EventHandler handler,
+                ThumbnailType type, ThumbnailSize size, UInt32 versionType, UInt64 resourceID, UInt32 index, IEnumerable<ThumbnailData> data, TGIBlock resourceKey, Boolean isAlias)
+                : base(apiVersion, handler)
+            {
+                this.type = type;
+                this.size = size;
+                this.versionType = versionType;
+                this.resourceID = resourceID;
+                this.index = index;
+                this.data = new ThumbnailDataList(handler, data, type);
+                this.resourceKey = new TGIBlock(apiVersion, handler, resourceKey);
+                this.isAlias = isAlias;
+            }
+
+            public Thumbnail(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
+            #endregion
+
+            #region Data I/O
+            public void Parse(Stream s)
+            {
+                BinaryReader r = new BinaryReader(s);
+
+                this.type = (ThumbnailType)r.ReadUInt32();
+                this.size = (ThumbnailSize)r.ReadUInt32();
+                this.versionType = r.ReadUInt32();
+                this.resourceID = r.ReadUInt64();
+                this.index = r.ReadUInt32();
+                this.data = new ThumbnailDataList(handler, s, type);
+                this.resourceKey = new TGIBlock(this.requestedApiVersion, handler, s);
+                this.isAlias = r.ReadByte() != 0;
+            }
+
+            internal void UnParse(Stream s)
+            {
+                BinaryWriter w = new BinaryWriter(s);
+
+                w.Write((UInt32)type);
+                w.Write((UInt32)size);
+                w.Write(versionType);
+                w.Write(resourceID);
+                w.Write(index);
+                data.UnParse(s);
+                resourceKey.UnParse(s);
+                w.Write((Byte)(isAlias ? 1 : 0));
+            }
+            #endregion
+
+            #region AHandlerElement Members
+            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
+            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
+            #endregion
+
+            #region IEquatable<TableEntry> Members
+
+            public bool Equals(Thumbnail other)
+            {
+                return type.Equals(other.type)
+                    && size.Equals(other.size)
+                    && versionType.Equals(other.versionType)
+                    && resourceID.Equals(other.resourceID)
+                    && index.Equals(other.index)
+                    && data.Equals(other.data)
+                    && resourceKey.Equals(other.resourceKey)
+                    && isAlias.Equals(other.isAlias)
+                    ;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj as Thumbnail != null ? this.Equals(obj as Thumbnail) : false;
+            }
+
+            public override int GetHashCode()
+            {
+                return type.GetHashCode()
+                    ^ size.GetHashCode()
+                    ^ versionType.GetHashCode()
+                    ^ resourceID.GetHashCode()
+                    ^ index.GetHashCode()
+                    ^ data.GetHashCode()
+                    ^ resourceKey.GetHashCode()
+                    ^ isAlias.GetHashCode()
+                    ;
+            }
+
+            #endregion
+
+            #region Content Fields
+            [MinimumVersion(1)]
+            [MaximumVersion(recommendedApiVersion)]
+            [ElementPriority(1)]
+            public ThumbnailType ThumbType { get { return type; } set { if (type != value) { type = value; OnElementChanged(); } } }
+            [ElementPriority(2)]
+            public ThumbnailSize ThumbSize { get { return size; } set { if (size != value) { size = value; OnElementChanged(); } } }
+            [ElementPriority(3)]
+            public UInt32 VersionType { get { return versionType; } set { if (versionType != value) { versionType = value; OnElementChanged(); } } }
+            [ElementPriority(4)]
+            public UInt64 ResourceID { get { return resourceID; } set { if (resourceID != value) { resourceID = value; OnElementChanged(); } } }
+            [ElementPriority(5)]
+            public UInt32 Index { get { return index; } set { if (index != value) { index = value; OnElementChanged(); } } }
+            [ElementPriority(6)]
+            public ThumbnailDataList ThumbData { get { return data; } set { if (!data.Equals(value)) { data = value == null ? null : new ThumbnailDataList(handler, value, type); OnElementChanged(); } } }
+            [ElementPriority(7)]
+            public TGIBlock ResourceKey { get { return resourceKey; } set { if (!resourceKey.Equals(value)) { resourceKey = value == null ? null : new TGIBlock(requestedApiVersion, handler, value); OnElementChanged(); } } }
+            [ElementPriority(8)]
+            public Boolean ObjectId { get { return isAlias; } set { if (isAlias != value) { isAlias = value; OnElementChanged(); } } }
+            #endregion
+
+            public string Value { get { return ValueBuilder; } }
+        }
+
+        public class ThumbnailDataList : DependentList<ThumbnailData>
+        {
+            ThumbnailType type;
+
+            #region Constructors
+            public ThumbnailDataList(EventHandler handler, ThumbnailType type) : base(handler, 1) { this.type = type; }
+            public ThumbnailDataList(EventHandler handler, Stream s, ThumbnailType type) : this(null, type) { this.elementHandler = handler; this.Parse(s); this.handler = handler; }
+            public ThumbnailDataList(EventHandler handler, IEnumerable<ThumbnailData> llp, ThumbnailType type) : this(null, type) { this.elementHandler = handler; foreach (var t in llp) this.Add((ThumbnailData)t.Clone(null)); this.handler = handler; }
+            #endregion
+
+            #region Data I/O
+            protected override int ReadCount(Stream s) { return (new BinaryReader(s)).ReadByte() == 0 ? 0 : 1; }
+            protected override void WriteCount(Stream s, int count)
+            {
+                if (count != 0 && count != 1)
+                    throw new InvalidOperationException(String.Format("TableEntryDataList should only ever have zero or one entries.  Found {0}.", count));
+                (new BinaryWriter(s)).Write((Byte)count);
+            }
+            protected override ThumbnailData CreateElement(Stream s)
+            {
+                return ThumbnailData.Factory(0, elementHandler, s, type);
+            }
+            protected override void WriteElement(Stream s, ThumbnailData element) { element.UnParse(s); }
+            #endregion
         }
 
         public class ThumbnailData : AHandlerElement, IEquatable<ThumbnailData>
@@ -236,6 +407,7 @@ namespace ThumbnailCacheResource
 
             public string Value { get { return this.ValueBuilder; } }
         }
+
         public class ThumbnailDataSimCasPart : ThumbnailData, IEquatable<ThumbnailDataSimCasPart>
         {
             #region Attributes
@@ -302,6 +474,7 @@ namespace ThumbnailCacheResource
             public Byte Gender { get { return gender; } set { if (gender != value) { gender = value; OnElementChanged(); } } }
             #endregion
         }
+
         public class ThumbnailDataSim : ThumbnailData, IEquatable<ThumbnailDataSim>
         {
             #region Attributes
@@ -373,6 +546,7 @@ namespace ThumbnailCacheResource
             public UInt32 Pose { get { return pose; } set { if (pose != value) { pose = value; OnElementChanged(); } } }
             #endregion
         }
+
         public class ThumbnailSimHousehold : ThumbnailData, IEquatable<ThumbnailSimHousehold>
         {
             #region Attributes
@@ -511,6 +685,7 @@ namespace ThumbnailCacheResource
 
             public string Value { get { return ValueBuilder; } }
         }
+
         public class ModelDataList : DependentList<ModelData>
         {
             private UInt16 count;
@@ -579,6 +754,7 @@ namespace ThumbnailCacheResource
 
             public string Value { get { return ValueBuilder; } }
         }
+
         public class ModelInfoValueByte : ModelInfoValue, IEquatable<ModelInfoValueByte>
         {
             #region Attributes
@@ -639,6 +815,7 @@ namespace ThumbnailCacheResource
             public Byte Data { get { return data; } set { if (data != value) { data = value; OnElementChanged(); } } }
             #endregion
         }
+
         public class ModelInfoValueUInt32 : ModelInfoValue, IEquatable<ModelInfoValueUInt32>
         {
             #region Attributes
@@ -699,6 +876,7 @@ namespace ThumbnailCacheResource
             public UInt32 Data { get { return data; } set { if (data != value) { data = value; OnElementChanged(); } } }
             #endregion
         }
+
         public class ModelInfoValueUInt64 : ModelInfoValue, IEquatable<ModelInfoValueUInt64>
         {
             #region Attributes
@@ -759,6 +937,7 @@ namespace ThumbnailCacheResource
             public UInt64 Data { get { return data; } set { if (data != value) { data = value; OnElementChanged(); } } }
             #endregion
         }
+
         public class ModelInfoDict : DependentDictionary<ModelInfoValueFlag, ModelInfoValue>
         {
             #region Constructors
@@ -980,174 +1159,9 @@ namespace ThumbnailCacheResource
             #endregion
         }
 
-        public class ThumbnailDataList : DependentList<ThumbnailData>
-        {
-            ThumbnailType type;
 
-            #region Constructors
-            public ThumbnailDataList(EventHandler handler, ThumbnailType type) : base(handler, 1) { this.type = type; }
-            public ThumbnailDataList(EventHandler handler, Stream s, ThumbnailType type) : this(null, type) { this.elementHandler = handler; this.Parse(s); this.handler = handler; }
-            public ThumbnailDataList(EventHandler handler, IEnumerable<ThumbnailData> llp, ThumbnailType type) : this(null, type) { this.elementHandler = handler; foreach (var t in llp) this.Add((ThumbnailData)t.Clone(null)); this.handler = handler; }
-            #endregion
 
-            #region Data I/O
-            protected override int ReadCount(Stream s) { return (new BinaryReader(s)).ReadByte() == 0 ? 0 : 1; }
-            protected override void WriteCount(Stream s, int count)
-            {
-                if (count != 0 && count != 1)
-                    throw new InvalidOperationException(String.Format("TableEntryDataList should only ever have zero or one entries.  Found {0}.", count));
-                (new BinaryWriter(s)).Write((Byte)count);
-            }
-            protected override ThumbnailData CreateElement(Stream s)
-            {
-                return ThumbnailData.Factory(0, elementHandler, s, type);
-            }
-            protected override void WriteElement(Stream s, ThumbnailData element) { element.UnParse(s); }
-            #endregion
-        }
 
-        public class Thumnail : AHandlerElement, IEquatable<Thumnail>
-        {
-            #region Attributes
-            ThumbnailType type;
-            ThumbnailSize size;
-            UInt32 versionType;
-            UInt64 resourceID;
-            UInt32 index;
-            ThumbnailDataList data;
-            TGIBlock resourceKey;
-            Boolean isAlias;
-            #endregion
-
-            #region Constructors
-            public Thumnail(int apiVersion, EventHandler handler)
-                : this(apiVersion, handler,
-                ThumbnailType.OBJECT, ThumbnailSize.SMALL, 0, 0, 0, new ThumbnailDataList(null, ThumbnailType.OBJECT), new TGIBlock(apiVersion, null), false) { }
-            public Thumnail(int apiVersion, EventHandler handler, Thumnail basis)
-                : this(apiVersion, handler,
-                basis.type, basis.size, basis.versionType, basis.resourceID, basis.index, basis.data, basis.resourceKey, basis.isAlias) { }
-            public Thumnail(int apiVersion, EventHandler handler,
-                ThumbnailType type, ThumbnailSize size, UInt32 versionType, UInt64 resourceID, UInt32 index, IEnumerable<ThumbnailData> data, TGIBlock resourceKey, Boolean isAlias)
-                : base(apiVersion, handler)
-            {
-                this.type = type;
-                this.size = size;
-                this.versionType = versionType;
-                this.resourceID = resourceID;
-                this.index = index;
-                this.data = new ThumbnailDataList(handler, data, type);
-                this.resourceKey = new TGIBlock(apiVersion, handler, resourceKey);
-                this.isAlias = isAlias;
-            }
-            public Thumnail(int APIversion, EventHandler handler, Stream s) : base(APIversion, handler) { Parse(s); }
-            #endregion
-
-            #region Data I/O
-            public void Parse(Stream s)
-            {
-                BinaryReader r = new BinaryReader(s);
-
-                this.type = (ThumbnailType)r.ReadUInt32();
-                this.size = (ThumbnailSize)r.ReadUInt32();
-                this.versionType = r.ReadUInt32();
-                this.resourceID = r.ReadUInt64();
-                this.index = r.ReadUInt32();
-                this.data = new ThumbnailDataList(handler, s, type);
-                this.resourceKey = new TGIBlock(this.requestedApiVersion, handler, s);
-                this.isAlias = r.ReadByte() != 0;
-            }
-
-            internal void UnParse(Stream s)
-            {
-                BinaryWriter w = new BinaryWriter(s);
-
-                w.Write((UInt32)type);
-                w.Write((UInt32)size);
-                w.Write(versionType);
-                w.Write(resourceID);
-                w.Write(index);
-                data.UnParse(s);
-                resourceKey.UnParse(s);
-                w.Write((Byte)(isAlias ? 1 : 0));
-            }
-            #endregion
-
-            #region AHandlerElement Members
-            public override int RecommendedApiVersion { get { return recommendedApiVersion; } }
-            public override List<string> ContentFields { get { return GetContentFields(requestedApiVersion, this.GetType()); } }
-            #endregion
-
-            #region IEquatable<TableEntry> Members
-
-            public bool Equals(Thumnail other)
-            {
-                return type.Equals(other.type)
-                    && size.Equals(other.size)
-                    && versionType.Equals(other.versionType)
-                    && resourceID.Equals(other.resourceID)
-                    && index.Equals(other.index)
-                    && data.Equals(other.data)
-                    && resourceKey.Equals(other.resourceKey)
-                    && isAlias.Equals(other.isAlias)
-                    ;
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj as Thumnail != null ? this.Equals(obj as Thumnail) : false;
-            }
-
-            public override int GetHashCode()
-            {
-                return type.GetHashCode()
-                    ^ size.GetHashCode()
-                    ^ versionType.GetHashCode()
-                    ^ resourceID.GetHashCode()
-                    ^ index.GetHashCode()
-                    ^ data.GetHashCode()
-                    ^ resourceKey.GetHashCode()
-                    ^ isAlias.GetHashCode()
-                    ;
-            }
-
-            #endregion
-
-            #region Content Fields
-            [MinimumVersion(1)]
-            [MaximumVersion(recommendedApiVersion)]
-            [ElementPriority(1)]
-            public ThumbnailType ThumbType { get { return type; } set { if (type != value) { type = value; OnElementChanged(); } } }
-            [ElementPriority(2)]
-            public ThumbnailSize ThumbSize { get { return size; } set { if (size != value) { size = value; OnElementChanged(); } } }
-            [ElementPriority(3)]
-            public UInt32 VersionType { get { return versionType; } set { if (versionType != value) { versionType = value; OnElementChanged(); } } }
-            [ElementPriority(4)]
-            public UInt64 ResourceID { get { return resourceID; } set { if (resourceID != value) { resourceID = value; OnElementChanged(); } } }
-            [ElementPriority(5)]
-            public UInt32 Index { get { return index; } set { if (index != value) { index = value; OnElementChanged(); } } }
-            [ElementPriority(6)]
-            public ThumbnailDataList ThumbData { get { return data; } set { if (!data.Equals(value)) { data = value == null ? null : new ThumbnailDataList(handler, value, type); OnElementChanged(); } } }
-            [ElementPriority(7)]
-            public TGIBlock ResourceKey { get { return resourceKey; } set { if (!resourceKey.Equals(value)) { resourceKey = value == null ? null : new TGIBlock(requestedApiVersion, handler, value); OnElementChanged(); } } }
-            [ElementPriority(8)]
-            public Boolean ObjectId { get { return isAlias; } set { if (isAlias != value) { isAlias = value; OnElementChanged(); } } }
-            #endregion
-
-            public string Value { get { return ValueBuilder; } }
-        }
-        public class ThumnailList : DependentList<Thumnail>
-        {
-            #region Constructors
-            public ThumnailList(EventHandler handler) : base(handler) { }
-            public ThumnailList(EventHandler handler, Stream s) : base(handler, s) { }
-            public ThumnailList(EventHandler handler, IEnumerable<Thumnail> llp) : base(handler, llp) { }
-            #endregion
-
-            #region Data I/O
-            protected override Thumnail CreateElement(Stream s) { return new Thumnail(0, elementHandler, s); }
-            protected override void WriteElement(Stream s, Thumnail element) { element.UnParse(s); }
-            #endregion
-        }
         #endregion
 
         #region Content Fields
@@ -1158,7 +1172,7 @@ namespace ThumbnailCacheResource
         [ElementPriority(2)]
         public UInt64 NextInstanceValue { get { return nextInstanceValue; } set { if (nextInstanceValue != value) { nextInstanceValue = value; OnResourceChanged(this, EventArgs.Empty); } } }
         [ElementPriority(3)]
-        public ThumnailList Thumnails { get { return thumbnails; } set { if (!thumbnails.Equals(value)) { thumbnails = value == null ? null : new ThumnailList(OnResourceChanged, value); OnResourceChanged(this, EventArgs.Empty); } } }
+        public ThumbnailList Thumnails { get { return thumbnails; } set { if (!thumbnails.Equals(value)) { thumbnails = value == null ? null : new ThumbnailList(OnResourceChanged, value); OnResourceChanged(this, EventArgs.Empty); } } }
         #endregion
 
         public string Value { get { return this.ValueBuilder; } }
