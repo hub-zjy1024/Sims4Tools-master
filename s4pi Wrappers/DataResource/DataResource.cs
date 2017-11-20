@@ -46,12 +46,12 @@ namespace s4pi.DataResource
 
         #region Attributes
 
-        private bool isXMLdoc = false;
+        private bool isXMLtext = false;
         private uint version = 0x100;
         private uint dataTablePosition;
         private uint structureTablePosition;
-        private StructureList structureList;
         private DataList dataList;
+        private StructureList structureList;
         private byte[] rawData;
         private XmlDocument xml;
 
@@ -87,7 +87,7 @@ namespace s4pi.DataResource
             uint magic = reader.ReadUInt32();
             long pos = s.Position;
 
-            if (magic == FOURCC("<?xm"))        //xml format
+            if (magic != FOURCC("DATA"))        //try xml text format
             {
                 try
                 {
@@ -102,29 +102,20 @@ namespace s4pi.DataResource
                     xml = new XmlDocument();
                     this.stream.Position = 0;
                     xml.Load(XmlReader.Create(this.stream, xrs));
-                    this.isXMLdoc = true;
+                    this.isXMLtext = true;
                 }
                 catch
                 {
                     throw new InvalidDataException(
-                    string.Format("Expected xml format"));
+                    string.Format("Expected magic tag 0x{0:X8} or valid XML text; read 0x{1:X8}; position 0x{2:X8}",
+                                FOURCC("DATA"),
+                                magic,
+                                s.Position));
                 }
             }
 
             else
             {
-                if (checking)
-                {
-                    if (magic != FOURCC("DATA"))
-                    {
-                        throw new InvalidDataException(
-                            string.Format("Expected magic tag 0x{0:X8}; read 0x{1:X8}; position 0x{2:X8}",
-                                FOURCC("DATA"),
-                                magic,
-                                s.Position));
-                    }
-                }
-
                 this.version = reader.ReadUInt32();
 
                 if (!reader.GetOffset(out this.dataTablePosition))
@@ -132,14 +123,13 @@ namespace s4pi.DataResource
                     string message = string.Format("Invalid Data Table Position: 0x{0:X8}", this.dataTablePosition);
                     throw new InvalidDataException(message);
                 }
-
                 int dataCount = reader.ReadInt32();
+
                 if (!reader.GetOffset(out this.structureTablePosition))
                 {
                     string message = string.Format("Invalid Structure Table Position: 0x{0:X8}", this.StructureTablePosition);
                     throw new InvalidDataException(message);
                 }
-
                 int structureCount = reader.ReadInt32();
 
                 // Structure table
@@ -341,7 +331,7 @@ namespace s4pi.DataResource
             get
             {
                 var res = base.ContentFields;
-                if (this.isXMLdoc)
+                if (this.isXMLtext)
                 {
                     res.Remove("Version");
                     res.Remove("DataTablePosition");
