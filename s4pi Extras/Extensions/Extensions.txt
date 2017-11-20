@@ -41,6 +41,7 @@
 0x067CAA11  BGEO   .blendgeom
 0x074DFB83  _XML   .xml
 0x07936CE0  SPLT   .bnry
+0x0904DF10  _XML   .xml
 0x0A227BCF  UNKN   .bnry
 0x0C772E27  _XML   .xml
 0x0CA4C78B  _XML   .xml
@@ -139,6 +140,7 @@
 0x626F60CE  THUM   .png
 0x62E94D38  _XML   .bnry
 0x62ECC59A  _GFX   .gfx
+0x669499DC  _XML   .xml
 0x69A5DAA4  _XML   .xml
 0x6B20C4F3  CLIP   .animation
 0x6DFF1A66  UNKN   .xml
