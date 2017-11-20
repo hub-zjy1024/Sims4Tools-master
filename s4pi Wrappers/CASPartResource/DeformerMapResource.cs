@@ -40,7 +40,7 @@ namespace CASPartResource
         private uint doubledWidth;
         private uint height;
         private AgeGenderFlags ageGender;
-        private uint reserved1;     //v6 - must be set to 1
+        private Species species;     //v6
         private Physiques physique;
         private ShapeOrNormals shapeOrNormals;
 
@@ -93,7 +93,7 @@ namespace CASPartResource
             this.height = r.ReadUInt32();
             this.ageGender = (AgeGenderFlags)r.ReadUInt32();
 
-            if (version > 5) this.reserved1 = r.ReadUInt32();
+            if (version > 5) this.species = (Species)r.ReadUInt32();
 
             this.physique = (Physiques)r.ReadByte();
             this.shapeOrNormals = (ShapeOrNormals)r.ReadByte();
@@ -138,7 +138,7 @@ namespace CASPartResource
             w.Write(this.height);
             w.Write((uint)this.ageGender);
 
-            if (version > 5) w.Write(this.reserved1);
+            if (version > 5) w.Write((uint)this.species);
 
             w.Write((byte)this.physique);
             w.Write((byte)this.shapeOrNormals);
@@ -207,7 +207,7 @@ namespace CASPartResource
         public class ScanLine : AHandlerElement, IEquatable<ScanLine>
         {
             private UInt16 scanLineDataSize;
-            private bool isCompressed;
+            private CompressionType isCompressed;
             private byte[] uncompressedPixels;
             private int width;
             private RobeChannel robeChannel;
@@ -227,7 +227,7 @@ namespace CASPartResource
             [ElementPriority(0)]
             public UInt16  ScanLineDataSize { get { return this.scanLineDataSize; } }
             [ElementPriority(1)]
-            public bool IsCompressed { get { return this.isCompressed; } }
+            public CompressionType Compression { get { return this.isCompressed; } }
             [ElementPriority(2)]
             public int Width { get { return this.width; } }
             [ElementPriority(3)]
@@ -250,17 +250,26 @@ namespace CASPartResource
                 get
                 {
                     var res = GetContentFields(requestedApiVersion, this.GetType());
-                    if (this.isCompressed)
-                    {
-                        res.Remove("UncompressedPixels");
-                    }
-                    else
+                    if (this.isCompressed == CompressionType.None)
                     {
                         res.Remove("NumIndexes");
                         res.Remove("PixelPosIndexes");
                         res.Remove("DataPosIndexes");
                         res.Remove("RLEArrayOfPixels");
                     }
+                    else if (this.isCompressed == CompressionType.RLE)                {
+                        res.Remove("UncompressedPixels");
+                    }
+                    else if (this.isCompressed == CompressionType.NoData)
+                    {
+                        res.Remove("RobeChannel");
+                        res.Remove("UncompressedPixels");
+                        res.Remove("NumIndexes");
+                        res.Remove("PixelPosIndexes");
+                        res.Remove("DataPosIndexes");
+                        res.Remove("RLEArrayOfPixels");
+                    }
+
                     res.Remove("Width");
                     return res;
                 }
@@ -270,10 +279,17 @@ namespace CASPartResource
             {
                 BinaryReader r = new BinaryReader(s);
                 this.scanLineDataSize = r.ReadUInt16();
-                this.isCompressed = r.ReadBoolean();
-                this.robeChannel = (RobeChannel)r.ReadByte();
+                this.isCompressed = (CompressionType)r.ReadByte();
+                if (isCompressed == CompressionType.NoData)
+                {
+                    this.robeChannel = RobeChannel.ROBECHANNEL_DROPPED;
+                }
+                else
+                {
+                    this.robeChannel = (RobeChannel)r.ReadByte();
+                }
 
-                if (!isCompressed)
+                if (isCompressed == CompressionType.None) 
                 {
                     if (robeChannel == RobeChannel.ROBECHANNEL_PRESENT)
                     {
@@ -284,7 +300,7 @@ namespace CASPartResource
                         this.uncompressedPixels = r.ReadBytes(this.width * 3);
                     }
                 }
-                else
+                else if (isCompressed == CompressionType.RLE) 
                 {
                     this.numIndexes = r.ReadByte();
                     this.pixelPosIndexes = new UInt16[numIndexes];
@@ -301,14 +317,14 @@ namespace CASPartResource
             {
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write(this.scanLineDataSize);
-                w.Write(this.isCompressed);
-                w.Write((byte)this.robeChannel);
+                w.Write((byte)this.isCompressed);
+                if (this.isCompressed != CompressionType.NoData) w.Write((byte)this.robeChannel);
 
-                if (!isCompressed)
+                if (this.isCompressed == CompressionType.None)
                 {
                     w.Write(this.uncompressedPixels);
                 }
-                else
+                else if (this.isCompressed == CompressionType.RLE)
                 {
                     w.Write(this.numIndexes);
                     for (int i = 0; i < numIndexes; i++) w.Write(this.pixelPosIndexes[i]);
@@ -322,7 +338,7 @@ namespace CASPartResource
                 if (! (this.scanLineDataSize == other.scanLineDataSize && 
                     this.isCompressed == other.isCompressed && 
                     this.robeChannel == other.robeChannel)) return false;
-                if (this.isCompressed)
+                if (this.isCompressed == CompressionType.RLE)
                 {
                     return ((this.numIndexes == other.numIndexes) &&
                         (this.pixelPosIndexes != null ? this.pixelPosIndexes : new ushort[0]).SequenceEqual((other.pixelPosIndexes != null ? other.pixelPosIndexes : new ushort[0])) &&
@@ -342,6 +358,13 @@ namespace CASPartResource
         {
             Skin,
             Robe
+        }
+
+        public enum CompressionType : byte
+        {
+            None = 0,
+            RLE = 1,
+            NoData = 2
         }
 
         public Stream ToBitMap(OutputType type)
@@ -372,7 +395,7 @@ namespace CASPartResource
                 }
 
                 ScanLine scan = scanLines[i];
-                if (!scan.IsCompressed)
+                if (scan.Compression == CompressionType.None)
                 {
                     for (int j = 0; j < width; j++)
                     {
@@ -388,9 +411,9 @@ namespace CASPartResource
                                 pixelArrayRobe[destIndexRobe++] = scan.UncompressedPixels[(j * pixelsize) + 5];
                                 break;
                             case RobeChannel.ROBECHANNEL_DROPPED:
-                                pixelArrayRobe[destIndexRobe++] = 0;
-                                pixelArrayRobe[destIndexRobe++] = 0;
-                                pixelArrayRobe[destIndexRobe++] = 0;
+                                pixelArrayRobe[destIndexRobe++] = 0x80;
+                                pixelArrayRobe[destIndexRobe++] = 0x80;
+                                pixelArrayRobe[destIndexRobe++] = 0x80;
                                 break;
                             case RobeChannel.ROBECHANNEL_ISCOPY:
                                 pixelArrayRobe[destIndexRobe++] = scan.UncompressedPixels[(j * pixelsize) + 0];
@@ -400,7 +423,7 @@ namespace CASPartResource
                         }
                     }
                 }
-                else
+                else if (scan.Compression == CompressionType.RLE)
                 {
 
                     // Look up each pixel using index tables
@@ -453,9 +476,9 @@ namespace CASPartResource
                                 pixelArrayRobe[destIndexRobe++] = scan.RLEArrayOfPixels[pixelStart + 5];
                                 break;
                             case RobeChannel.ROBECHANNEL_DROPPED:
-                                pixelArrayRobe[destIndexRobe++] = 0;
-                                pixelArrayRobe[destIndexRobe++] = 0;
-                                pixelArrayRobe[destIndexRobe++] = 0;
+                                pixelArrayRobe[destIndexRobe++] = 0x80;
+                                pixelArrayRobe[destIndexRobe++] = 0x80;
+                                pixelArrayRobe[destIndexRobe++] = 0x80;
                                 break;
                             case RobeChannel.ROBECHANNEL_ISCOPY:
                                 pixelArrayRobe[destIndexRobe++] = scan.RLEArrayOfPixels[pixelStart + 0];
@@ -499,6 +522,19 @@ namespace CASPartResource
                     //    }
                     //    rleindex += pixelsize;
                     //}
+                }
+                else if (scan.Compression == CompressionType.NoData)
+                {
+                    for (int j = 0; j < width; j++)
+                    {
+                        pixelArraySkinTight[destSkinTight++] = 0x80;
+                        pixelArraySkinTight[destSkinTight++] = 0x80;
+                        pixelArraySkinTight[destSkinTight++] = 0x80;
+                        pixelArrayRobe[destIndexRobe++] = 0x80;
+                        pixelArrayRobe[destIndexRobe++] = 0x80;
+                        pixelArrayRobe[destIndexRobe++] = 0x80;
+                    }
+
                 }
             }
 
@@ -545,7 +581,7 @@ namespace CASPartResource
         [ElementPriority(3)]
         public AgeGenderFlags AgeGender { get { return this.ageGender; } set { if (!this.ageGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.ageGender = value; } } }
         [ElementPriority(4)]
-        public uint Reserved1 { get { return this.reserved1; } set { if (!(this.reserved1 == value)) { OnResourceChanged(this, EventArgs.Empty); this.reserved1 = value; } } }
+        public Species Species { get { return this.species; } set { if (!(this.species == value)) { OnResourceChanged(this, EventArgs.Empty); this.species = value; } } }
         [ElementPriority(5)]
         public Physiques Physique { get { return this.physique; } set { if (!this.physique.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.physique = value; } } }
         [ElementPriority(6)]
