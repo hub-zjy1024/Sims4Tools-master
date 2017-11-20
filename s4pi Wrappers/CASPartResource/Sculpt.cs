@@ -42,6 +42,7 @@ namespace CASPartResource
         private TGIBlock[] publicKey { get; set; }
         private TGIBlock[] externalKey { get; set; }
         private TGIBlockList delayLoadKey { get; set; }
+        private ObjectData[] objectData { get; set; }
         private SculptBlock[] sculpts { get; set; }
         #endregion
 
@@ -71,6 +72,11 @@ namespace CASPartResource
             for (int i = 0; i < delayLoadKeyCount; i++)
             {
                 this.delayLoadKey.Add(new TGIBlock(recommendedApiVersion, OnResourceChanged, "ITG", s));
+            }
+            this.objectData = new ObjectData[objectCount];
+            for (int i = 0; i < objectCount; i++)
+            {
+                this.objectData[i] = new ObjectData(recommendedApiVersion, OnResourceChanged, s);
             }
             this.sculpts = new SculptBlock[objectCount];
             for (int i = 0; i < objectCount; i++)
@@ -104,6 +110,13 @@ namespace CASPartResource
                 w.Write(this.delayLoadKey[i].ResourceType);
                 w.Write(this.delayLoadKey[i].ResourceGroup);
             }
+            uint posCounter = (delayLoadKey == null) ? 44U : 60U;
+            for (int i = 0; i < sculpts.Length; i++)
+            {
+                ObjectData obj = new ObjectData(0, null, posCounter, 121);
+                obj.UnParse(ms);
+                posCounter += 121;
+            }
             for (int i = 0; i < sculpts.Length; i++)
             {
                 this.sculpts[i].UnParse(ms);
@@ -116,11 +129,75 @@ namespace CASPartResource
 
         #region Sub-Class
 
+        public class ObjectData : AHandlerElement, IEquatable<ObjectData>
+        {
+            uint position;
+            uint length;
+
+            public ObjectData(int apiVersion, EventHandler handler) : base(apiVersion, handler)
+            {
+            }
+
+            public ObjectData(int apiVersion, EventHandler handler, Stream s)
+                : base(apiVersion, handler)
+            {
+                BinaryReader r = new BinaryReader(s);
+                this.position = r.ReadUInt32();
+                this.length = r.ReadUInt32();
+            }
+
+            public ObjectData(int apiVersion, EventHandler handler, uint position, uint length)
+                : base(apiVersion, handler)
+            {
+                this.position = position;
+                this.length = length;
+            }
+
+            public void UnParse(Stream s)
+            {
+                BinaryWriter w = new BinaryWriter(s);
+                w.Write(this.position);
+                w.Write(this.length);
+            }
+
+            public override int RecommendedApiVersion
+            {
+                get { return Sculpt.recommendedApiVersion; }
+            }
+
+            public string Value
+            {
+                get { return this.ValueBuilder; }
+            }
+
+            public override List<string> ContentFields 
+            { 
+                get { return GetContentFields(requestedApiVersion, this.GetType()); } 
+            }
+
+            public bool Equals(ObjectData other)
+            {
+                return this.position == other.position && this.length == other.length;
+            }
+
+            [ElementPriority(0)]
+            public uint Position
+            {
+                get { return this.position; } 
+                set { if (this.position != value) { this.OnElementChanged(); this.position = value; } } 
+            }
+
+            [ElementPriority(1)]
+            public uint Length
+            {
+                get { return this.length; } 
+                set { if (this.length != value) { this.OnElementChanged(); this.length = value; } } 
+            }
+        }
+
         public class SculptBlock : AHandlerElement, IEquatable<SculptBlock>
         {
-            uint unknown1;
-            uint unknown2;
-            uint unknown3;
+            uint version;
             AgeGenderFlags ageGender;
             SimRegion region;
             uint unknown5;
@@ -138,9 +215,7 @@ namespace CASPartResource
                 : base(apiVersion, handler)
             {
                 BinaryReader r = new BinaryReader(s);
-                this.unknown1 = r.ReadUInt32();
-                this.unknown2 = r.ReadUInt32();
-                this.unknown3 = r.ReadUInt32();
+                this.version = r.ReadUInt32();
                 this.ageGender = (AgeGenderFlags)r.ReadUInt32();
                 this.region = (SimRegion)r.ReadUInt32();
                 this.unknown5 = r.ReadUInt32();
@@ -157,9 +232,7 @@ namespace CASPartResource
             public void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
-                w.Write(this.unknown1);
-                w.Write(this.unknown2);
-                w.Write(this.unknown3);
+                w.Write(this.version);
                 w.Write((uint)this.ageGender);
                 w.Write((uint)this.region);
                 w.Write(this.unknown5);
@@ -168,7 +241,7 @@ namespace CASPartResource
                 this.specularRef.UnParse(s);
                 this.imageRef.UnParse(s);
                 w.Write(this.unknown7);
-                if (this.dmapRef == null) this.dmapRef = new TGIBlock[0];
+                if (this.dmapRef == null) this.dmapRef = new TGIBlock[] { new TGIBlock(0, null, 0, 0, 0), new TGIBlock(0, null, 0, 0, 0) };
                 for (int i = 0; i < this.dmapRef.Length; i++) this.dmapRef[i].UnParse(s);
                 w.Write(this.unknown8);
             }
@@ -180,7 +253,7 @@ namespace CASPartResource
 
             public bool Equals(SculptBlock other)
             {
-                return this.unknown1 == other.unknown1 && this.unknown2 == other.unknown2 && this.unknown3 == other.unknown3 &&
+                return this.version == other.version &&
                     this.ageGender == other.ageGender && this.region == other.region && this.unknown5 == other.unknown5 &&
                     this.linkTag == other.linkTag && this.textureRef == other.textureRef && this.specularRef == other.specularRef &&
                     this.imageRef == other.imageRef && this.unknown7 == other.unknown7 && this.dmapRef == other.dmapRef &&
@@ -188,12 +261,8 @@ namespace CASPartResource
             }
 
             #region Content-Field
-            [ElementPriority(0)]
-            public uint Unknown1 { get { return this.unknown1; } set { if (!value.Equals(this.unknown1)) { this.unknown1 = value; OnElementChanged(); } } }
-            [ElementPriority(1)]
-            public uint Unknown2 { get { return this.unknown2; } set { if (!value.Equals(this.unknown2)) { this.unknown2 = value; OnElementChanged(); } } }
             [ElementPriority(2)]
-            public uint Unknown3 { get { return this.unknown3; } set { if (!value.Equals(this.unknown3)) { this.unknown3 = value; OnElementChanged(); } } }
+            public uint Version { get { return this.version; } set { if (!value.Equals(this.version)) { this.version = value; OnElementChanged(); } } }
             [ElementPriority(3)]
             public AgeGenderFlags AgeGender { get { return this.ageGender; } set { if (!value.Equals(this.ageGender)) { this.ageGender = value; OnElementChanged(); } } }
             [ElementPriority(4)]
@@ -231,6 +300,8 @@ namespace CASPartResource
         [ElementPriority(3)]
         public TGIBlockList BlendGeometry_Key { get { return this.delayLoadKey; } set { if (!value.Equals(this.delayLoadKey)) { OnResourceChanged(this, EventArgs.Empty); this.delayLoadKey = value; } } }
         [ElementPriority(4)]
+        public ObjectData[] Objects { get { return this.objectData; } set { if (!value.Equals(this.objectData)) { OnResourceChanged(this, EventArgs.Empty); this.objectData = value; } } }
+        [ElementPriority(5)]
         public SculptBlock[] SculptsBlocks { get { return this.sculpts; } set { if (!value.Equals(this.sculpts)) { OnResourceChanged(this, EventArgs.Empty); this.sculpts = value; } } }
         #endregion
 
