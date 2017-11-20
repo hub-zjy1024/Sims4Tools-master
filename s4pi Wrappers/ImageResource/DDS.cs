@@ -38,6 +38,12 @@ namespace s4pi.ImageResource
         None = 0x00000000
     }
 
+    public enum NotFourCC : uint
+    {
+        L8 = 0x2020384C,
+        None = 0x00000000
+    }
+
     public class PixelFormat
     {
         public uint size { get { return 32; } }
@@ -50,7 +56,6 @@ namespace s4pi.ImageResource
         public uint alphaBitMask { get; set; }
         private FourCC fourcc = FourCC.DXT5;
 
-
         public static uint StructureSize
         {
             get { return 8 * 4; }
@@ -62,6 +67,34 @@ namespace s4pi.ImageResource
             this.greenBitMask = 0x0000FF00;
             this.blueBitMask = 0x000000FF;
             this.alphaBitMask = 0xFF000000;
+        }
+
+        public PixelFormat(FourCC fourCC)
+        {
+            this.fourcc = fourCC;
+            this.pixelFormatFlag = PixelFormatFlags.FourCC;
+            if (this.fourcc == FourCC.DXT5)
+            {
+                this.RGBBitCount = 32;
+                this.redBitMask = 0x00FF0000;
+                this.greenBitMask = 0x0000FF00;
+                this.blueBitMask = 0x000000FF;
+                this.alphaBitMask = 0xFF000000;
+            }
+        }
+
+        public PixelFormat(NotFourCC notFourCC)
+        {
+            this.fourcc = FourCC.None;
+            if (notFourCC == NotFourCC.L8)
+            {
+                this.pixelFormatFlag = PixelFormatFlags.Luminance;
+                this.RGBBitCount = 8;
+                this.redBitMask = 0x000000FF;
+                this.greenBitMask = 0x000000FF;
+                this.blueBitMask = 0x000000FF;
+                this.alphaBitMask = 0x00000000;
+            }
         }
 
         public void UnParse(Stream s)

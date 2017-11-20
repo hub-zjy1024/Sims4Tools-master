@@ -58,34 +58,57 @@ namespace s4pi.ImageResource
 
             for (int i = 0; i < this.info.mipCount; i++)
             {
-                var header = new MipHeader
+                if (info.notFourCC == NotFourCC.L8)
                 {
-                    CommandOffset = r.ReadInt32(),
-                    Offset2 = r.ReadInt32(),
-                    Offset3 = r.ReadInt32(),
-                    Offset0 = r.ReadInt32(),
-                    Offset1 = r.ReadInt32(),
-                };
-                if (this.info.Version == RLEVersion.RLES) header.Offset4 = r.ReadInt32();
-                MipHeaders[i] = header;
+                    var header = new MipHeader
+                    {
+                        CommandOffset = r.ReadInt32(),
+                        Offset0 = r.ReadInt32()
+                    };
+                    MipHeaders[i] = header;
+                }
+                else
+                {
+                    var header = new MipHeader
+                    {
+                        CommandOffset = r.ReadInt32(),
+                        Offset2 = r.ReadInt32(),
+                        Offset3 = r.ReadInt32(),
+                        Offset0 = r.ReadInt32(),
+                        Offset1 = r.ReadInt32(),
+                    };
+                    if (this.info.Version == RLEVersion.RLES) header.Offset4 = r.ReadInt32();
+                    MipHeaders[i] = header;
+                }
             }
 
-            this.MipHeaders[this.info.mipCount] = new MipHeader
+            if (info.notFourCC == NotFourCC.L8)
             {
-                CommandOffset = MipHeaders[0].Offset2,
-                Offset2 = MipHeaders[0].Offset3,
-                Offset3 = MipHeaders[0].Offset0,
-                Offset0 = MipHeaders[0].Offset1,
-            };
-
-            if (this.info.Version == RLEVersion.RLES)
-            {
-                this.MipHeaders[this.info.mipCount].Offset1 = this.MipHeaders[0].Offset4;
-                this.MipHeaders[this.info.mipCount].Offset4 = (int)s.Length;
+                this.MipHeaders[this.info.mipCount] = new MipHeader
+                {
+                    CommandOffset = MipHeaders[0].Offset0,
+                    Offset0 = (int)s.Length
+                };
             }
             else
             {
-                this.MipHeaders[this.info.mipCount].Offset1 = (int)s.Length;
+                this.MipHeaders[this.info.mipCount] = new MipHeader
+                {
+                    CommandOffset = MipHeaders[0].Offset2,
+                    Offset2 = MipHeaders[0].Offset3,
+                    Offset3 = MipHeaders[0].Offset0,
+                    Offset0 = MipHeaders[0].Offset1,
+                };
+
+                if (this.info.Version == RLEVersion.RLES)
+                {
+                    this.MipHeaders[this.info.mipCount].Offset1 = this.MipHeaders[0].Offset4;
+                    this.MipHeaders[this.info.mipCount].Offset4 = (int)s.Length;
+                }
+                else
+                {
+                    this.MipHeaders[this.info.mipCount].Offset1 = (int)s.Length;
+                }
             }
 
             s.Position = 0;
@@ -108,12 +131,100 @@ namespace s4pi.ImageResource
             this.info.UnParse(s);
 
 
-            // MEED TO BE WRITTEN IN STATIC
+            // NEED TO BE WRITTEN IN STATIC
+            var fullDark = new byte[] { 0x00, 0x00, 0x00, 0x00 };
+            var fullBright = new byte[] { 0xFF, 0xFF, 0xFF, 0xFF };
             var fullTransparentAlpha = new byte[] { 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             var fullTransparentColor = new byte[] { 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
             var fullOpaqueAlpha = new byte[] { 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-            if (this.info.Version == RLEVersion.RLE2)
+            if (this.info.notFourCC == NotFourCC.L8)
+            {
+                int width = this.info.Width;
+                int height = this.info.Height;
+                for (int i = 0; i < this.info.mipCount; i++)
+                {
+                    MemoryStream s0 = new MemoryStream();
+                    MemoryStream s1 = new MemoryStream();
+                    MemoryStream s2 = new MemoryStream();
+                    MemoryStream s3 = new MemoryStream();
+                    var mipHeader = this.MipHeaders[i];
+                    var nextMipHeader = MipHeaders[i + 1];
+
+                    int blockOffset0;
+                    blockOffset0 = mipHeader.Offset0;
+
+                    for (int commandOffset = mipHeader.CommandOffset;
+                        commandOffset < nextMipHeader.CommandOffset;
+                        commandOffset += 2)
+                    {
+                        var command = BitConverter.ToUInt16(this.data, commandOffset);
+
+                        var op = command & 3;
+                        var count = command >> 2;
+
+                        if (op == 0)
+                        {
+                            for (int j = 0; j < count; j++)
+                            {
+                                s0.Write(fullDark, 0, 4);
+                                s1.Write(fullDark, 0, 4);
+                                s2.Write(fullDark, 0, 4);
+                                s3.Write(fullDark, 0, 4);
+                            }
+                        }
+                        else if (op == 1)
+                        {
+                            for (int j = 0; j < count; j++)
+                            {
+                                s0.Write(this.data, blockOffset0, 4);
+                                blockOffset0 += 4;
+                                s1.Write(this.data, blockOffset0, 4);
+                                blockOffset0 += 4;
+                                s2.Write(this.data, blockOffset0, 4);
+                                blockOffset0 += 4;
+                                s3.Write(this.data, blockOffset0, 4);
+                                blockOffset0 += 4;
+                            }
+                        }
+                        else if (op == 2)
+                        {
+                            for (int j = 0; j < count; j++)
+                            {
+                                s0.Write(fullBright, 0, 4);
+                                s1.Write(fullBright, 0, 4);
+                                s2.Write(fullBright, 0, 4);
+                                s3.Write(fullBright, 0, 4);
+                            }
+                        }
+                        else
+                        {
+                            throw new NotSupportedException("OpCode: " + op.ToString() + ", Count: " + count.ToString());
+                        }
+                    }
+
+                    if (blockOffset0 != nextMipHeader.Offset0)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    byte[] b0 = s0.ToArray();
+                    byte[] b1 = s1.ToArray();
+                    byte[] b2 = s2.ToArray();
+                    byte[] b3 = s3.ToArray();
+                    int wOffset = 0;
+                    for (int h = 0; h < height; h += 4)
+                    {
+                        s.Write(b0, wOffset, width);
+                        s.Write(b1, wOffset, width);
+                        s.Write(b2, wOffset, width);
+                        s.Write(b3, wOffset, width);
+                        wOffset += width;
+                    }
+                    width = Math.Max(width / 2, 4);
+                    height = Math.Max(height / 2, 4);
+                }
+            }
+            else if (this.info.Version == RLEVersion.RLE2)
             {
                 for (int i = 0; i < this.info.mipCount; i++)
                 {
@@ -147,9 +258,6 @@ namespace s4pi.ImageResource
                         {
                             for (int j = 0; j < count; j++)
                             {
-                                //output.Write(fullOpaqueAlpha, 0, 8);
-                                //output.Write(fullTransparentColor, 0, 8);
-
                                 w.Write(this.data, blockOffset0, 2);
                                 w.Write(this.data, blockOffset1, 6);
                                 w.Write(this.data, blockOffset2, 4);
@@ -271,7 +379,6 @@ namespace s4pi.ImageResource
             }
             s.Position = 0;
             return s;
-
         }
 
         public Stream ToBlock4DDS()
@@ -394,12 +501,18 @@ namespace s4pi.ImageResource
 
             this.info = new RLEInfo();
             this.info.Parse(input);
-            if (this.info.pixelFormat.Fourcc != FourCC.DXT5) throw new InvalidDataException(string.Format("Not a DXT5 format DDS, read {0}", this.info.pixelFormat.Fourcc));
+            if (this.info.pixelFormat.Fourcc != FourCC.DXT5 & this.info.notFourCC != NotFourCC.L8) throw new InvalidDataException(string.Format("Not a DXT5 or L8 format DDS, read FourCC: {0}, format: {0}", this.info.pixelFormat.Fourcc, this.info.notFourCC));
 
             if (this.info.Depth == 0) this.info.Depth = 1;
 
-
-            w.Write((uint)FourCC.DXT5);
+            if (this.info.fourCC == FourCC.DXT5)
+            {
+                w.Write((uint)FourCC.DXT5);
+            }
+            else if (this.info.notFourCC == NotFourCC.L8)
+            {
+                w.Write((uint)NotFourCC.L8);
+            }
             if (rleVersion == RLEVersion.RLE2)
             {
                 w.Write((uint)0x32454C52);
@@ -413,7 +526,139 @@ namespace s4pi.ImageResource
             w.Write((ushort)this.info.mipCount);
             w.Write((ushort)0);
 
-            if (rleVersion == RLEVersion.RLE2)
+            if (this.info.notFourCC == NotFourCC.L8)
+            {
+                var headerOffset = 16;
+                var dataOffset = 16 + (8 * this.info.mipCount);
+                this.MipHeaders = new MipHeader[this.info.mipCount];
+
+                using (var commandData = new MemoryStream())
+                using (var block0Data = new MemoryStream())
+                {
+                    BinaryWriter commonDataWriter = new BinaryWriter(commandData);
+                    for (int mipIndex = 0; mipIndex < this.info.mipCount; mipIndex++)
+                    {
+                        this.MipHeaders[mipIndex] = new MipHeader()
+                        {
+                            CommandOffset = (int)commandData.Length,
+                            Offset0 = (int)block0Data.Length,
+                        };
+
+                        var mipWidth = Math.Max(4, this.info.Width >> mipIndex);
+                        var mipHeight = Math.Max(4, this.info.Height >> mipIndex);
+                        var mipDepth = Math.Max(1, this.info.Depth >> mipIndex);
+
+                        byte[][] lines = new byte[((mipHeight + 3) / 4) * 4][];
+                        for (int h = 0; h < mipHeight; h++)
+                        {
+                            lines[h] = new byte[((mipWidth + 3) / 4) * 4];
+                            Array.Copy(r.ReadBytes(mipWidth), lines[h], mipWidth);
+                        }
+                        var mipSize = Math.Max(1, (mipWidth + 3) / 4) * Math.Max(1, (mipHeight + 3) / 4) * 16;
+                        var mipData = new byte[mipSize];
+                        int mipCounter = 0;
+                        for (int h = 0; h < mipHeight; h += 4)
+                        {
+                            for (int l = 0; l < mipWidth; l += 4)
+                            {
+                                for (int h1 = h; h1 < h + 4; h1++)
+                                {
+                                    for (int l1 = l; l1 < l + 4; l1++)
+                                    {
+                                        mipData[mipCounter++] = lines[h1][l1];
+                                    }
+                                }
+                            }
+                        }
+
+                        for (int offset = 0; offset < mipSize; )
+                        {
+                            ushort darkCount = 0;
+                            while (darkCount < 0x3FFF &&
+                                   offset < mipSize &&
+                                   TestDarkAll(mipData, offset) == true)
+                            {
+                                darkCount++;
+                                offset += 16;
+                            }
+
+                            if (darkCount > 0)
+                            {
+                                darkCount <<= 2;
+                                darkCount |= 0;
+                                commonDataWriter.Write(darkCount);
+                                continue;
+                            }
+
+                            var lightOffset = offset;
+                            ushort lightCount = 0;
+                            while (lightCount < 0x3FFF &&
+                                   offset < mipSize &&
+                                   TestLightAll(mipData, offset) == true)
+                            {
+                                lightCount++;
+                                offset += 16;
+                            }
+
+                            if (lightCount > 0)
+                            {
+                                lightCount <<= 2;
+                                lightCount |= 2;
+                                commonDataWriter.Write(lightCount);
+                                continue;
+                            }
+
+                            var grayOffset = offset;
+                            ushort grayCount = 0;
+                            while (grayCount < 0x3FFF &&
+                                   offset < mipSize &&
+                                   TestDarkAll(mipData, offset) == false &&
+                                   TestLightAll(mipData, offset) == false)
+                            {
+                                grayCount++;
+                                offset += 16;
+                            }
+
+                            if (grayCount > 0)
+                            {
+                                for (int i = 0; i < grayCount; i++, grayOffset += 16)
+                                {
+                                    block0Data.Write(mipData, grayOffset, 16);
+                                }
+
+                                grayCount <<= 2;
+                                grayCount |= 1;
+                                commonDataWriter.Write(grayCount);
+                                continue;
+                            }
+
+                            throw new NotImplementedException();
+                        }
+                    }
+
+                    output.Position = dataOffset;
+
+                    commandData.Position = 0;
+                    var commandOffset = (int)output.Position;
+                    output.Write(commandData.ToArray(), 0, (int)commandData.Length);
+
+                    block0Data.Position = 0;
+                    var block0Offset = (int)output.Position;
+                    output.Write(block0Data.ToArray(), 0, (int)block0Data.Length);
+
+                    output.Position = headerOffset;
+                    for (int i = 0; i < this.info.mipCount; i++)
+                    {
+                        var mipHeader = this.MipHeaders[i];
+                        w.Write(mipHeader.CommandOffset + commandOffset);
+                        w.Write(mipHeader.Offset0 + block0Offset);
+                    }
+
+                    this.data = output.ToArray();
+                }
+            } 
+
+            else if (rleVersion == RLEVersion.RLE2)
             {
                 var headerOffset = 16;
                 var dataOffset = 16 + (20 * this.info.mipCount);
@@ -774,6 +1019,30 @@ namespace s4pi.ImageResource
             }
         }
 
+        private static bool TestLightAll(byte[] array, int offset)
+        {
+            for (int i = 0; i < 16; i++)
+            {
+                if (array[offset + i] != 0xFF)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool TestDarkAll(byte[] array, int offset)
+        {
+            for (int i = 0; i < 16; i++)
+            {
+                if (array[offset + i] != 0x00)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
         private static unsafe bool TestAlphaAll(byte[] array, int offset, Func<byte, bool> test)
         {
             var alpha = stackalloc byte[16];
@@ -835,6 +1104,8 @@ namespace s4pi.ImageResource
         public class RLEInfo
         {
             public const uint Signature = 0x20534444;
+            public FourCC fourCC { get; internal set; }
+            public NotFourCC notFourCC { get; internal set; }
             public uint size { get { return (18 * 4) + PixelFormat.StructureSize + (5 * 4); } }
             public HeaderFlags headerFlags { get; internal set; }
             public int Height { get; internal set; }
@@ -853,15 +1124,27 @@ namespace s4pi.ImageResource
             public uint mipCount { get; internal set; }
             public ushort Unknown0E { get; internal set; }
 
-            public RLEInfo(Stream s, bool check = true)
-                : this(s, FourCC.DXT5, check) { }
+            public RLEInfo(Stream s)
+                : this(s, true) { }
 
-            public RLEInfo(Stream s, FourCC fourCC, bool check)
+            public RLEInfo(Stream s, bool check)
             {
                 s.Position = 0;
                 BinaryReader r = new BinaryReader(s);
-                uint fourcc = r.ReadUInt32();
-                if (check) if (fourcc != (uint)fourCC) throw new NotImplementedException(string.Format("Expected format: 0x{0:X8}, read 0x{1:X8}", (uint)fourCC, fourcc));
+                uint ddstype = r.ReadUInt32();
+                if (ddstype == (uint)FourCC.DXT5)
+                {
+                    this.fourCC = (FourCC)ddstype;
+                    this.notFourCC = NotFourCC.None;
+                    this.pixelFormat = new PixelFormat(fourCC);
+                }
+                else if (ddstype == (uint)NotFourCC.L8)
+                {
+                    this.notFourCC = (NotFourCC)ddstype;
+                    this.fourCC = FourCC.None;
+                    this.pixelFormat = new PixelFormat(notFourCC);
+                }
+                else if (check) throw new NotImplementedException(string.Format("Expected format: 0x{0:X8} or 0x{0:X8}, read 0x{1:X8}", (uint)FourCC.DXT5, (uint)NotFourCC.L8, ddstype));
                 this.Version = (RLEVersion)r.ReadUInt32();
                 this.Width = r.ReadUInt16();
                 this.Height = r.ReadUInt16();
@@ -869,9 +1152,7 @@ namespace s4pi.ImageResource
                 this.Unknown0E = r.ReadUInt16();
                 this.headerFlags = HeaderFlags.Texture;
                 if (this.Unknown0E != 0) throw new InvalidDataException(string.Format("Expected 0, read 0x{0:X8}", this.Unknown0E));
-                this.pixelFormat = new PixelFormat();
             }
-
 
             public void Parse(Stream s)
             {
@@ -896,13 +1177,23 @@ namespace s4pi.ImageResource
                 this.surfaceFlags = r.ReadUInt32();
                 this.cubemapFlags = r.ReadUInt32();
                 r.ReadBytes(this.reserved2.Length);
+                this.fourCC = this.pixelFormat.Fourcc;
+                this.notFourCC = this.pixelFormat.pixelFormatFlag == PixelFormatFlags.Luminance ? NotFourCC.L8 : NotFourCC.None;
             }
 
             public void UnParse(Stream s)
             {
                 BinaryWriter w = new BinaryWriter(s);
                 w.Write(this.size);
-                w.Write(this.mipCount > 1 ? (uint)this.headerFlags | (uint)HeaderFlags.Mipmap | (uint)HeaderFlags.LinearSize : (uint)this.headerFlags | (uint)HeaderFlags.LinearSize);
+                if (this.fourCC != FourCC.None)
+                {
+                    w.Write(this.mipCount > 1 ? (uint)this.headerFlags | (uint)HeaderFlags.Mipmap | (uint)HeaderFlags.LinearSize : (uint)this.headerFlags | (uint)HeaderFlags.LinearSize);
+                }
+                else
+                {
+                    w.Write(this.mipCount > 1 ? (uint)this.headerFlags | (uint)HeaderFlags.Mipmap | (uint)HeaderFlags.Pitch : (uint)this.headerFlags | (uint)HeaderFlags.Pitch);
+                    this.PitchOrLinearSize = (uint)((this.pixelFormat.RGBBitCount / 8) * this.Width);
+                }
                 w.Write(this.Height);
                 w.Write(this.Width);
                 if (this.PitchOrLinearSize > 0)

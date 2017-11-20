@@ -995,7 +995,7 @@ namespace System.Windows.Forms
             {
                 tlpSize.Visible = true;
                 lbSize.Text = image.Size.Width + ", " + image.Size.Height;
-                lbDDSFmt.Text = (UseDXT ? "DXT" + AlphaDepth : (UseATI ? "ATI" + ddsFile.AtiMode : "Uncompressed")) + "   MipMaps: " + ddsFile.MipMaps;
+                lbDDSFmt.Text = (UseDXT ? "DXT" + AlphaDepth : (UseATI ? "ATI" + ddsFile.AtiMode : "Uncompressed " + (ddsFile.UseLuminance ? (AlphaDepth == 0 ? "L8 " : " A8L8") : ""))) + "   MipMaps: " + ddsFile.MipMaps;
             }
             else tlpSize.Visible = false;
 

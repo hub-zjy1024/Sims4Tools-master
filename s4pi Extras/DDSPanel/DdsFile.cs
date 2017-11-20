@@ -61,7 +61,7 @@ namespace System.Drawing
                     dxt3 = 0x33545844,
                     dxt5 = 0x35545844,
                     ati1 = 0x31495441,
-                    ati2 = 0x32495441
+                    ati2 = 0x32495441,
                 }
 
                 enum PFFourCCBlockSize8 : uint
@@ -109,6 +109,11 @@ namespace System.Drawing
                         case DdsFormat.ATI2:
                             flags |= PFFlags.fourCC;
                             fourCC = PFFourCC.ati2;
+                            break;
+                        case DdsFormat.L8:
+                            flags |= PFFlags.luminence;
+                            rgbBitCount = 8;
+                            rBitMask = 0x000000ff;
                             break;
                         case DdsFormat.A8L8:
                             flags |= PFFlags.luminence | PFFlags.alphaPixels;
@@ -259,12 +264,14 @@ namespace System.Drawing
                         if ((flags & PFFlags.nVidiaNormal) != 0)
                             throw new NotSupportedException("nVidia normal format data is not supported.");
 
-                        if ((flags & PFFlags.luminence) != 0
-                            && (
-                                aBitMask != 0x0000ff00 || rBitMask != 0x000000ff
-                                || gBitMask != 0 || bBitMask != 0
-                            ))
-                            throw new NotSupportedException("Only A8L8 luminence data is supported.");
+                        if ((flags & PFFlags.luminence) != 0)
+                        {
+                            if (!((aBitMask == 0x0000ff00 & rBitMask == 0x000000ff
+                                & gBitMask == 0 & bBitMask == 0) ||
+                                (aBitMask == 0x00000000 & rBitMask == 0x000000ff
+                                & gBitMask == 0x000000ff & bBitMask == 0x000000ff)))
+                                throw new NotSupportedException("Only A8L8 or L8 luminence data is supported.");
+                        }
 
                         if (((uint)(flags & notFourCC)).Bits() == 0)
                         {
@@ -344,6 +351,13 @@ namespace System.Drawing
                                     return flags | PFFlags.luminence;
                                 }
                             }
+                            else
+                            {
+                                if (rBitMask == 0x000000ff && gBitMask == 0x000000ff && bBitMask == 0x000000ff)
+                                {
+                                    return flags | PFFlags.luminence;
+                                }
+                            }
 
                             // No YUV support
 
@@ -386,7 +400,8 @@ namespace System.Drawing
 
                         // Is it a (supported) Luminance map?
                         if ((flags & PFFlags.luminence) != 0)
-                            return DdsFormat.A8L8;
+                            if (aBitMask != 0x00000000) return DdsFormat.A8L8;
+                            else return DdsFormat.L8;
 
                         // Not a compressed texture and not a luminence map means
                         // we should have a valid RGB bit count.
@@ -425,6 +440,13 @@ namespace System.Drawing
                                 return DdsFormat.R5G6B5;
                             }
                         }
+                        else if (rgbBitCount == 8)
+                        {
+                            if ((rBitMask == 0x000000ff) && (gBitMask == 0x000000ff) && (bBitMask == 0x000000ff) && (aBitMask == 0x00000000))
+                            {
+                                return DdsFormat.L8;
+                            }
+                        }
 
                         // Oh dear...
                         throw new NotSupportedException(String.Format(
@@ -451,6 +473,7 @@ namespace System.Drawing
                         case DdsFormat.R8G8B8: return fromDDS_R8G8B8;
                         case DdsFormat.R5G6B5: return fromDDS_R5G6B5;
                         case DdsFormat.A8L8: return fromDDS_A8L8;
+                        case DdsFormat.L8: return fromDDS_L8;
                     }
                     return null;
                 }
@@ -492,6 +515,12 @@ namespace System.Drawing
                     uint L = pixelColour & 0x000000FF;
 
                     return A << 24 | L << 16 | L << 8 | L;
+                }
+                static uint fromDDS_L8(uint pixelColour)
+                {
+                    uint L = pixelColour & 0x000000FF;
+
+                    return ((uint)0xff << 24) | L << 16 | L << 8 | L;
                 }
                 #endregion
 
@@ -908,6 +937,7 @@ namespace System.Drawing
             DXT5,
             ATI1,
             ATI2,
+            L8,
             A8R8G8B8,
             X8R8G8B8,
             A8B8G8R8,
@@ -1070,6 +1100,7 @@ namespace System.Drawing
         bool useDXTCompression = false;
         bool useATICompression = false;
         bool useLuminence = false;
+        int luminenceMode = 0;
         int alphaDepth = 0;
         int atiMode = 0;
         uint numMipMaps = 1;
@@ -1151,6 +1182,7 @@ namespace System.Drawing
             this.useDXTCompression = true;
             this.useATICompression = false;
             this.useLuminence = false;
+            this.luminenceMode = 0;
             this.alphaDepth = 5;
             this.atiMode = 0;
 
@@ -1177,6 +1209,7 @@ namespace System.Drawing
             this.useDXTCompression = image.useDXTCompression;
             this.useATICompression = image.useATICompression;
             this.useLuminence = image.useLuminence;
+            this.luminenceMode = image.luminenceMode;
             this.alphaDepth = image.alphaDepth;
             this.atiMode = image.atiMode;
 
@@ -1212,9 +1245,11 @@ namespace System.Drawing
                 this.currentImage = new uint[width * height];
                 this.SetPixels((x, y, unused) => 0);
                 this.baseImage = (uint[])this.currentImage.Clone();
-
-                Bitmap alpha = new Bitmap(image.GetGreyscaleFromAlpha(), width, height);
-                this.SetAlphaFromGreyscale(alpha);
+                if (luminenceMode == 16)
+                {
+                    Bitmap alpha = new Bitmap(image.GetGreyscaleFromAlpha(), width, height);
+                    this.SetAlphaFromGreyscale(alpha);
+                }
             }
             else if (alphaDepth == 0)
             {
@@ -1323,6 +1358,7 @@ namespace System.Drawing
                 case Dds.DdsFormat.ATI1: useATICompression = true; atiMode = 1; break;
                 case Dds.DdsFormat.ATI2: useATICompression = true; atiMode = 2; break;
                 case Dds.DdsFormat.A8L8: useLuminence = true; alphaDepth = 8; break;
+                case Dds.DdsFormat.L8: useLuminence = true; alphaDepth = 0; break;
                 case Dds.DdsFormat.A1R5G5B5: alphaDepth = 1; break;
                 case Dds.DdsFormat.A4R4G4B4: alphaDepth = 4; break;
                 case Dds.DdsFormat.A8B8G8R8:
@@ -1356,7 +1392,14 @@ namespace System.Drawing
                     default: ddsFormat = Dds.DdsFormat.ATI2; break;
                 }
             else if (useLuminence)
-                ddsFormat = Dds.DdsFormat.A8L8;
+                if (alphaDepth == 0)
+                {
+                    ddsFormat = Dds.DdsFormat.L8;
+                }
+                else
+                {
+                    ddsFormat = Dds.DdsFormat.A8L8;
+                }
             else
                 switch (alphaDepth)
                 {
@@ -1439,8 +1482,8 @@ namespace System.Drawing
         }
 
         /// <summary>
-        /// If true, treat the image as a luminance (plus alpha) map for storage.
-        /// Currently only A8L8, 16bit coding is supported.
+        /// If true, treat the image as a luminance (with or without alpha) map for storage.
+        /// Currently only A8L8, 16bit and L8, 8 bit coding are supported.
         /// Setting to false (from true) will default to A8B8G8R8 (non-DXT) format.
         /// </summary>
         public bool UseLuminance
