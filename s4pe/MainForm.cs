@@ -3362,53 +3362,156 @@ namespace S4PIDemoFE
 
         private void button1_Click(object sender, EventArgs e)
         {
-            progressBar1.Value=0;
+            progressBar1.Value = 0;
             progressBar1.Maximum = 100;
-            string dirPath = textBox1.Text;
-            string savepath =textBox2.Text; 
-            Console.WriteLine("pathName" + dirPath);
-            string[] files = GetFileNames(dirPath,"*.package",true);
-            if (files == null)
+            button1.Enabled = false;
+            //Func<string> export = () => exportAll();
+            //export.BeginInvoke((de) => {
+            //    string ret = export.EndInvoke(de);
+            //    BeginInvoke(new Action<string>(showFinalBox), ret);
+            //}, null);
+            PackageHandler mHandler = new PackageHandler();
+            String logDir = mHandler.dirMod + "log/";
+            if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+            String logFileName = String.Format("log_{0}.txt", DateTime.Now.ToString("HHmmss"));
+            String casLogFile = String.Format("log_casType_{0}.txt", DateTime.Now.ToString("HHmmss"));
+            String casTypesLogFile = String.Format("log_casCounts_{0}.txt", DateTime.Now.ToString("HHmmss"));
+            try
             {
-                return;
+                mHandler.HLogHandler = new HLogHandler(logDir + logFileName);
+                mHandler.CRecoder = new CASRecorder(logDir + casLogFile);
+                mHandler.CoutsRecorder = new CasTypeRecorder(logDir + casTypesLogFile);
             }
-            int len=files.Length;
-            String getPaths= "";
+            catch (Exception mex)
+            {
+                Console.WriteLine(mex);
+            }
+            string dirPath = textBox1.Text;
+            Func<string> export = () => mHandler.exportAll(dirPath, this);
+            export.BeginInvoke((de) => {
+                string ret = export.EndInvoke(de);
+                mHandler.ApendLineLog("执行结果:" + ret);
+                mHandler.Release();
+                BeginInvoke(new Action<string>(showFinalBox), ret);
+            }, null);
+        }
+
+
+        public void updateProgress(int persent)
+        {
+            progressBar1.Value = persent;
+        }
+
+        public void showFinalBox(string p)
+        {
+            MessageBox.Show("结果：" + p);
+            button1.Enabled = true;
+        }
+
+
+        public static string[] GetFileNames(string directoryPath, string searchPattern, bool isSearchChild)
+        {
+            //如果目录不存在，则抛出异常  
+            try
+            {
+                if (!Directory.Exists(directoryPath))
+                {
+                    throw new FileNotFoundException(String.Format("目录'{0}'不存在", directoryPath));
+                }
+
+                return Directory.GetFiles(directoryPath, searchPattern, isSearchChild ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+            }
+            catch (Exception e)
+            {
+                throw new IOException("搜索package出错" , e);
+            }
+        }
+
+        public string getExMsg(Exception e)
+        {
+            StringBuilder builder = new StringBuilder();
+            Exception tempEx = e;
+            if (tempEx == null)
+            {
+                return "null parameter e!!!!";
+            }
+            builder.AppendLine("[error] msg: " + tempEx.Message);
+            builder.AppendLine("[error] detail: " + tempEx.StackTrace);
+            while (tempEx.InnerException != null)
+            {
+                tempEx = tempEx.InnerException;
+                builder.AppendLine("[error] causedBy: " + tempEx.Message);
+                builder.AppendLine("[error] detail: " + tempEx.StackTrace);
+            }
+            return builder.ToString();
+        }
+
+        public string exportAll()
+        {
+            string dirPath = textBox1.Text;
+            Console.WriteLine("pathName" + dirPath);
+
+            string[] files = null;
+            try
+            {
+
+                files = GetFileNames(dirPath, "*.package", true);
+            }
+            catch (Exception dirEx)
+            {
+                return "获取目录权限失败，请使用管理员身份运行,详细错误：" + dirEx.Message;
+            }
+            if (files == null || files.Length == 0)
+            {
+                return "当前目录无package结尾的模组文件";
+            }
+            DateTime t1 = DateTime.Now;
+            int len = files.Length;
             String result = "path:";
-            String projectDir=System.Environment.CurrentDirectory;
+            String projectDir = System.Environment.CurrentDirectory;
             string path = "";
-            if(System.Environment.CurrentDirectory  ==  AppDomain.CurrentDomain.BaseDirectory){
+            if (System.Environment.CurrentDirectory == AppDomain.CurrentDomain.BaseDirectory)
+            {
                 path = AppDomain.CurrentDomain.BaseDirectory;
             }//Windows应用程序则相等
-             else{
-                 path = AppDomain.CurrentDomain.BaseDirectory ;
-          
+
+            else
+            {
+                path = AppDomain.CurrentDomain.BaseDirectory;
             }
-            getPaths += "AppDomain:" + AppDomain.CurrentDomain.BaseDirectory + "\n";
-            getPaths += "CurrentDirectory:" + System.Environment.CurrentDirectory+"\n";
-            getPaths += "Directory.CurrentDirectory:" + Directory.GetCurrentDirectory() + "\n";
-            getPaths += "Application.ExecutablePath:" + Application.ExecutablePath + "\n";
-            getPaths += "Application.StartupPath:" + Application.StartupPath + "\n";
-            //MessageBox.Show(getPaths); 
             projectDir = path;
             projectDir = "d:/";
             String logFileName = String.Format("log_{0}.txt", DateTime.Now.ToString("HHmmss"));
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(getPaths);
-            for(int i=0;i<len;i++){
-                string s=files[i];
-                result += s+"\n";
-                Console.WriteLine("package:"+s);
-                progressBar1.Value=i*100/len;
-                readPackageAndExport(s, sb);
+            for (int i = 0; i < len; i++)
+            {
+                string s = files[i];
+                result += s + "\n";
+                //progressBar1.BeginInvoke
+                //progressBar1.Value=i*100/len;
+                int persent = i * 100 / len;
+                try
+                {
+                    ReadPackageAndExport(s, sb);
+                    BeginInvoke(new Action<int>(updateProgress), persent);
+                }
+                catch (Exception e2)
+                {
+                    sb.AppendLine("[error] readPackageError:"+s);
+                    sb.AppendLine(GetExMsg(e2));
+                    //MessageBox.Show("写入日志出错:" + e2.Message);
+                }
+                //ReadPackageAndExport(s, sb);
+                //BeginInvoke(new Action<int>(updateProgress), persent);
             }
-            sb.Append("===================================");
-            sb.Append("export Files:"+result);
+            sb.AppendLine("===================================");
+            sb.AppendLine("export Files:\n" + len);
             byte[] b = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
             try
             {
                 string dirMod = Path.Combine(projectDir, "/modlogs/");
-                if (!Directory.Exists(dirMod)) {
+                if (!Directory.Exists(dirMod))
+                {
                     Directory.CreateDirectory(dirMod);
                 }
                 string logFile = Path.Combine(dirMod, logFileName);
@@ -3416,317 +3519,283 @@ namespace S4PIDemoFE
                 logStream.Write(b, 0, b.Length);
                 logStream.Close();
             }
-            catch (Exception e2){
-                MessageBox.Show("写入日志出错:" + e2.Message);
+            catch (Exception e2)
+            {
+                //MessageBox.Show("写入日志出错:" + e2.Message);
+                return "写入日志出错:" + GetExMsg(e2);
             }
-            MessageBox.Show("导出完成");
-            //MessageBox.Show("result:" + result);
-            //FileInfo fInfo = new FileInfo(dirPath);  
-            //FileStream file =  File.Create(dirPath);
-        }
-        //public void readPackageAndExport(string filePath,StringBuilder builder) {
-        //    IPackage tempPackage = Package.OpenPackage(0, filePath);
-        //    List<IResourceIndexEntry> tempListEntry = tempPackage.GetResourceList;
-        //    builder.Append("currentFile:" + filePath + "\n");
-        //    for (int i = 0; i < tempListEntry.Count; i++)
-        //    {
-        //        IResourceIndexEntry entry = tempListEntry[i];
-        //        uint type = entry.ResourceType;
-        //        IResource res = WrapperDealer.GetResource(0, tempPackage, entry, false);
-        //        Stream data = res.Stream;
-        //        ulong valueInstance = entry.Instance;
-        //        String str16 = "0x" + valueInstance.ToString("X8");
-        //        String type16 = type.ToString("X8");
-        //        string path = filePath.Substring(filePath.LastIndexOf("/") + 1) + str16;
-        //        //以路径为参数创建文件
-               
-        //        Console.WriteLine("nowPath:" + filePath);
-        //        Console.WriteLine("type16:" + type16);
-        //        string formatPath = filePath;
-        //        FileStream fs = null;
-        //        //11720834为图片    2113017500为xml文件，解析xml文件得到图片和动作代码，文件的映射
 
-        //        if (type == 11720834)
-        //        {
-        //            builder.Append("img:" + str16 + "\n");
-        //            try
-        //            {
-        //                DDSControl conn = new DDSControl(data);
-        //                DDSPanel ddsp = (DDSPanel)conn.ValueControl;
-        //                //conn.GetContextMenuItems
-        //                path = formatPath.Substring(0, formatPath.LastIndexOf(".") - 2) + "_" + str16 + ".jpg";
-        //                fs = File.Create(path);
-        //                try
-        //                {
-        //                    ddsp.Image.Save(fs, System.Drawing.Imaging.ImageFormat.Jpeg);
-        //                    ddsp.Dispose();
-        //                }
-                        
-        //                catch (Exception we) {
-        //                    builder.Append("##error:" + we.Message);
-        //                }
-                        
-        //                fs.Close();
-        //            }
-        //            catch (Exception temp)
-        //            {
-        //                string s = "";
-        //                for (Exception inex = temp; inex != null; inex = inex.InnerException)
-        //                {
-        //                    s += "\r\nSource: " + inex.Source;
-        //                    s += "\r\nAssembly: " + inex.TargetSite.DeclaringType.Assembly.FullName;
-        //                    s += "\r\n" + inex.Message;
-        //                    s += "\r\n----\r\nStack trace:\r\n" + inex.StackTrace + "\r\n----\r\n";
-        //                }
-        //                IResourceIndexEntry rie =entry;
-        //                if (rie != null)
-        //                {
-        //                    s += "Error reading resource " + rie;
-        //                }
-        //                s += string.Format("\r\nFront-end Distribution: {0}\r\nLibrary Distribution: {1}\r\n",
-        //                    Version.CurrentVersion,
-        //                    Version.LibraryVersion);
-        //                builder.Append(String.Format("Error at{0}:", filePath));
-        //                MessageBox.Show(temp.GetBaseException().Message + " detail:" + s);
-        //            }
-        //        }
-        //        else if (type == 2113017500)
-        //        {
-        //            builder.Append("xml:" + str16 + "\n");
-        //            path = formatPath.Substring(0, formatPath.LastIndexOf(".") - 2) + ".txt";
-        //            fs = File.Create(path);
-        //            String result = "";
-                  
-        //            if (this.HasStringValueContentField(res))
-        //            {
-        //                result = res["Value"];
-        //                Console.WriteLine("HasStringValueContentField:" + result);
-        //            }
-        //            else
-        //            {
-        //                result = new StreamReader(res.Stream).ReadToEnd();
-        //                Console.WriteLine("zjy file text:" + result);
-        //            }
-        //            try
-        //            {
-        //                result = parseXml(result);
-        //                builder.Append("final Result:" + result);
-        //            }
-        //            catch(Exception e2) {
-        //                string s = e2.Message;
-        //                if (s != null)
-        //                {
-        //                    builder.Append("xml 解析异常" + e2 + "\n");
-        //                }
-        //                else {
-        //                    builder.Append("xml 解析异常" + "\n");
-        //                }
-        //            }
-                  
-        //            byte[] bytedata = System.Text.Encoding.Default.GetBytes(result);
-        //            fs.Write(bytedata, 0, bytedata.Length);
-        //            fs.Close();
-        //        }
-        //    }   
-        //}
-        public string parseXml(String xmlStr)
+            //long duration = long.Parse((DateTime.Now - t1).TotalMilliseconds.ToString());
+            int duration = (int)((DateTime.Now - t1).TotalMilliseconds);
+            int minute = duration / 1000 / 60;
+            int second = duration / 1000;
+            string timeLong = "";
+            if (minute == 0)
+            {
+                timeLong = second + "毫秒";
+            }
+            else
+            {
+                timeLong = minute + "分" + second + "毫秒";
+            }
+            return "导出完成，总共找到模组文件：" + len + ",耗时：" + timeLong;
+        }
+
+
+
+        public string GetExMsg(Exception e)
         {
             StringBuilder builder = new StringBuilder();
-            var doc = new XmlDocument();
-            doc.LoadXml(xmlStr);
-            XmlNode rootNode = doc.FirstChild;
-            Console.WriteLine(rootNode.Attributes);
-            XmlNodeList rowNoteList = rootNode.ChildNodes;
-            if (rowNoteList != null)
+            Exception tempEx = e;
+            if (tempEx == null)
             {
-                foreach (XmlNode rowNode in rowNoteList)
-                {
-                    int counts=rowNode.Attributes.Count;
-                    if (counts == 0) {
-                        continue;
-                    }
-                    string vName = rowNode.Attributes[0].Value;
-                    if ("display_name".Equals(vName))
-                    {
-                        builder.Append("-----动作列表显示名称：" + rowNode.Value);
-                    }
-                    if (!"pose_list".Equals(vName))
-                    {
-                        continue;
-                    }
-                    var fieldNodeList = rowNode.ChildNodes;
-                //     <T n="pose_name">MrAnalot:PosePack_201611142217384402_set_1</T>
-            //<T n="pose_display_name">0xE1A61E82</T>
-            //<T n="pose_description">0x1C3F0D1C</T>
-            //<T n="sort_order">1</T>
-            //<T n="icon">2f7d0004:00000000:c09701ad96c8f459</T>
-                    foreach (XmlNode courseNode in fieldNodeList)
-                    {
-                        var finalValues = courseNode.ChildNodes;
-                        foreach(XmlNode fn in finalValues){
-                            string name = fn.Attributes[0].Value;
-                            string asName = "";
-                            string asValue="";
-                            switch(name){
-                                case "pose_name":
-                                    asName = "动作指令:";
-                                    
-                                    break;
-                                case "pose_description":
-                                    asName = "动作描述:";
-                                    break;
-                                case "pose_display_name":
-                                    asName = "显示名称:";
-                                    break;
-                                case "icon":
-                                    asName = "显示图标名称（对照生成的图片文件名）:";
-
-                                    break;
-
-                                case "sort_order":
-                                    asName = "序号";
-                                    break;
-                            }
-                            asValue = fn.Value;
-                            if (name.Equals("icon"))
-                            {
-                                asValue = asValue.Substring(asValue.LastIndexOf(":"));
-                            }
-                            builder.Append(asName + asValue);
-                            builder.Append("\n");
-                        }
-                        builder.Append("\n");
-                    }
-                 
-                }
+                return "null parameter e!!!!";
+            }
+            builder.AppendLine("[error] msg: " + tempEx.Message);
+            builder.AppendLine("[error] detail: " + tempEx.StackTrace);
+            while (tempEx.InnerException != null)
+            {
+                tempEx = tempEx.InnerException;
+                builder.AppendLine("[error] causedBy: " + tempEx.Message);
+                builder.AppendLine("[error] detail: " + tempEx.StackTrace);
             }
             return builder.ToString();
         }
-
-        public static string[] GetFileNames(string directoryPath, string searchPattern, bool isSearchChild)
-        {
-            //如果目录不存在，则抛出异常  
-            try
-            {
-            if (!Directory.Exists(directoryPath))
-            {
-                throw new FileNotFoundException(String.Format("目录'{0}'不存在", directoryPath));
-            }
-            
-                return Directory.GetFiles(directoryPath, searchPattern, isSearchChild ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-            }
-            catch(Exception e)
-            {
-                MessageBox.Show("搜索出错："+e);
-                return null;
-            }
-        }
-        public string getExMsg( Exception e) {
-            StringBuilder builder = new StringBuilder();
-            builder.AppendLine("[error] msg: " + e.Message);
-            builder.AppendLine("[error] detail: " + e.StackTrace);
-            return builder.ToString();
-        }
-        public void readPackageAndExport(string filePath, StringBuilder builder)
+        public bool ReadPackageAndExport(string filePath, StringBuilder builder)
         {
             IPackage tempPackage = null;
             try
             {
                 tempPackage = Package.OpenPackage(0, filePath);
+                tempPackage.Dispose();
             }
             catch (Exception e)
             {
                 builder.AppendLine("[OpenError]" + filePath);
-                builder.AppendLine(getExMsg(e));
+                builder.AppendLine(GetExMsg(e));
             }
             if (tempPackage == null)
             {
-                return;
+                return false;
             }
+            int nIndex1 = filePath.LastIndexOf("\\");
+            int nIndex2 = filePath.LastIndexOf(".");
+            string pkName = filePath.Substring(nIndex1 + 1, nIndex2 - nIndex1 - 1);
             List<IResourceIndexEntry> tempListEntry = tempPackage.GetResourceList;
-            builder.Append("currentFile:" + filePath + "\n");
             string strEntry = "";
-            int j = 0;
+            string casTypes = "";
+            StringBuilder casBuilder = new StringBuilder();
             List<S4PoseInfo> poseList = null;
             string dirMod = "d:/modlogs/imgs/";
             if (!Directory.Exists(dirMod))
             {
                 Directory.CreateDirectory(dirMod);
             }
+            Dictionary<string, string> dicStrEntry = new Dictionary<string, string>();
             for (int i = 0; i < tempListEntry.Count; i++)
             {
                 IResourceIndexEntry entry = tempListEntry[i];
                 uint type = entry.ResourceType;
                 int reqApi = entry.RequestedApiVersion;
+                uint group = entry.ResourceGroup;
                 int recommendedApi = entry.RecommendedApiVersion;
-                Stream s = entry.Stream;
-                builder.AppendLine(String.Format("reqApi:{0} recommendedApi:{1}",reqApi,recommendedApi));
+                if (reqApi != 0 || recommendedApi != 2)
+                {
+                    builder.AppendLine(String.Format("reqApi:{0} recommendedApi:{1}", reqApi, recommendedApi));
+                }
+                //can't deal with:
+                //GEOM 0x015A1849 ,55242443
+                //RMAP  2887187436
+                if (type == 0x015A1849 || type == 2887187436)
+                {
+                    continue;
+                }
                 IResource res = null;
-                try {
+                try
+                {
                     res = WrapperDealer.GetResource(recommendedApi, tempPackage, entry, false);
                     //res = WrapperDealer.GetResource(recommendedApi, tempPackage, entry, true);
-                } catch (Exception e){
-                    builder.AppendLine("[error]:GetResource Error");
-                    builder.AppendLine(getExMsg(e));
                 }
-                if (res == null) {
+                catch (Exception e)
+                {
+                    builder.Append("currentFile:" + filePath + "\n");
+                    builder.AppendLine("[bug]:GetResource Error:" + type + " group:" + group);
+                    builder.AppendLine(GetExMsg(e));
+                }
+                if (res == null)
+                {
                     builder.AppendLine("");
                     continue;
                 }
+
+
                 //11720834为图片    2113017500为xml文件，解析xml文件得到图片和动作代码，文件的映射
                 //_xml
                 if (type == 2113017500)
                 {
-                    j++;
                     string result = "";
                     try
                     {
                         if (this.HasStringValueContentField(res))
                         {
                             result = res["Value"];
-                            builder.AppendLine("get result By :HasStringValueContentField:");
+                            builder.AppendLine("[debug] get result By :HasStringValueContentField:");
                         }
                         else
                         {
                             result = new StreamReader(res.Stream).ReadToEnd();
-                            builder.AppendLine("get result By :StreamReader.ReadToEnd:");
+                            builder.AppendLine("[debug] get result By :StreamReader.ReadToEnd:");
                         }
-                        builder.AppendLine("[xml] :\n" + result);
-                        poseList = ParseXmlTolist(result);
+                        poseList = ParseXmlTolist(result, builder);
+                        if (poseList == null || poseList.Count == 0)
+                        {
+                            builder.AppendLine("[bug] xml :\n" + result);
+                        }
                     }
                     catch (Exception e2)
                     {
                         builder.AppendLine("[error] xml 解析异常");
-                        builder.AppendLine(getExMsg(e2));
+                        builder.AppendLine(GetExMsg(e2));
                         continue;
                     }
+                } //STBL
+                else if (type == 0x220557DA)
+                {
+                    if (strEntry.Equals(""))
+                    {
+                        if (this.HasStringValueContentField(res))
+                        {
+                            strEntry = res["Value"];
+                            builder.AppendLine("[debug] get result By  value");
+                        }
+                        else
+                        {
+                            strEntry = new StreamReader(res.Stream).ReadToEnd();
+                            builder.AppendLine("[debug] get result By  readToEnd");
+                        }
+                        int start = 0;
+                        while ((start = strEntry.IndexOf("Key", start + 1)) != -1)
+                        {
+                            int maohaoIndex = strEntry.IndexOf(":", start);
+                            int dotIndex = strEntry.IndexOf(",", start);
+                            int endIndex = strEntry.IndexOf("\n", start);
+                            string key = strEntry.Substring(start + 4, dotIndex - start - 4);
+                            string value = strEntry.Substring(maohaoIndex + 2, endIndex - maohaoIndex - 2);
+                            dicStrEntry.Add(key, value);
+                            builder.AppendLine("id:" + key + "\tvalue:" + value);
+                            //string name=strEntry.Substring()
+
+                        }
+                        if (dicStrEntry.Count == 0)
+                        {
+                            builder.AppendLine(String.Format("bug STBL:{0}", strEntry));
+                        }
+                    }
+                }
+                //导出CAS服装信息：
+                //BodyType: 0x00000001(Hat)
+                //BodySubType: 0x00000001
+                //AgeGender: 0x00002078(Teen, YoungAdult, Adult, Elder, Female)
+                else if (type == 0x034AEECB)
+                {
+                    if ("".Equals(casTypes))
+                    {
+                        casTypes += "";
+
+                        casBuilder.AppendLine("cas:" + pkName);
+                        string casInfo = "";
+                        if (this.HasStringValueContentField(res))
+                        {
+                            casInfo = res["Value"];
+                            casBuilder.AppendLine("[debug] get result By  value");
+                        }
+                        else
+                        {
+                            casInfo = new StreamReader(res.Stream).ReadToEnd();
+                            casBuilder.AppendLine("[debug] get result By  readToEnd");
+                        }
+                        int index1 = casInfo.IndexOf("BodyType");
+                        int index2 = casInfo.IndexOf("BodySubType");
+                        int index3 = casInfo.IndexOf("AgeGender");
+                        int end1 = casInfo.IndexOf("\n", index1);
+                        int end2 = casInfo.IndexOf("\n", index2);
+                        int end3 = casInfo.IndexOf("\n", index3);
+                     
+                        if (index1 >= 0 && end1 >= 0)
+                        {
+                            int k1 = casInfo.IndexOf("(", index1);
+                            int nk1 = casInfo.IndexOf(")", k1);
+
+                            //casBuilder.AppendLine("类别：" + casInfo.Substring(index1 + 8, end1 - index1 - 8));
+                            casBuilder.AppendLine("类别：" + casInfo.Substring(k1 + 1, nk1 - k1 - 1));
+                        }
+                        if (index2 >= 0 && end2 >= 0)
+                        {
+                            int k2 = casInfo.IndexOf("(", index2);
+                            int nk2 = casInfo.IndexOf(")", k2);
+
+                            //casBuilder.AppendLine("子类别：" + casInfo.Substring(index2 + 11, end2 - index2 - 11));
+                            casBuilder.AppendLine("子类别：" + casInfo.Substring(k2 + 1, nk2 - k2 - 1));
+
+                        }
+                        if (index3 >= 0 && end3 >= 0)
+                        {
+                            int k3 = casInfo.IndexOf("(", index3);
+                            int nk3 = casInfo.IndexOf(")", k3);
+                            //casBuilder.AppendLine("适用年龄：" + casInfo.Substring(index3 + 9, end3 - index3 - 9));
+                            casBuilder.AppendLine("适用年龄：" + casInfo.Substring(k3 + 1, nk3 - k3 - 1));
+                        }
+                    }
+                    casTypes = casBuilder.ToString();
                 }
             }
-            builder.AppendLine("[xmlCounts]" + j);
+            if (!"".Equals(casTypes))
+            {
+                builder.AppendLine("casTypes:" + casTypes);
+            }
             //只导出pose
-            if (j != 0)
+            if (poseList != null && poseList.Count > 0)
             {
                 for (int i = 0; i < tempListEntry.Count; i++)
                 {
                     //图片img资源
                     IResourceIndexEntry entry = tempListEntry[i];
                     uint type = entry.ResourceType;
-                    IResource res = WrapperDealer.GetResource(0, tempPackage, entry, false);
+                    int reqApi = entry.RequestedApiVersion;
+                    uint group = entry.ResourceGroup;
+                    int recommendedApi = entry.RecommendedApiVersion;
+                    IResource res = null;
+                    try
+                    {
+                        res = WrapperDealer.GetResource(recommendedApi, tempPackage, entry, false);
+                        //res = WrapperDealer.GetResource(recommendedApi, tempPackage, entry, true);
+                    }
+                    catch (Exception e)
+                    {
+                        builder.Append("currentFile:" + filePath + "\n");
+                        builder.AppendLine("[error]:GetResource Error:" + type + " group:" + group);
+                        builder.AppendLine(GetExMsg(e));
+                    }
+                    if (res == null)
+                    {
+                        builder.AppendLine("");
+                        continue;
+                    }
                     Stream data = res.Stream;
+                    //Stream data = entry.ContentFields.Find["Stream"];
                     ulong valueInstance = entry.Instance;
                     String str16 = valueInstance.ToString("X8");
                     String type16 = type.ToString("X8");
                     string path = "";
 
                     //以路径为参数创建文件
-                    builder.AppendLine(String.Format("img instance16:{0} origin:{1} ", str16, valueInstance));
-                    builder.AppendLine("nowPath:" + filePath);
-                    builder.AppendLine("type16:" + type16);
-                    string formatPath = filePath;
-                    path = formatPath.Substring(0, formatPath.LastIndexOf(".")) + "_" + str16 + ".jpg";
+                    string formatPath = filePath.Replace("\\\\", "/");
                     FileStream fs = null;
+                    //   THUM 0x3C1AF1F2
+                    //   _IMG 11720834
                     if (type == 11720834)
                     {
+                        builder.AppendLine(String.Format("img instance16:{0} origin:{1} ", str16, valueInstance));
                         try
                         {
                             if (data == null)
@@ -3737,40 +3806,59 @@ namespace S4PIDemoFE
                             DDSControl conn = new DDSControl(data);
                             DDSPanel ddsp = (DDSPanel)conn.ValueControl;
                             //conn.GetContextMenuItems
+                            path = dirMod + pkName + "_not in List_" + str16 + ".jpg";
                             //path = formatPath.Substring(0, formatPath.LastIndexOf(".") ) + "_" + str16 + ".jpg";
                             for (int k = 0; k < poseList.Count; k++)
                             {
                                 S4PoseInfo info = poseList[k];
-                                if (info.PoseIcon.ToUpper().Equals(type16.ToUpper()))
+                                if (info.PoseIcon.ToUpper().Equals(str16.ToUpper()))
                                 {
-                                    info.imgPath = path;
                                     //path = formatPath.Substring(0, formatPath.LastIndexOf(".")) + "_" + str16 +"_"+info.PoseCmd+ ".jpg";
-                                    path = dirMod+ formatPath.Substring(formatPath.LastIndexOf("/") + 1) + "_" + info.PoseCmd + ".jpg";
+                                    //path = dirMod + formatPath.Substring(formatPath.LastIndexOf("/") + 1) + "_" + info.PoseCmd.Replace(":","-") + ".jpg";
+                                    path = dirMod + info.PoseCmd.Replace(":", "-") + ".jpg";
+                                    info.imgPath = path;
+                                    break;
                                 }
 
                             }
+                            builder.AppendLine("[debug]:use imgPath " + path);
+
                             if (!File.Exists(path))
                             {
-                                fs = File.Create(path);
+                                //fs = File.Create(path);
                             }
+
                             else
                             {
                                 builder.AppendLine("[debug]:img " + path + " is exists");
                                 continue;
                             }
+                            fs = File.Open(path, FileMode.Create);
                             try
                             {
                                 Image img = ddsp.Image;
                                 if (img == null)
                                 {
-
+                                    ddsp.Dispose();
                                     builder.AppendLine("[error]:img is null");
                                     continue;
                                 }
                                 else
                                 {
+                                    string nPath = path;
+                                    int nIndex = i;
+                                    int size = poseList.Count;
                                     Image cImg = new Bitmap(img, new Size(img.Width, img.Height));
-                                    cImg.Save(fs, System.Drawing.Imaging.ImageFormat.Jpeg);
+                                    if (fs.CanWrite)
+                                    {
+                                        cImg.Save(fs, System.Drawing.Imaging.ImageFormat.Jpeg);
+                                        
+                                        fs.Close();
+                                    }
+                                    else {
+                                        builder.AppendLine("[bug] can't write:"+path);
+                                    }
+                                    cImg.Dispose();
                                     ddsp.Dispose();
                                 }
                             }
@@ -3781,19 +3869,14 @@ namespace S4PIDemoFE
                                 builder.AppendLine("[error]:" + we.StackTrace);
                                 builder.Append("\n");
                             }
-
-                            fs.Close();
+                            finally {
+                                fs.Close();
+                            }
                         }
                         catch (Exception temp)
                         {
                             string s = "";
-                            for (Exception inex = temp; inex != null; inex = inex.InnerException)
-                            {
-                                s += "\r\nSource: " + inex.Source;
-                                s += "\r\nAssembly: " + inex.TargetSite.DeclaringType.Assembly.FullName;
-                                s += "\r\n" + inex.Message;
-                                s += "\r\n----\r\nStack trace:\r\n" + inex.StackTrace + "\r\n----\r\n";
-                            }
+                            s += GetExMsg(temp);
                             IResourceIndexEntry rie = entry;
                             if (rie != null)
                             {
@@ -3802,130 +3885,117 @@ namespace S4PIDemoFE
                             s += string.Format("\r\nFront-end Distribution: {0}\r\nLibrary Distribution: {1}\r\n",
                                 Version.CurrentVersion,
                                 Version.LibraryVersion);
-                            builder.AppendLine(String.Format("Error at{0}:", filePath));
-                            MessageBox.Show(temp.GetBaseException().Message + " detail:" + s);
+                            builder.AppendLine(String.Format("Error at{0},\nCaused By:{1}", filePath, s));
                         }
                     }
-                    //STBL
-                    else if (type == 0x220557DA)
-                    {
-                        if (!strEntry.Equals(""))
-                        {
-                            if (this.HasStringValueContentField(res))
-                            {
-                                strEntry = res["Value"];
-                            }
-                            else
-                            {
-                                strEntry = new StreamReader(res.Stream).ReadToEnd();
-                            }
-                            builder.Append(String.Format("strEntry:{0}", strEntry));
-                            builder.Append("\n");
-                        }
 
+                }
+            }
+            //修改pose图片名称-cmd 映射
+            if (poseList != null && poseList.Count > 0)
+            {
+                for (int k = 0; k < poseList.Count; k++)
+                {
+                    S4PoseInfo info = poseList[k];
+                    string dexName = info.PoseName;
+                    string value = dicStrEntry[dexName];
+                    if (value != null & !"".Equals(value))
+                    {
+                        info.PoseName = value;
+                    }
+                    else
+                    {
+                        value = dexName;
+                    }
+                    string formatePath = info.imgPath;
+                    if (formatePath == null)
+                    {
+                        builder.AppendLine("[bug] img" + value);
+                        continue;
+                    }
+                    string newName = string.Format("{0}_{1}@({2}).jpg", pkName, value, info.PoseCmd.Replace(":", "%"));
+                    //string newName = string.Format("{0}_{1}@({2})",); pkName + "_" + value + "@" + info.PoseCmd.Replace(":", "%")+".jpg";
+                    string newImgPath = formatePath.Substring(0, formatePath.LastIndexOf("/") + 1) + newName;
+                    builder.AppendLine("new IMGName:" + newName);
+                    if (File.Exists(newImgPath))
+                    {
+                        continue;
+                    }
+                    if (!File.Exists(formatePath))
+                    {
+                        builder.AppendLine("[bug] img " + formatePath + " not exists");
+                    }
+                    else
+                    {
+                        FileInfo fileInfo = new FileInfo(formatePath);
+                        fileInfo.MoveTo(newImgPath);
+                        fileInfo.Delete();
                     }
                 }
             }
+            return true;
         }
 
-        public List<S4PoseInfo> ParseXmlTolist(string xmlStr)
-
+        public List<S4PoseInfo> ParseXmlTolist(string xmlStr, StringBuilder builder)
         {
             List<S4PoseInfo> poses = new List<S4PoseInfo>();
-            StringBuilder builder = new StringBuilder();
-            var doc = new XmlDocument();
             try
             {
-
+                XmlDocument doc = new XmlDocument();
                 doc.LoadXml(xmlStr);
-                XmlNodeList rowNoteList = doc.FirstChild.ChildNodes;
-                if (rowNoteList != null)
+                XmlNodeList listNode = doc.GetElementsByTagName("L");
+                XmlNode ln = listNode[0];
+                foreach (XmlNode courseNode in ln.ChildNodes)
                 {
-                    foreach (XmlNode rowNode in rowNoteList)
+                    XmlNodeList finalValues = courseNode.ChildNodes;
+                    S4PoseInfo poseInfo = new S4PoseInfo();
+                    foreach (XmlNode fn in finalValues)
                     {
-                        int counts = rowNode.Attributes.Count;
-                        if (counts == 0)
+                        string name = fn.Attributes[0].Value;
+                        string asName = "";
+                        string asValue = "";
+                        switch (name)
                         {
-                            continue;
+                            case "pose_name":
+                                asName = "动作指令:";
+                                poseInfo.PoseCmd = fn.InnerText;
+                                break;
+                            case "pose_description":
+                                asName = "动作描述:";
+                                break;
+                            case "pose_display_name":
+                                asName = "显示名称:";
+                                poseInfo.PoseName = fn.InnerText;
+                                break;
+                            case "icon":
+                                asName = "显示图标名称（对照生成的图片文件名）:";
+                                string value = fn.InnerText;
+                                poseInfo.PoseIcon = value.Substring(value.LastIndexOf(":") + 1);
+                                builder.AppendLine("pose:" + poseInfo.PoseIcon);
+                                break;
+                            case "sort_order":
+                                asName = "序号";
+                                break;
                         }
-                        string vName = rowNode.Attributes[0].Value;
-                        if ("display_name".Equals(vName))
+                        asValue = fn.InnerText;
+                        if (name.Equals("icon"))
                         {
-                            builder.AppendLine("动作列表显示名称：" + rowNode.Value);
+                            asValue = asValue.Substring(asValue.LastIndexOf(":") + 1);
                         }
-                        if (vName.Equals("s4s_mod_type"))
-                        {
-                            string nodeText = rowNode.InnerText;
-                            bool isPosePack = false;
-                            if ("POSE_PACK".Equals(nodeText))
-                            {
-                                isPosePack = true;
-                            }
-                            builder.Append("modType:" + nodeText + "\tisPose:" + isPosePack);
-                            builder.Append("\n");
-                        }
-                        if (!"pose_list".Equals(vName))
-                        {
-                            continue;
-                        }
-
-                        var fieldNodeList = rowNode.ChildNodes;
-                        //     <T n="pose_name">MrAnalot:PosePack_201611142217384402_set_1</T>
-                        //<T n="pose_display_name">0xE1A61E82</T>
-                        //<T n="pose_description">0x1C3F0D1C</T>
-                        //<T n="sort_order">1</T>
-                        //<T n="icon">2f7d0004:00000000:c09701ad96c8f459</T>
-                        foreach (XmlNode courseNode in fieldNodeList)
-                        {
-                            var finalValues = courseNode.ChildNodes;
-                            S4PoseInfo poseInfo = new S4PoseInfo();
-                            foreach (XmlNode fn in finalValues)
-                            {
-                                string name = fn.Attributes[0].Value;
-                                string asName = "";
-                                string asValue = "";
-                                switch (name)
-                                {
-                                    case "pose_name":
-                                        asName = "动作指令:";
-                                        poseInfo.PoseCmd = fn.Value;
-                                        break;
-                                    case "pose_description":
-                                        asName = "动作描述:";
-                                        break;
-                                    case "pose_display_name":
-                                        asName = "显示名称:";
-                                        poseInfo.PoseName = fn.Value;
-                                        break;
-                                    case "icon":
-                                        asName = "显示图标名称（对照生成的图片文件名）:";
-                                        poseInfo.PoseIcon = fn.Value.Substring(fn.Value.LastIndexOf(":"));
-                                        break;
-                                    case "sort_order":
-                                        asName = "序号";
-                                        break;
-                                }
-                                asValue = fn.Value;
-                                if (name.Equals("icon"))
-                                {
-                                    asValue = asValue.Substring(asValue.LastIndexOf(":"));
-                                }
-                                builder.AppendLine(asName + asValue);
-                            }
-                            poses.Add(poseInfo);
-                            builder.Append("\n");
-                        }
-
+                        builder.AppendLine(asName + asValue);
                     }
+                    poses.Add(poseInfo);
+                    builder.Append("\n");
                 }
             }
-            catch
+            catch (Exception e)
             {
+                builder.AppendLine("[error] xml parse");
+                builder.AppendLine(GetExMsg(e));
                 return poses;
             }
             return poses;
         }
-
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
 

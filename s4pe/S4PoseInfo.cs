@@ -11,5 +11,6 @@ namespace S4PIDemoFE
         public string PoseCmd;
         public string PoseIcon;
         public string imgPath;
+        public string mainIcon;
     }
 }

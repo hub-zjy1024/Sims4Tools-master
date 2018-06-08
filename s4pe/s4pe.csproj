@@ -79,6 +79,7 @@
     <Compile Include="Import\ImportSettings.Designer.cs">
       <DependentUpon>ImportSettings.cs</DependentUpon>
     </Compile>
+    <Compile Include="PackageHandler.cs" />
     <Compile Include="s4pePropertyGrid\NewGridForm.cs">
       <SubType>Form</SubType>
     </Compile>
