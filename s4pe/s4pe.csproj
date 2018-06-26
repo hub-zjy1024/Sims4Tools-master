@@ -63,6 +63,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuiltInValueControl.cs" />
+    <Compile Include="CasModInfo.cs" />
     <Compile Include="ForceFocus.cs" />
     <Compile Include="Import\ExperimentalDBCWarning.cs">
       <SubType>Form</SubType>
@@ -79,6 +80,7 @@
     <Compile Include="Import\ImportSettings.Designer.cs">
       <DependentUpon>ImportSettings.cs</DependentUpon>
     </Compile>
+    <Compile Include="ObjectMod.cs" />
     <Compile Include="PackageHandler.cs" />
     <Compile Include="s4pePropertyGrid\NewGridForm.cs">
       <SubType>Form</SubType>
@@ -159,6 +161,12 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ViewModList.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ViewModList.Designer.cs">
+      <DependentUpon>ViewModList.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="BrowserWidget\BrowserWidget.resx">
       <DependentUpon>BrowserWidget.cs</DependentUpon>
       <SubType>Designer</SubType>
