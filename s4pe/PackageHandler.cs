@@ -203,6 +203,7 @@ namespace S4PIDemoFE
             int dataCounts = 0;
             bool isPose = false;
             ObjectMod objMod = null;
+            Dictionary<string, int> unHandledTagAndCounts = new Dictionary<string, int>();
             List<IResourceIndexEntry> poseEntrys = new List<IResourceIndexEntry>();
             for (int i = 0; i < tempListEntry.Count; i++)
             {
@@ -226,19 +227,50 @@ namespace S4PIDemoFE
                 //    continue;
                 //}
                 IResource res = null;
+                if (type == 0xBC4A5044 || type == 0x6B20C4F3 || type == 0xBC4A5044 || type == 0x220557DA || type == 0x015A1849
+                       || type == 0x034AEECB || type == 0xAC16FBEC)
+                {
+                    //if(group)
+                }
+                else
+                {
+                    poseEntrys.Add(entry);
+                }
                 bool useDefHandler = false;
-                if (type == 22681673)
+                if (type == 0x015A1849)
                 {
                     useDefHandler = true;
                 }
+                string unHanldedKey = string.Format("0x{0:X8}-0x{1:X8}-{2}", type,group,useDefHandler);
                 try
                 {
-                    res = WrapperDealer.GetResource(recommendedApi, tempPackage, entry, useDefHandler);
+                    res = WrapperDealer.GetResource(0, tempPackage, entry, useDefHandler);
+                    if (type == 0xBC4A5044 || type == 0x6B20C4F3 || type == 0xBC4A5044 || type == 0x220557DA || type == 0x015A1849
+                        || type == 0x034AEECB || type == 0xAC16FBEC)
+                    {
+                        if (group != 0x80000000 && group != 0x00000000)
+                        {
+                            //034AEECB
+                            //AC16FBEC
+                            builder.AppendLine(string.Format("[OkRead]reading resource 0x{0:X8}-0x{1:X8}-0x{2:X8},group Not format", type, group, entry.Instance));
+                        }
+                        else
+                        {
+                            builder.AppendLine(string.Format("[OkRead]reading resource 0x{0:X8}-0x{1:X8}-0x{2:X8}", type, group, entry.Instance));
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
-                    builder.AppendLine("currentFile:" + filePath);
-                    builder.AppendLine(string.Format("[bug]GetResource byDefHandler='{0}',type='{1:X8}',group='{2:X8}',instance='{3:X8}'", useDefHandler, type, group, entry.Instance));
+                    if (unHandledTagAndCounts.ContainsKey(unHanldedKey))
+                    {
+                        unHandledTagAndCounts[unHanldedKey] = unHandledTagAndCounts[unHanldedKey] + 1;
+                    }
+                    else
+                    {
+                        unHandledTagAndCounts.Add(unHanldedKey, 1);
+                    }
+
                     //无法在流的结尾之外进行读取
                     //string resError=e.StackTrace;
                     //int fIndex = resError.IndexOf("PackageHandler");
@@ -259,7 +291,6 @@ namespace S4PIDemoFE
                 }
                 if (res == null)
                 {
-                    builder.AppendLine("");
                     continue;
                 }
                 //11720834为图片    2113017500为xml文件，解析xml文件得到图片和动作代码，文件的映射
@@ -287,7 +318,7 @@ namespace S4PIDemoFE
                         }
                         else
                         {
-                            poseEntrys.Add(entry);
+                            //poseEntrys.Add(entry);
                         }
 
                     }
@@ -300,7 +331,7 @@ namespace S4PIDemoFE
                 }
                 else if (type == 11720834)
                 {
-                    poseEntrys.Add(entry);
+                    //poseEntrys.Add(entry);
                 }
 
                 //STBL
@@ -520,6 +551,13 @@ namespace S4PIDemoFE
                     }
                 }
             }
+            //记录getResource失败的entry信息
+            if (unHandledTagAndCounts.Count > 0) {
+                builder.AppendLine("currentFile:" + filePath);
+                foreach (string key in unHandledTagAndCounts.Keys) {
+                    builder.AppendLine(string.Format("[bug]reading resource {0},Counts={1}", key,unHandledTagAndCounts[key]));
+                }
+            }
             //记录替换动作
             if (poseList.Count == 0)
             {
@@ -690,7 +728,7 @@ namespace S4PIDemoFE
                     int recommendedApi = entry.RecommendedApiVersion;
                     IResource res = null;
                     bool useDefHandler = false;
-                    if (type == 22681673)
+                    if (type == 0x015A1849)
                     {
                         useDefHandler = true;
                     }
@@ -742,14 +780,7 @@ namespace S4PIDemoFE
                                 builder.AppendLine("[error]:data is null");
                                 continue;
                             }
-                            //conn.GetContextMenuItems
-                            string finalPath = poseDir + "Temp_Icon/";
-                            if (!Directory.Exists(finalPath))
-                            {
-                                Directory.CreateDirectory(finalPath);
-                            }
                             string detailPath =poseDir+ "detailImg/";
-                           
                             if (!Directory.Exists(detailPath))
                             {
                                 Directory.CreateDirectory(detailPath);
@@ -759,7 +790,7 @@ namespace S4PIDemoFE
                             {
                                 Directory.CreateDirectory(otherDir);
                             }
-                            path = finalPath + pkName + "@_mainIcon_" + str16 + ".jpg";
+                            path = otherDir + pkName + "@_mainIcon_" + str16 + ".jpg";
                             for (int k = 0; k < poseList.Count; k++)
                             {
                                 
@@ -792,19 +823,11 @@ namespace S4PIDemoFE
                                 builder.AppendLine(String.Format("[bug]当前图片与动作列表中的图片不相关 instance16:{0}", str16));
                             }
                             builder.AppendLine("[debug]:use imgPath " + path);
-
-                            if (!File.Exists(path))
-                            {
-                                //fs = File.Create(path);
-                            }
-                            else
-                            {
-                                builder.AppendLine("[debug]:img " + path + " is exists");
-                                continue;
-                            }
-
                             try
                             {
+                                if (File.Exists(path)) {
+                                    continue;
+                                }
                                 fs = File.Open(path, FileMode.Create);
                                 Stream resStream = data;
                                 if (data == null || data.Length == 0)

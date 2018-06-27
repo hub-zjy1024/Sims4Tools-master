@@ -3066,8 +3066,6 @@ namespace S4PIDemoFE
                 {
                     string savePath = this.filename;
                     String text = new StreamReader(this.resource.Stream).ReadToEnd();
-                    Console.WriteLine("zjy file path:"+savePath);
-                    Console.WriteLine("zjy file text:" + text);
                     return new TextControl(
                         "== == == == == == == == == == == == == == == == ==\n" +
                         " **  Fallback preview:  data may be incomplete  ** \n" +
