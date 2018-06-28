@@ -203,6 +203,7 @@ namespace S4PIDemoFE
             int dataCounts = 0;
             bool isPose = false;
             ObjectMod objMod = null;
+            builder.AppendLine("[debug] file:" + filePath);
             Dictionary<string, int> unHandledTagAndCounts = new Dictionary<string, int>();
             List<IResourceIndexEntry> poseEntrys = new List<IResourceIndexEntry>();
             for (int i = 0; i < tempListEntry.Count; i++)
@@ -239,7 +240,7 @@ namespace S4PIDemoFE
                 bool useDefHandler = false;
                 if (type == 0x015A1849)
                 {
-                    useDefHandler = true;
+                    //useDefHandler = true;
                 }
                 string unHanldedKey = string.Format("0x{0:X8}-0x{1:X8}-{2}", type,group,useDefHandler);
                 try
@@ -252,7 +253,7 @@ namespace S4PIDemoFE
                         {
                             //034AEECB
                             //AC16FBEC
-                            builder.AppendLine(string.Format("[OkRead]reading resource 0x{0:X8}-0x{1:X8}-0x{2:X8},group Not format", type, group, entry.Instance));
+                            builder.AppendLine(string.Format("[OkRead]reading resource,group Not normal,0x{0:X8}-0x{1:X8}-0x{2:X8}", type, group, entry.Instance));
                         }
                         else
                         {
@@ -822,7 +823,6 @@ namespace S4PIDemoFE
                                 }
                                 builder.AppendLine(String.Format("[bug]当前图片与动作列表中的图片不相关 instance16:{0}", str16));
                             }
-                            builder.AppendLine("[debug]:use imgPath " + path);
                             try
                             {
                                 if (File.Exists(path)) {
