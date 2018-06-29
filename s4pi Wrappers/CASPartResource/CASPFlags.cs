@@ -67,7 +67,7 @@ namespace CASPartResource
         Human = 1,
         Dog = 2,
         Cat = 3,
-        LargeDog = 4
+        LittleDog = 4
     }
 
     public enum BodyType : uint
@@ -240,6 +240,38 @@ namespace CASPartResource
         BODYTYPE_OCCULT_NECK_SCAR = 1ul << 6
     }
 
+    public enum ExcludeModifierRegion : ulong        //used in CASP exclude modifier
+    {
+        Eyes = 1,
+        Nose = 1ul << 1,
+        Mouth = 1ul << 2,
+        Cheeks = 1ul << 3,
+        Chin = 1ul << 4,
+        Jaw = 1ul << 5,
+        Forehead = 1ul << 6,
+        Brows = 1ul << 8,
+        Ears = 1ul << 9,
+        Head = 1ul << 10,
+        FullFace = 1ul << 12,
+        Chest = 1ul << 14,
+        UpperChest = 1ul << 15,
+        Neck = 1ul << 16,
+        Shoulders = 1ul << 17,
+        UpperArm = 1ul << 18,
+        LowerArm = 1ul << 19,
+        Hands = 1ul << 20,
+        Waist = 1ul << 21,
+        Hips = 1ul << 22,
+        Belly = 1ul << 23,
+        Butt = 1ul << 24,
+        Thighs = 1ul << 25,
+        LowerLeg = 1ul << 26,
+        Feet = 1ul << 27,
+        Body = 1ul << 28,
+        UpperBody = 1ul << 29,
+        LowerBody = 1ul << 30
+    }
+
     [Flags]
     public enum CASPanelGroupType : uint
     {
@@ -313,7 +345,12 @@ namespace CASPartResource
         CASPARTREGION_WRISTR,
         CASPARTREGION_BICEPR,
         CASPARTREGION_NECKLACESHADOW, // controls hiding dropshadow for necklaces
-        CASPARTREGION_MAX
+        CASPARTREGION_EARSUP,          //20
+        CASPARTREGION_EARSDOWN,
+        CASPARTREGION_TAIL0,
+        CASPARTREGION_TAIL1,
+        CASPARTREGION_TAIL2,
+        CASPARTREGION_TAIL3
     }
 
     [Flags]
