@@ -39,13 +39,13 @@ namespace CASPartResource
 
         private uint version;
         private AgeGenderFlags ageGender;
-        private uint unknown1;
+        private Species species;
         private HotSpotLevel zoomLevel;
         private byte sliderID;
         private SliderCursor cursor;
         private SimRegion region;
         private uint unknown3;
-        private BodyFrameGender frameGender;
+        private RestrictToGender restrictToGender;
         private ulong textureReference;
         private uint unknown4;
         private SliderList sliderDescriptions;
@@ -59,7 +59,7 @@ namespace CASPartResource
             s.Position = 0;
             this.version = r.ReadUInt32();
             this.ageGender = (AgeGenderFlags)r.ReadUInt32();
-            if (version >= 0x0E) this.unknown1 = r.ReadUInt32();
+            if (version >= 0x0E) this.species = (Species)r.ReadUInt32();
             this.zoomLevel = (HotSpotLevel)r.ReadByte();
             this.sliderID = r.ReadByte();
             this.cursor = (SliderCursor)r.ReadByte();
@@ -67,7 +67,7 @@ namespace CASPartResource
             if (version >= 0x0E)
             {
                 this.unknown3 = r.ReadUInt32();
-                this.frameGender = (BodyFrameGender)r.ReadByte();
+                this.restrictToGender = (RestrictToGender)r.ReadByte();
             }
             this.textureReference = r.ReadUInt64();
             this.unknown4 = r.ReadUInt32();
@@ -85,7 +85,7 @@ namespace CASPartResource
             BinaryWriter w = new BinaryWriter(ms);
             w.Write(this.version);
             w.Write((uint)this.ageGender);
-            if (version >= 0x0E) w.Write(this.unknown1);
+            if (version >= 0x0E) w.Write((uint)this.species);
             w.Write((byte)this.zoomLevel);
             w.Write(this.sliderID);
             w.Write((byte)this.cursor);
@@ -93,7 +93,7 @@ namespace CASPartResource
             if (version >= 0x0E)
             {
                 w.Write(this.unknown3);
-                w.Write((byte)this.frameGender);
+                w.Write((byte)this.restrictToGender);
             }
             w.Write(this.textureReference);
             w.Write(this.unknown4);
@@ -111,9 +111,9 @@ namespace CASPartResource
         [ElementPriority(0)]
         public uint Version { get { return this.version; } set { if (!this.version.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.version = value; } } }
         [ElementPriority(1)]
-        public AgeGenderFlags AgeGender { get { return this.ageGender; } set { if (!this.ageGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.ageGender = value; } } }
+        public AgeGenderFlags AgeFrame { get { return this.ageGender; } set { if (!this.ageGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.ageGender = value; } } }
         [ElementPriority(2)]
-        public uint Unknown1 { get { return this.unknown1; } set { if (!this.unknown1.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown1 = value; } } }
+        public Species Species { get { return this.species; } set { if (!this.species.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.species = value; } } }
         [ElementPriority(3)]
         public HotSpotLevel DetailLevel { get { return this.zoomLevel; } set { if (!this.zoomLevel.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.zoomLevel = value; } } }
         [ElementPriority(4)]
@@ -125,7 +125,7 @@ namespace CASPartResource
         [ElementPriority(7)]
         public uint Unknown3 { get { return this.unknown3; } set { if (!this.unknown3.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.unknown3 = value; } } }
         [ElementPriority(7)]
-        public BodyFrameGender FrameGender { get { return this.frameGender; } set { if (!this.frameGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.frameGender = value; } } }
+        public RestrictToGender RestricttoGender { get { return this.restrictToGender; } set { if (!this.restrictToGender.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.restrictToGender = value; } } }
         [ElementPriority(8)]
         public ulong TextureReference { get { return this.textureReference; } set { if (!this.textureReference.Equals(value)) { OnResourceChanged(this, EventArgs.Empty); this.textureReference = value; } } }
         [ElementPriority(9)]
@@ -282,7 +282,7 @@ namespace CASPartResource
         }
 
         [Flags]
-        public enum BodyFrameGender : byte
+        public enum RestrictToGender : byte
         {
             None = 0,
             Male = 1,
