@@ -91,6 +91,7 @@ namespace s4pi.ImageResource
 
         public void ImportToDST(Stream input)
         {
+            input.Position = 0;
             var header = new DDSHeader();
             header.Parse(input);
             switch (header.pixelFormat.Fourcc)
@@ -133,11 +134,11 @@ namespace s4pi.ImageResource
                 this.Width = this.header.Width;
                 this.Height = this.header.Height;
                 Shuffle(this.header, input, ms);
+                this.isShuffled = true;
                 this.data = ms.ToArray();
             }
             
-        }
-        
+        }        
 
         private static void Shuffle(DDSHeader header, Stream input, Stream output)
         {

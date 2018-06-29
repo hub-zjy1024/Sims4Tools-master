@@ -113,7 +113,7 @@ namespace s4pi.ImageResource
             using (MemoryStream ms = new MemoryStream(this.rawData))
             {
                 BinaryReader r = new BinaryReader(ms);
-                Bitmap colorImage = new Bitmap(ms);
+                Bitmap colorImage;
                 ms.Position = 0;
                 r.ReadBytes(24);
                 if (r.ReadUInt32() == 0x41464C41U)
@@ -123,6 +123,7 @@ namespace s4pi.ImageResource
                     using (MemoryStream alphaStream = new MemoryStream(r.ReadBytes(length)))
                     {
                         Bitmap alphaImage = new Bitmap(alphaStream);
+                        colorImage = new Bitmap(ms);
                         if (colorImage.Width != alphaImage.Width || colorImage.Height != alphaImage.Height) throw new InvalidDataException("Not a proper TS4 Thumbnail image");
                         colorImage = UpdateAlpha(colorImage, alphaImage);
 
@@ -130,6 +131,8 @@ namespace s4pi.ImageResource
                         return;
                     }
                 }
+                ms.Position = 0;
+                colorImage = new Bitmap(ms);
                 this.image = colorImage;
             }
         }

@@ -44,6 +44,8 @@ namespace s4pi.ImageResource
         private RLEInfo info;
         private MipHeader[] MipHeaders;
         private byte[] data;
+
+        public uint MipCount { get { return this.info.mipCount; } }
         #endregion
 
         public RLEResource(int APIversion, Stream s) : base(APIversion, s) { if (s == null) { OnResourceChanged(this, EventArgs.Empty); } else { Parse(s); } }
@@ -52,6 +54,7 @@ namespace s4pi.ImageResource
         public void Parse(Stream s)
         {
             if (s == null || s.Length == 0) { this.data = new byte[0]; return; }
+            s.Position = 0;
             BinaryReader r = new BinaryReader(s);
             info = new RLEInfo(s);
             this.MipHeaders = new MipHeader[this.info.mipCount + 1];
@@ -493,6 +496,7 @@ namespace s4pi.ImageResource
 
         public void ImportToRLE(Stream input, RLEVersion rleVersion = RLEVersion.RLE2)
         {
+            input.Position = 0;
             var fullOpaqueAlpha = new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
             MemoryStream output = new MemoryStream();
@@ -501,6 +505,7 @@ namespace s4pi.ImageResource
 
             this.info = new RLEInfo();
             this.info.Parse(input);
+            this.info.Version = rleVersion;
             if (this.info.pixelFormat.Fourcc != FourCC.DXT5 & this.info.notFourCC != NotFourCC.L8) throw new InvalidDataException(string.Format("Not a DXT5 or L8 format DDS, read FourCC: {0}, format: {0}", this.info.pixelFormat.Fourcc, this.info.notFourCC));
 
             if (this.info.Depth == 0) this.info.Depth = 1;
@@ -653,8 +658,6 @@ namespace s4pi.ImageResource
                         w.Write(mipHeader.CommandOffset + commandOffset);
                         w.Write(mipHeader.Offset0 + block0Offset);
                     }
-
-                    this.data = output.ToArray();
                 }
             } 
 
@@ -795,8 +798,6 @@ namespace s4pi.ImageResource
                         w.Write(mipHeader.Offset0 + block0Offset);
                         w.Write(mipHeader.Offset1 + block1Offset);
                     }
-
-                    this.data = output.ToArray();
                 }
             }
             else
@@ -948,10 +949,12 @@ namespace s4pi.ImageResource
                         w.Write(mipHeader.Offset1 + block1Offset);
                         w.Write(mipHeader.Offset4 + block4Offset);
                     }
-
-                    this.data = output.ToArray();
                 }
             }
+
+            //     this.data = output.ToArray();
+            output.Position = 0;
+            Parse(output);
         }
 
         private static bool TrueForAny<T>(T[] array, int offset, int count, Predicate<T> match)
