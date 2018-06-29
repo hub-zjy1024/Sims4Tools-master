@@ -252,7 +252,9 @@ namespace System.Drawing
                 throw new ArgumentException("Non-null metric must reference an array of three floats.");
 
             //int storageRequirements = GetStorageRequirements(width, height, flags);
-            byte[] blocks = new byte[((width + 3) >> ((flags & DdsSquish.SquishFlags.kDxt1) == 0 ? 2 : 3)) * 4 * height];
+            //byte[] blocks = new byte[((width + 3) >> ((flags & DdsSquish.SquishFlags.kDxt1) == 0 ? 2 : 3)) * 4 * height];
+            //Revised calculation to handle mipmaps correctly - CGM
+            byte[] blocks = new byte[Math.Max(1, (width + 3) / 4) * Math.Max(1, (height + 3) / 4) * ((flags & DdsSquish.SquishFlags.kDxt1) == 0 ? 16 : 8)];
 
             // Invoke squish::CompressImage() with the required parameters
             SquishCompressImage(pixelInput, width, height, blocks, flags, metric);

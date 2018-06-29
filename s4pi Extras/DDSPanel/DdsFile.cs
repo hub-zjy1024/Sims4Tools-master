@@ -213,7 +213,7 @@ namespace System.Drawing
                     {
                         if (!Enum.IsDefined(typeof(PFFourCC), fourCC))
                             throw new NotSupportedException(String.Format(
-                                "Unsupported DDS Pixel Format Four CC.  Got 0x{0:8}, only DXT1/3/5 and ATI1/2 supported."
+                                "Unsupported DDS Pixel Format Four CC.  Got 0x{0:X8}, only DXT1/3/5 and ATI1/2 supported."
                                 , (uint)fourCC
                                 )
                             );
@@ -644,7 +644,7 @@ namespace System.Drawing
             uint reserved2;//124
             #endregion
 
-            public DdsHeader(DdsFormat ddsFormat, int width, int height)
+            public DdsHeader(DdsFormat ddsFormat, int width, int height, uint numberMipMaps)
             {
                 this.magic = DdsMagic.dds_;
                 this.size = 124;
@@ -653,7 +653,7 @@ namespace System.Drawing
                 this.width = (uint)width;
                 //pitchOrLinearSize
                 this.depth = 0;
-                this.numMipMaps = 0;
+                this.numMipMaps = numberMipMaps;
                 for (int i = 0; i < reserved1.Length; i++) this.reserved1[i] = 0;
                 this.pixelFormat = new DdsPixelFormat(ddsFormat);
                 this.surfaceCaps = DdsSurfaceCaps.texture;
@@ -662,7 +662,7 @@ namespace System.Drawing
                 this.unusedCaps4 = 0;
                 this.reserved2 = 0;
 
-                this.flags = writeFlags | (IsBlockCompressed ? DdsFlags.linearSize : DdsFlags.pitch);
+                this.flags = writeFlags | (IsBlockCompressed ? DdsFlags.linearSize : DdsFlags.pitch) | (numMipMaps > 1 ? DdsFlags.mipMapCount : 0);
                 this.pitchOrLinearSize = IsBlockCompressed ? LinearSize : Pitch;
             }
 
@@ -845,7 +845,7 @@ namespace System.Drawing
                 w.Write((uint)width);//16
                 w.Write((uint)(IsBlockCompressed ? CompressedSize : Pitch));//20 ;; CompressedSize is what GIMP DDS plugin puts.
                 w.Write((uint)0);//24
-                w.Write((uint)1);//28
+                w.Write(numMipMaps);//28
                 for (int i = 0; i < reserved1.Length; i++) w.Write((uint)0);//32
                 pixelFormat.Write(s);//76
                 w.Write((uint)DdsSurfaceCaps.texture);//108
@@ -956,12 +956,21 @@ namespace System.Drawing
         public uint NumMipMaps { get { return this.header.NumMipMaps; } }
         #endregion
 
-        public Dds(DdsFormat ddsFormat, int width, int height, uint[] imageData)
+        public Dds(DdsFormat ddsFormat, int width, int height, uint numberMipMaps, uint[] imageData)
         {
-            if (imageData.Length != width * height)
+            int dataLen = 0;
+            int w = width;
+            int h = height;
+            for (uint i = 0; i < numberMipMaps; i++)
+            {
+                dataLen += w * h;
+                w = Math.Max(w / 2, 1);
+                h = Math.Max(h / 2, 1);
+            }
+            if (imageData.Length != dataLen)
                 throw new ArgumentException("Image data must contain width * height elements");
 
-            header = new DdsHeader(ddsFormat, width, height);
+            header = new DdsHeader(ddsFormat, width, height, numberMipMaps);
             baseImage = (uint[])imageData.Clone();
         }
 
@@ -1028,50 +1037,76 @@ namespace System.Drawing
             var encoder = header.Encoder;
             if (encoder == null)
                 throw new FormatException("File is not a supported DDS format");
+            List<byte> output = new List<byte>();
+            int w = (int)header.width;
+            int h = (int)header.height;
+            int mipOffset = 0;
 
             if (header.IsBlockCompressed)
             {
-                // Convert ARGB uint array to R, G, B, A byte array...
-                byte[] pixelData = new byte[baseImage.Length * sizeof(uint)];
-                Enumerable.Range(0, baseImage.Length).AsParallel()
-                    .ForAll(i => Array.Copy(BitConverter.GetBytes(encoder(baseImage[i])), 0, pixelData, i * sizeof(uint), sizeof(uint)));
-
-                // Compress
-                if (header.FileFormat == DdsFormat.ATI1 || header.FileFormat == DdsFormat.ATI2)
+                for (int m = 0; m < NumMipMaps; m++)
                 {
-                    buffer = DdsSquash.CompressImage(pixelData, (int)header.width, (int)header.height, header.FileFormat);
+                    //get pixels for each mipmap
+                    int mipLength = w * h;
+                    uint[] imageData = new uint[mipLength];
+                    Array.Copy(baseImage, mipOffset, imageData, 0, mipLength);
+                    // Convert ARGB uint array to R, G, B, A byte array...
+                    byte[] pixelData = new byte[mipLength * sizeof(uint)];
+                    Enumerable.Range(0, mipLength).AsParallel()
+                        .ForAll(i => Array.Copy(BitConverter.GetBytes(encoder(imageData[i])), 0, pixelData, i * sizeof(uint), sizeof(uint)));
+
+                    // Compress
+                    if (header.FileFormat == DdsFormat.ATI1 || header.FileFormat == DdsFormat.ATI2)
+                    {
+                        buffer = DdsSquash.CompressImage(pixelData, w, h, header.FileFormat);
+                    }
+                    else
+                    {
+                        buffer = DdsSquish.CompressImage(pixelData, w, h, header.SquishFourCC);
+                    }
+                    //if (buffer.Length != header.DataSize)
+                    //    throw new Exception(String.Format("DdsSquish returned an unexpected buffer size, 0x{0:X8}.  Expected 0x{1:X8}", buffer.Length, header.DataSize));
+                    output.AddRange(buffer);
+                    w = Math.Max(w / 2, 1);
+                    h = Math.Max(h / 2, 1);
+                    mipOffset += mipLength;
                 }
-                else
-                { 
-                    buffer = DdsSquish.CompressImage(pixelData, (int)header.width, (int)header.height, header.SquishFourCC);
-                }
-                if (buffer.Length != header.DataSize)
-                    throw new Exception(String.Format("DdsSquish returned an unexpected buffer size, 0x{0:X8}.  Expected 0x{1:X8}", buffer.Length, header.DataSize));
             }
             else
             {
-                buffer = new byte[header.DataSize];
-                int rowPitch = buffer.Length / (int)header.height;
-                int pixelSize = (int)header.UncompressedPixelSize;
-                Enumerable.Range(0, (int)header.width).AsParallel()
-                    .ForAll(srcX => Enumerable.Range(0, (int)header.height).AsParallel()
-                        .ForAll(srcY =>
-                        {
-                            // Compute pixel offsets
-                            int destPixelOffset = (srcY * rowPitch) + (srcX * pixelSize);
-                            int srcPixelOffset = (srcY * (int)header.width) + srcX;
+                for (int m = 0; m < NumMipMaps; m++)
+                {
+                    int pixelSize = (int)header.UncompressedPixelSize;
+                    int rowPitch = w * pixelSize;
+                    int mipLength = w * h;
+                    uint[] imageData = new uint[mipLength];
+                    Array.Copy(baseImage, mipOffset, imageData, 0, mipLength);
+                    buffer = new byte[rowPitch * h];
+                    //   int rowPitch = buffer.Length / (int)header.height;
+                    Enumerable.Range(0, (int)header.width).AsParallel()
+                        .ForAll(srcX => Enumerable.Range(0, (int)header.height).AsParallel()
+                            .ForAll(srcY =>
+                            {
+                                // Compute pixel offsets
+                                int destPixelOffset = (srcY * rowPitch) + (srcX * pixelSize);
+                                int srcPixelOffset = (srcY * (int)header.width) + srcX;
 
-                            // delegate takes care of calculation
-                            uint pixelColour = encoder(baseImage[destPixelOffset]);
+                                // delegate takes care of calculation
+                                uint pixelColour = encoder(imageData[destPixelOffset]);
 
-                            // Store each computed byte - parallelism overhead costs too much
-                            for (int loop = 0; loop < pixelSize; loop++)
-                                buffer[destPixelOffset + loop] = (byte)((pixelColour >> (8 * loop)) & 0xff);
-                        }));
+                                // Store each computed byte - parallelism overhead costs too much
+                                for (int loop = 0; loop < pixelSize; loop++)
+                                    buffer[destPixelOffset + loop] = (byte)((pixelColour >> (8 * loop)) & 0xff);
+                            }));
+                    output.AddRange(buffer);
+                    w = Math.Max(w / 2, 1);
+                    h = Math.Max(h / 2, 1);
+                    mipOffset += mipLength;
+                }
             }
 
             header.Write(s);
-            s.Write(buffer, 0, buffer.Length);
+            s.Write(output.ToArray(), 0, output.Count);
         }
 
         public int Height { get { return (int)header.height; } }
@@ -1100,6 +1135,7 @@ namespace System.Drawing
         bool useDXTCompression = false;
         bool useATICompression = false;
         bool useLuminence = false;
+        bool createMipMaps = false;
         int luminenceMode = 0;
         int alphaDepth = 0;
         int atiMode = 0;
@@ -1329,6 +1365,35 @@ namespace System.Drawing
         }
         #endregion
 
+        /// <summary>
+        /// Generates a standard set of mipmaps for the DDS image
+        /// </summary>
+        public void GenerateMipMaps()
+        {
+            Bitmap image = this.Image;
+            int h = image.Height;
+            int w = image.Width;
+            uint[] tmp = new uint[w * h];
+            Array.Copy(this.baseImage, tmp, w * h);
+            List<uint> imageData = new List<uint>(tmp);
+            Bitmap mip = new Bitmap(image);
+            uint mipCounter = 1;
+            while (h > 1 || w > 1)
+            {
+                h = Math.Max(h / 2, 1);
+                w = Math.Max(w / 2, 1);
+                //if (Math.IEEERemainder(h, 4) > 0 || Math.IEEERemainder(w, 4) > 0) 
+                //    throw new NotSupportedException("Dimensions of all DDS mipmap levels must be multiples of 4. Current mipmap dimensions: " + w.ToString() + "x" + h.ToString());
+                mip = new Bitmap(mip, w, h);
+                imageData.AddRange(mip.ToARGBData());
+                mipCounter++;
+            }
+            this.baseImage = imageData.ToArray();
+            this.currentImage = (uint[])this.baseImage.Clone();
+            if (this.SupportsHSV) this.UpdateHSVData();
+            this.numMipMaps = mipCounter;
+        }
+
         #region File I/O
         /// <summary>
         /// Loads the data from an image encoded using one of the supported DDS mechanisms.
@@ -1409,7 +1474,7 @@ namespace System.Drawing
                     default: ddsFormat = Dds.DdsFormat.A8R8G8B8; break;
                 }
 
-            Dds dds = new Dds(ddsFormat, width, height, baseImage);
+            Dds dds = new Dds(ddsFormat, width, height, numMipMaps, baseImage);
             dds.Write(output);
             output.Flush();
         }
