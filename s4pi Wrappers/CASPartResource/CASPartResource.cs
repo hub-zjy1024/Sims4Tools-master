@@ -58,7 +58,7 @@ namespace CASPartResource
         private ParmFlag2 parmFlags2;
         private ExcludePartFlag excludePartFlags;
         private ExcludePartFlag2 excludePartFlags2;           // cmar - added v 0x29
-        private ulong excludeModifierRegionFlags;   // cmar - changed from uint to ulong with V 0x25
+        private ExcludeModifierRegion excludeModifierRegionFlags;   // cmar - changed from uint to ulong with V 0x25
         private FlagList flagList;                  // property 16-bit tag / 32-bit value pairs
         private uint deprecatedPrice;               // deprecated
         private uint partTitleKey;
@@ -96,7 +96,7 @@ namespace CASPartResource
         private OverrideList overrides;
         private byte normalMapKey;
         private byte specularMapKey;
-        private uint sharedUVMapSpace;
+        private BodyType sharedUVMapSpace;
         private byte emissionMapKey;                // cmar - added V 0x1E
         private byte reservedByte;                  // added V 0x2A
         private CountedTGIBlockList tgiList;
@@ -138,8 +138,8 @@ namespace CASPartResource
             if (this.version >= 39) parmFlags2 = (ParmFlag2)r.ReadByte();
             this.excludePartFlags = (ExcludePartFlag)r.ReadUInt64();
             if (this.version >= 41) this.excludePartFlags2 = (ExcludePartFlag2)r.ReadUInt64();
-            if (this.version >= 36) this.excludeModifierRegionFlags = r.ReadUInt64();
-            else this.excludeModifierRegionFlags = r.ReadUInt32();
+            if (this.version >= 36) this.excludeModifierRegionFlags = (ExcludeModifierRegion) r.ReadUInt64();
+            else this.excludeModifierRegionFlags = (ExcludeModifierRegion)r.ReadUInt32();
 
             if (this.version >= 37)
                 this.flagList = new FlagList(this.OnResourceChanged, s);
@@ -232,7 +232,7 @@ namespace CASPartResource
             this.specularMapKey = r.ReadByte();
             if (this.version >= 0x1B)
             {
-                this.sharedUVMapSpace = r.ReadUInt32();
+                this.sharedUVMapSpace = (BodyType)r.ReadUInt32();
             }
             if (this.version >= 0x1E)
             {
@@ -263,7 +263,7 @@ namespace CASPartResource
             if (this.version >= 41) w.Write((ulong)this.excludePartFlags2);
             if (this.version >= 36)
             {
-                w.Write(this.excludeModifierRegionFlags);
+                w.Write((ulong)this.excludeModifierRegionFlags);
             }
             else
             {
@@ -364,7 +364,7 @@ namespace CASPartResource
             w.Write(this.specularMapKey);
             if (this.version >= 0x1B)
             {
-                w.Write(this.sharedUVMapSpace);
+                w.Write((uint)this.sharedUVMapSpace);
             }
             if (this.version >= 0x1E)
             {
@@ -554,7 +554,7 @@ namespace CASPartResource
         }
 
         [ElementPriority(12)]
-        public ulong ExcludeModifierRegionFlags
+        public ExcludeModifierRegion ExcludeModifierRegionFlags
         {
             get { return this.excludeModifierRegionFlags; }
             set
@@ -1069,7 +1069,7 @@ namespace CASPartResource
         }
 
         [ElementPriority(49)]
-        public uint SharedUVMapSpace
+        public BodyType SharedUVMapSpace
         {
             get
             {
