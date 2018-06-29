@@ -46,7 +46,7 @@ namespace CASPartResource
         private uint version;
         private AgeGenderFlags ageGender;
         private AgeGenderFlags bodyFrameGender;
-        private uint species;
+        private Species species;
         private SimRegion region;
         private uint bodySubType;
         private ArchetypeFlags archetype;
@@ -91,7 +91,7 @@ namespace CASPartResource
             }
             if (this.version >= 8)
             {
-                this.species = reader.ReadUInt32();
+                this.species = (Species)reader.ReadUInt32();
             }
             this.region = (SimRegion)reader.ReadUInt32();
             if (this.version >= 9)
@@ -144,7 +144,7 @@ namespace CASPartResource
             }
             if (this.version >= 8)
             {
-                w.Write(this.species);
+                w.Write((uint)this.species);
             }
             w.Write((uint)this.region);
             if (this.version >= 9)
@@ -556,7 +556,7 @@ namespace CASPartResource
         }
 
         [ElementPriority(3)]
-        public uint Species
+        public Species Species
         {
             get { return this.species; }
             set
