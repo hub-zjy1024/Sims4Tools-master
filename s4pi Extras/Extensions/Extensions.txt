@@ -197,6 +197,7 @@
 0xAD366F95  THUM   .png
 0xAD366F96  THUM   .png
 0xAD6FDF1F  _XML   .xml
+0xAE39399F  TMSH   .terrainmesh
 0xAFADAC48  _XML   .xml
 0xB0118C15  TMLT   .bnry
 0xB0311D0F  CRTR   .rooftrim
