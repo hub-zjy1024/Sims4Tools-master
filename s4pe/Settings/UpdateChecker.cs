@@ -72,7 +72,7 @@ namespace S4PIDemoFE.Settings
 #else
             if (DateTime.UtcNow > settings.LastUpdateTimeStamp.AddDays(1))
             {
-                GetUpdate(true);
+                GetUpdate(AutoUpdateChoice);
                 settings.LastUpdateTimeStamp = DateTime.UtcNow; // Only the automated check updates this setting
                 settings.Save();
             }
