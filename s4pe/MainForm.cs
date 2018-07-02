@@ -2836,86 +2836,6 @@ namespace S4PIDemoFE
                     else if (this.resource != null)
                     {
                         //11720834为图片    2113017500为xml文件，解析xml文件得到图片和动作代码，文件的映射
-                        uint type = this.browserWidget1.SelectedResource.ResourceType;
-                        Console.WriteLine("tagType:" + type);
-                        Console.WriteLine("RecommendedApiVersion:" + this.browserWidget1.SelectedResource.RecommendedApiVersion);
-                        Console.WriteLine("RequestedApiVersion:" + this.browserWidget1.SelectedResource.RequestedApiVersion);
-                        Console.WriteLine("ResourceGroup:" + this.browserWidget1.SelectedResource.ResourceGroup);
-                        Console.WriteLine("Memsize:" + this.browserWidget1.SelectedResource.Memsize);
-                        Console.WriteLine("Instance:" + this.browserWidget1.SelectedResource.Instance);
-                        Console.WriteLine("Stream:" + this.browserWidget1.SelectedResource.Stream);
-                        Stream data= this.browserWidget1.SelectedResource.Stream;
-                        ulong valueInstance= this.browserWidget1.SelectedResource.Instance;
-                        String str16= "0x" + valueInstance.ToString("X8");
-                        String type16= type.ToString("X8");
-                        string path = this.filename.Substring(this.filename.LastIndexOf("/")+1)+str16;
-                        //以路径为参数创建文件
-                        Console.WriteLine("nowPath:" + this.filename);
-                        Console.WriteLine("type16:" + type16);
-                        int index = this.filename.IndexOf("\\");
-                        string formatPath = this.filename;
-                        if (index != 2){
-                            formatPath = this.filename.Substring(index - 2);
-                        }
-                        FileStream fs=null;
-
-                        if (type == 11720834)
-                        {
-                            try {
-                                DDSControl conn = new DDSControl(this.resource.Stream);
-                                DDSPanel ddsp = (DDSPanel)conn.ValueControl;
-                                //conn.GetContextMenuItems
-                                path = formatPath.Substring(0, this.filename.LastIndexOf(".")-2) + "_" + str16 + ".jpg";
-                                fs = File.Create(path);
-                                ddsp.Image.Save(fs, System.Drawing.Imaging.ImageFormat.Jpeg);
-                                fs.Close();
-                            } catch (Exception temp) {
-                                string s = "";
-                                for (Exception inex = temp; inex != null; inex = inex.InnerException)
-                                {
-                                    s += "\r\nSource: " + inex.Source;
-                                    s += "\r\nAssembly: " + inex.TargetSite.DeclaringType.Assembly.FullName;
-                                    s += "\r\n" + inex.Message;
-                                    s += "\r\n----\r\nStack trace:\r\n" + inex.StackTrace + "\r\n----\r\n";
-                                }
-                                IResourceIndexEntry rie = this.browserWidget1.SelectedResource;
-                                if (rie != null)
-                                {
-                                    s += "Error reading resource " + rie;
-                                }
-                                s += string.Format("\r\nFront-end Distribution: {0}\r\nLibrary Distribution: {1}\r\n",
-                                    Version.CurrentVersion,
-                                    Version.LibraryVersion);
-
-                                MessageBox.Show(temp.GetBaseException().Message+" detail:"+ s);
-                            }
-                           
-
-                       
-                        }
-                        else if(type== 2113017500) {
-                            path = formatPath.Substring(0, this.filename.LastIndexOf(".") - 2) +".xml";
-                            fs = File.Create(path);
-                            String result = "";
-                            if (this.HasStringValueContentField())
-                            {
-                                 result = this.resource["Value"];
-                                Console.WriteLine("HasStringValueContentField:" + result);
-                            }
-                            else
-                            {
-                                 result = new StreamReader(this.resource.Stream).ReadToEnd();
-                                Console.WriteLine("zjy file text:" + result);
-                            }
-                            byte[] bytedata = System.Text.Encoding.Default.GetBytes(result);
-                            fs.Write(bytedata,0,bytedata.Length);
-                          //  using (BinaryReader reader = new BinaryReader(data))
-                           // {
-                           //     fs.Write(reader.ReadBytes((int)reader.BaseStream.Length), 0, (int)reader.BaseStream.Length);
-                           //     reader.Close();
-                           // }
-                            fs.Close();
-                        }
                         if (this.controlPanel1.AutoHex)
                         {
                             c = new HexControl(this.resource.Stream);
@@ -3364,7 +3284,8 @@ namespace S4PIDemoFE
             progressBar1.Maximum = 100;
             button1.Enabled = false;
             string dirPath = textBox1.Text;
-            PackageHandler mHandler = new PackageHandler(dirPath);
+            bool removeAbMod=checkBox1.Checked;
+            PackageHandler mHandler = new PackageHandler(dirPath, removeAbMod);
             String logDir = PackageHandler.dirMod + "log/";
             if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
             String logFileName = String.Format("log_{0}.txt", DateTime.Now.ToString("HHmmss"));
@@ -3410,7 +3331,8 @@ namespace S4PIDemoFE
             process.Start();//启动程序
 
             //向cmd窗口发送输入信息
-            string dirToOpen = PackageHandler.dirMod;
+            string dirToOpen = PackageHandler.dirMod+"/log/";
+            //process.StandardInput.WriteLine(string.Format("start \"\" \"{0}\"&exit", dirToOpen));
             process.StandardInput.WriteLine(string.Format("start \"\" \"{0}\"&exit", dirToOpen));
             process.StandardInput.AutoFlush = true;
             button1.Enabled = true;

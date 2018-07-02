@@ -52,19 +52,18 @@ namespace S4PIDemoFE
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
-            this.browserWidget1 = new S4PIDemoFE.BrowserWidget();
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.lbProgress = new System.Windows.Forms.Label();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.button2 = new System.Windows.Forms.Button();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.pnAuto = new System.Windows.Forms.Panel();
-            this.packageInfoWidget1 = new S4PIDemoFE.PackageInfo.PackageInfoWidget();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.controlPanel1 = new S4PIDemoFE.ControlPanel();
-            this.resourceFilterWidget1 = new S4PIDemoFE.Filter.ResourceFilterWidget();
             this.exportFileDialog = new System.Windows.Forms.SaveFileDialog();
             this.exportBatchTarget = new System.Windows.Forms.FolderBrowserDialog();
             this.importResourcesDialog = new System.Windows.Forms.OpenFileDialog();
@@ -73,11 +72,13 @@ namespace S4PIDemoFE
             this.importPackagesDialog = new System.Windows.Forms.OpenFileDialog();
             this.exportToPackageDialog = new System.Windows.Forms.OpenFileDialog();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.browserWidget1 = new S4PIDemoFE.BrowserWidget();
+            this.packageInfoWidget1 = new S4PIDemoFE.PackageInfo.PackageInfoWidget();
+            this.controlPanel1 = new S4PIDemoFE.ControlPanel();
+            this.resourceFilterWidget1 = new S4PIDemoFE.Filter.ResourceFilterWidget();
             this.menuBarWidget = new S4PIDemoFE.MenuBarWidget();
             this.packageInfoFields1 = new S4PIDemoFE.PackageInfo.PackageInfoFields();
-            this.label2 = new System.Windows.Forms.Label();
-            this.textBox2 = new System.Windows.Forms.TextBox();
-            this.button2 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -111,7 +112,7 @@ namespace S4PIDemoFE
             this.splitContainer1.Panel2.Controls.Add(this.panel1);
             this.splitContainer1.Panel2MinSize = 131;
             this.splitContainer1.Size = new System.Drawing.Size(923, 654);
-            this.splitContainer1.SplitterDistance = 514;
+            this.splitContainer1.SplitterDistance = 515;
             this.splitContainer1.TabIndex = 1;
             // 
             // splitContainer2
@@ -130,31 +131,9 @@ namespace S4PIDemoFE
             // 
             this.splitContainer2.Panel2.Controls.Add(this.panel2);
             this.splitContainer2.Panel2.Controls.Add(this.pnAuto);
-            this.splitContainer2.Size = new System.Drawing.Size(923, 514);
+            this.splitContainer2.Size = new System.Drawing.Size(923, 515);
             this.splitContainer2.SplitterDistance = 578;
             this.splitContainer2.TabIndex = 0;
-            // 
-            // browserWidget1
-            // 
-            this.browserWidget1.AllowDrop = true;
-            this.browserWidget1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.browserWidget1.Fields = null;
-            this.browserWidget1.Filter = null;
-            this.browserWidget1.Location = new System.Drawing.Point(0, 0);
-            this.browserWidget1.Name = "browserWidget1";
-            this.browserWidget1.Package = null;
-            this.browserWidget1.ProgressBar = this.progressBar1;
-            this.browserWidget1.ProgressLabel = this.lbProgress;
-            this.browserWidget1.ResourceKey = null;
-            this.browserWidget1.SelectedResource = null;
-            this.browserWidget1.Size = new System.Drawing.Size(574, 510);
-            this.browserWidget1.Sortable = false;
-            this.browserWidget1.TabIndex = 0;
-            this.browserWidget1.ItemActivate += new System.EventHandler(this.browserWidget1_ItemActivate);
-            this.browserWidget1.SelectedResourceChanging += new System.EventHandler<S4PIDemoFE.BrowserWidget.ResourceChangingEventArgs>(this.browserWidget1_SelectedResourceChanging);
-            this.browserWidget1.SelectedResourceChanged += new System.EventHandler<S4PIDemoFE.BrowserWidget.ResourceChangedEventArgs>(this.browserWidget1_SelectedResourceChanged);
-            this.browserWidget1.DeletePressed += new System.EventHandler(this.browserWidget1_DeletePressed);
-            this.browserWidget1.DragOver += new System.Windows.Forms.DragEventHandler(this.browserWidget1_DragOver);
             // 
             // progressBar1
             // 
@@ -178,16 +157,42 @@ namespace S4PIDemoFE
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.checkBox1);
             this.panel2.Controls.Add(this.button2);
             this.panel2.Controls.Add(this.textBox2);
             this.panel2.Controls.Add(this.label2);
             this.panel2.Controls.Add(this.textBox1);
             this.panel2.Controls.Add(this.button1);
             this.panel2.Controls.Add(this.label1);
-            this.panel2.Location = new System.Drawing.Point(1, 309);
+            this.panel2.Location = new System.Drawing.Point(1, 254);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(287, 201);
+            this.panel2.Size = new System.Drawing.Size(287, 256);
             this.panel2.TabIndex = 2;
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(183, 102);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(101, 23);
+            this.button2.TabIndex = 7;
+            this.button2.Text = "图片模组对照";
+            this.button2.UseVisualStyleBackColor = true;
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(89, 45);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(190, 21);
+            this.textBox2.TabIndex = 6;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(3, 48);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(53, 12);
+            this.label2.TabIndex = 5;
+            this.label2.Text = "新的路径";
             // 
             // textBox1
             // 
@@ -199,7 +204,7 @@ namespace S4PIDemoFE
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(5, 76);
+            this.button1.Location = new System.Drawing.Point(5, 102);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 3;
@@ -223,18 +228,8 @@ namespace S4PIDemoFE
             this.pnAuto.Location = new System.Drawing.Point(0, 0);
             this.pnAuto.Margin = new System.Windows.Forms.Padding(0);
             this.pnAuto.Name = "pnAuto";
-            this.pnAuto.Size = new System.Drawing.Size(337, 306);
+            this.pnAuto.Size = new System.Drawing.Size(337, 251);
             this.pnAuto.TabIndex = 4;
-            // 
-            // packageInfoWidget1
-            // 
-            this.packageInfoWidget1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.packageInfoWidget1.Fields = null;
-            this.packageInfoWidget1.Location = new System.Drawing.Point(0, 105);
-            this.packageInfoWidget1.Name = "packageInfoWidget1";
-            this.packageInfoWidget1.Package = null;
-            this.packageInfoWidget1.Size = new System.Drawing.Size(919, 0);
-            this.packageInfoWidget1.TabIndex = 0;
             // 
             // tableLayoutPanel1
             // 
@@ -244,7 +239,7 @@ namespace S4PIDemoFE
             this.tableLayoutPanel1.Controls.Add(this.progressBar1, 1, 0);
             this.tableLayoutPanel1.Controls.Add(this.lbProgress, 0, 0);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 105);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 104);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 1;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -260,44 +255,6 @@ namespace S4PIDemoFE
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(919, 105);
             this.panel1.TabIndex = 0;
-            // 
-            // controlPanel1
-            // 
-            this.controlPanel1.AutoOff = false;
-            this.controlPanel1.AutoPreview = true;
-            this.controlPanel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.controlPanel1.Location = new System.Drawing.Point(0, 76);
-            this.controlPanel1.Margin = new System.Windows.Forms.Padding(0);
-            this.controlPanel1.Name = "controlPanel1";
-            this.controlPanel1.Padding = new System.Windows.Forms.Padding(6, 0, 6, 0);
-            this.controlPanel1.Size = new System.Drawing.Size(919, 29);
-            this.controlPanel1.Sort = true;
-            this.controlPanel1.TabIndex = 1;
-            this.controlPanel1.UseNames = true;
-            this.controlPanel1.UseTags = true;
-            this.controlPanel1.SortChanged += new System.EventHandler(this.controlPanel1_SortChanged);
-            this.controlPanel1.HexClick += new System.EventHandler(this.controlPanel1_HexClick);
-            this.controlPanel1.AutoChanged += new System.EventHandler(this.controlPanel1_AutoChanged);
-            this.controlPanel1.HexOnlyChanged += new System.EventHandler(this.controlPanel1_HexOnlyChanged);
-            this.controlPanel1.ValueClick += new System.EventHandler(this.controlPanel1_PreviewClick);
-            this.controlPanel1.GridClick += new System.EventHandler(this.controlPanel1_GridClick);
-            this.controlPanel1.UseNamesChanged += new System.EventHandler(this.controlPanel1_UseNamesChanged);
-            this.controlPanel1.UseTagsChanged += new System.EventHandler(this.controlPanel1_UseTagsChanged);
-            this.controlPanel1.Helper1Click += new System.EventHandler(this.controlPanel1_Helper1Click);
-            this.controlPanel1.Helper2Click += new System.EventHandler(this.controlPanel1_Helper2Click);
-            this.controlPanel1.HexEditClick += new System.EventHandler(this.controlPanel1_HexEditClick);
-            this.controlPanel1.CommitClick += new System.EventHandler(this.controlPanel1_CommitClick);
-            // 
-            // resourceFilterWidget1
-            // 
-            this.resourceFilterWidget1.AutoScroll = true;
-            this.resourceFilterWidget1.Location = new System.Drawing.Point(-2, -4);
-            this.resourceFilterWidget1.Name = "resourceFilterWidget1";
-            this.resourceFilterWidget1.PasteButtonEnabled = true;
-            this.resourceFilterWidget1.Size = new System.Drawing.Size(518, 138);
-            this.resourceFilterWidget1.TabIndex = 0;
-            this.resourceFilterWidget1.FilterChanged += new System.EventHandler(this.resourceFilterWidget1_FilterChanged);
-            this.resourceFilterWidget1.PasteClicked += new System.EventHandler(this.resourceFilterWidget1_PasteClicked);
             // 
             // exportFileDialog
             // 
@@ -347,6 +304,86 @@ namespace S4PIDemoFE
             this.openFileDialog1.SupportMultiDottedExtensions = true;
             this.openFileDialog1.Title = "Open package";
             // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(5, 80);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(102, 16);
+            this.checkBox1.TabIndex = 8;
+            this.checkBox1.Text = "移除功能性mod";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            // 
+            // browserWidget1
+            // 
+            this.browserWidget1.AllowDrop = true;
+            this.browserWidget1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.browserWidget1.Fields = null;
+            this.browserWidget1.Filter = null;
+            this.browserWidget1.Location = new System.Drawing.Point(0, 0);
+            this.browserWidget1.Name = "browserWidget1";
+            this.browserWidget1.Package = null;
+            this.browserWidget1.ProgressBar = this.progressBar1;
+            this.browserWidget1.ProgressLabel = this.lbProgress;
+            this.browserWidget1.ResourceKey = null;
+            this.browserWidget1.SelectedResource = null;
+            this.browserWidget1.Size = new System.Drawing.Size(574, 511);
+            this.browserWidget1.Sortable = false;
+            this.browserWidget1.TabIndex = 0;
+            this.browserWidget1.ItemActivate += new System.EventHandler(this.browserWidget1_ItemActivate);
+            this.browserWidget1.SelectedResourceChanging += new System.EventHandler<S4PIDemoFE.BrowserWidget.ResourceChangingEventArgs>(this.browserWidget1_SelectedResourceChanging);
+            this.browserWidget1.SelectedResourceChanged += new System.EventHandler<S4PIDemoFE.BrowserWidget.ResourceChangedEventArgs>(this.browserWidget1_SelectedResourceChanged);
+            this.browserWidget1.DeletePressed += new System.EventHandler(this.browserWidget1_DeletePressed);
+            this.browserWidget1.DragOver += new System.Windows.Forms.DragEventHandler(this.browserWidget1_DragOver);
+            // 
+            // packageInfoWidget1
+            // 
+            this.packageInfoWidget1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.packageInfoWidget1.Fields = null;
+            this.packageInfoWidget1.Location = new System.Drawing.Point(0, 105);
+            this.packageInfoWidget1.Name = "packageInfoWidget1";
+            this.packageInfoWidget1.Package = null;
+            this.packageInfoWidget1.Size = new System.Drawing.Size(919, 0);
+            this.packageInfoWidget1.TabIndex = 0;
+            // 
+            // controlPanel1
+            // 
+            this.controlPanel1.AutoOff = false;
+            this.controlPanel1.AutoPreview = true;
+            this.controlPanel1.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.controlPanel1.Location = new System.Drawing.Point(0, 76);
+            this.controlPanel1.Margin = new System.Windows.Forms.Padding(0);
+            this.controlPanel1.Name = "controlPanel1";
+            this.controlPanel1.Padding = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.controlPanel1.Size = new System.Drawing.Size(919, 29);
+            this.controlPanel1.Sort = true;
+            this.controlPanel1.TabIndex = 1;
+            this.controlPanel1.UseNames = true;
+            this.controlPanel1.UseTags = true;
+            this.controlPanel1.SortChanged += new System.EventHandler(this.controlPanel1_SortChanged);
+            this.controlPanel1.HexClick += new System.EventHandler(this.controlPanel1_HexClick);
+            this.controlPanel1.AutoChanged += new System.EventHandler(this.controlPanel1_AutoChanged);
+            this.controlPanel1.HexOnlyChanged += new System.EventHandler(this.controlPanel1_HexOnlyChanged);
+            this.controlPanel1.ValueClick += new System.EventHandler(this.controlPanel1_PreviewClick);
+            this.controlPanel1.GridClick += new System.EventHandler(this.controlPanel1_GridClick);
+            this.controlPanel1.UseNamesChanged += new System.EventHandler(this.controlPanel1_UseNamesChanged);
+            this.controlPanel1.UseTagsChanged += new System.EventHandler(this.controlPanel1_UseTagsChanged);
+            this.controlPanel1.Helper1Click += new System.EventHandler(this.controlPanel1_Helper1Click);
+            this.controlPanel1.Helper2Click += new System.EventHandler(this.controlPanel1_Helper2Click);
+            this.controlPanel1.HexEditClick += new System.EventHandler(this.controlPanel1_HexEditClick);
+            this.controlPanel1.CommitClick += new System.EventHandler(this.controlPanel1_CommitClick);
+            // 
+            // resourceFilterWidget1
+            // 
+            this.resourceFilterWidget1.AutoScroll = true;
+            this.resourceFilterWidget1.Location = new System.Drawing.Point(-2, -4);
+            this.resourceFilterWidget1.Name = "resourceFilterWidget1";
+            this.resourceFilterWidget1.PasteButtonEnabled = true;
+            this.resourceFilterWidget1.Size = new System.Drawing.Size(518, 138);
+            this.resourceFilterWidget1.TabIndex = 0;
+            this.resourceFilterWidget1.FilterChanged += new System.EventHandler(this.resourceFilterWidget1_FilterChanged);
+            this.resourceFilterWidget1.PasteClicked += new System.EventHandler(this.resourceFilterWidget1_PasteClicked);
+            // 
             // menuBarWidget
             // 
             this.menuBarWidget.Dock = System.Windows.Forms.DockStyle.Top;
@@ -365,31 +402,6 @@ namespace S4PIDemoFE
             this.menuBarWidget.HelperClick += new S4PIDemoFE.MenuBarWidget.HelperClickEventHandler(this.menuBarWidget1_HelperClick);
             this.menuBarWidget.MRUClick += new S4PIDemoFE.MenuBarWidget.MRUClickEventHandler(this.menuBarWidget1_MRUClick);
             this.menuBarWidget.BookmarkClick += new S4PIDemoFE.MenuBarWidget.BookmarkClickEventHandler(this.menuBarWidget1_BookmarkClick);
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(3, 48);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(53, 12);
-            this.label2.TabIndex = 5;
-            this.label2.Text = "新的路径";
-            // 
-            // textBox2
-            // 
-            this.textBox2.Location = new System.Drawing.Point(89, 45);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(190, 21);
-            this.textBox2.TabIndex = 6;
-            // 
-            // button2
-            // 
-            this.button2.Location = new System.Drawing.Point(178, 76);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(101, 23);
-            this.button2.TabIndex = 7;
-            this.button2.Text = "图片模组对照";
-            this.button2.UseVisualStyleBackColor = true;
             // 
             // MainForm
             // 
@@ -450,5 +462,6 @@ namespace S4PIDemoFE
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.CheckBox checkBox1;
     }
 }
