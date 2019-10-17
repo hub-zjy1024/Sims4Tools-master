@@ -2944,13 +2944,15 @@ namespace S4PIDemoFE
                 form.Dispose();
             }
         }
-
         private IBuiltInValueControl GetPreviewControl()
         {
             try
             {
+                string type = string.Format("0x{0:X8}", browserWidget1.SelectedResource.ResourceType);
+                Console.WriteLine("type= "+ type);
                 if (this.HasStringValueContentField())
                 {
+                    Console.WriteLine("PreView TextControl");
                     return new TextControl("" + this.resource["Value"]);
                 }
 
@@ -2958,6 +2960,9 @@ namespace S4PIDemoFE
                     ABuiltInValueControl.Lookup(this.browserWidget1.SelectedResource.ResourceType, this.resource.Stream);
                 if (ibvc != null)
                 {
+                    // Console.WriteLine("Ibuilt nTag,stream=" +);
+                    Type t = ibvc.GetType() ;
+                        Console.WriteLine("PreView Ibuilt type="+t.Name);
                     return ibvc;
                 }
 
@@ -3005,7 +3010,31 @@ namespace S4PIDemoFE
             return new TextControl(s);
         }
 
+        public void updateProgress(int persent)
+        {
+            progressBar1.Value = persent;
+        }
 
+        public void showFinalBox(string p)
+        {
+            MessageBox.Show("结果：" + p);
+            //AppDomain.CurrentDomain.
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            process.StartInfo.FileName = "cmd.exe";
+            process.StartInfo.UseShellExecute = false;    //是否使用操作系统shell启动
+            process.StartInfo.RedirectStandardInput = true;//接受来自调用程序的输入信息
+            process.StartInfo.RedirectStandardOutput = true;//由调用程序获取输出信息
+            process.StartInfo.RedirectStandardError = true;//重定向标准错误输出
+            process.StartInfo.CreateNoWindow = true;//不显示程序窗口
+            process.Start();//启动程序
+
+            //向cmd窗口发送输入信息
+            string dirToOpen = PackageHandler.dirMod + "/log/";
+            //process.StandardInput.WriteLine(string.Format("start \"\" \"{0}\"&exit", dirToOpen));
+            process.StandardInput.WriteLine(string.Format("start \"\" \"{0}\"&exit", dirToOpen));
+            process.StandardInput.AutoFlush = true;
+            button1.Enabled = true;
+        }
         private void controlPanel1_GridClick(object sender, EventArgs e)
         {
             try
@@ -3251,7 +3280,65 @@ namespace S4PIDemoFE
             {
             }
         }
-
+        private void button2_Click(object sender, EventArgs e)
+        {
+            string workDir = PackageHandler.dirMod;
+            ViewModList viewPose = new ViewModList(workDir);
+            viewPose.Show();
+        }
         #endregion
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            progressBar1.Value = 0;
+            progressBar1.Maximum = 100;
+            button1.Enabled = false;
+            string dirPath = textBox1.Text;
+            bool removeAbMod = cbo_rm_ablity.Checked;
+            PackageHandler mHandler = new PackageHandler(dirPath, removeAbMod);
+            String logDir = PackageHandler.dirMod + "log/";
+            if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+            string time = DateTime.Now.ToString("HHmmss");
+            string logFileName = string.Format("log_{0}.txt", time);
+            string casLogFile = string.Format("log_casType_{0}.txt", time);
+            string casTypesLogFile = string.Format("log_casCounts_{0}.txt", time);
+            string tiHuanLogFile = string.Format("mod_替换_{0}.txt", time);
+            try
+            {
+                PackageHandler.ExportConifg config = new PackageHandler.ExportConifg()
+                {
+                    checkTihuan = true
+                };
+
+                mHandler.Config = config;
+                mHandler.HLogHandler = new HLogHandler(logDir + logFileName);
+                mHandler.CRecoder = new CASRecorder(logDir + casLogFile);
+                mHandler.tiLog = new TihuanModRecoder(logDir + tiHuanLogFile);
+                bool isRrMod= cbo_r_rpmod.Checked;
+                bool isRmAblity= cbo_rm_ablity.Checked;
+
+                mHandler.removeTiHuan = isRrMod;
+                mHandler.removeAbilityMod = isRmAblity;
+                mHandler.createCasInfoFile = cbo_exp_cloth.Checked;
+                mHandler.CoutsRecorder = new CasTypeRecorder(logDir + casTypesLogFile);
+            }
+            catch (Exception mex)
+            {
+                Console.WriteLine(mex);
+            }
+            Func<string> export = () => mHandler.exportAll(dirPath, this);
+            export.BeginInvoke((de) => {
+                string ret = export.EndInvoke(de);
+                mHandler.ApendLineLog("执行结果:" + ret);
+                mHandler.Release();
+                BeginInvoke(new Action<string>(showFinalBox), ret);
+            }, null);
+        }
+
+        private void Button2_Click_1(object sender, EventArgs e)
+        {
+            DuplicatedForm cheker = new DuplicatedForm();
+            cheker.Show();
+        }
     }
 }

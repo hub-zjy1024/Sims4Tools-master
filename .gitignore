@@ -221,3 +221,4 @@ FakesAssemblies/
 
 # Files created by CreateAssemblyVersion pre-build events
 **/Properties/AssemblyVersion.cs
+/.vs

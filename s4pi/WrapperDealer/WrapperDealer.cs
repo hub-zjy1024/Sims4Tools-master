@@ -104,8 +104,11 @@ namespace s4pi.WrapperDealer
 
                         foreach (Type k in arh.Keys)
                         {
-                            foreach (string s in arh[k])
+                            foreach (string s in arh[k]) {
+                                //Console.WriteLine("add handler " + s + "-\t" + k);
                                 typeMap.Add(new KeyValuePair<string, Type>(s, k));
+                            }
+                             
                         }
                     }
                 }

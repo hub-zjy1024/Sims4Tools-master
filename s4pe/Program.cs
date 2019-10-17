@@ -36,7 +36,7 @@ namespace S4PIDemoFE
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             UpdateConfiguration();
-            UpdateChecker.DailyCheck();
+            //UpdateChecker.DailyCheck();
 
             Application.Run(new MainForm(args));
 

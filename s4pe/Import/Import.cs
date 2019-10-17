@@ -70,8 +70,7 @@ namespace S4PIDemoFE
         private static readonly List<uint> nmapList = new List<uint>(new uint[]
                                                                      {
                                                                          0x0166038C //NMAP
-                                                                     });
-
+                                                                      });
         // See http://dino.drealm.info/den/denforum/index.php?topic=244.0
 
         private static readonly List<uint> deleteList = new List<uint>(new uint[]
