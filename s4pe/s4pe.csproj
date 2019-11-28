@@ -179,6 +179,7 @@
     <Compile Include="Zjy\PackageHandler.cs" />
     <Compile Include="Zjy\S4PoseInfo.cs" />
     <Compile Include="Zjy\Sims4ModInfo.cs" />
+    <Compile Include="Zjy\TranslateUtil.cs" />
     <Compile Include="Zjy\TxtDownloader.cs" />
     <Compile Include="Zjy\ViewModList.cs">
       <SubType>Form</SubType>
