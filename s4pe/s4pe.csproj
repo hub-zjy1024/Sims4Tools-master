@@ -179,6 +179,13 @@
     <Compile Include="Zjy\PackageHandler.cs" />
     <Compile Include="Zjy\S4PoseInfo.cs" />
     <Compile Include="Zjy\Sims4ModInfo.cs" />
+    <Compile Include="Zjy\TransLateForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Zjy\TransLateForm.Designer.cs">
+      <DependentUpon>TransLateForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Zjy\TranslatePresenter.cs" />
     <Compile Include="Zjy\TranslateUtil.cs" />
     <Compile Include="Zjy\TxtDownloader.cs" />
     <Compile Include="Zjy\ViewModList.cs">
@@ -327,6 +334,9 @@
     <Compile Include="Tools\SearchForm.Designer.cs">
       <DependentUpon>SearchForm.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="Zjy\TransLateForm.resx">
+      <DependentUpon>TransLateForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Zjy\ViewModList.resx">
       <DependentUpon>ViewModList.cs</DependentUpon>
     </EmbeddedResource>
