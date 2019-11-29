@@ -19,6 +19,7 @@ namespace S4PIDemoFE.Zjy
         {
             public Dictionary<string, DetailItem>  zhDic;
             public Dictionary<string, DetailItem>  enDic;
+            public string filename;
             public string strType;
             public string group;
             public string mInstance;
@@ -40,6 +41,7 @@ namespace S4PIDemoFE.Zjy
             public string beforeLang;
             public string TargetLang;
             public string strNS;
+            public string filename;
             //220557DA-80000000-00000000D67DACAE-351C970F
         }
 
@@ -96,10 +98,11 @@ namespace S4PIDemoFE.Zjy
                 for (int i = 0; i < files.Length; i++)
                 {
                     string tfile = files[i];
-                    string name = tfile.Substring(tfile.LastIndexOf("/") + 1);
+                    string name = tfile.Substring(tfile.LastIndexOf("\\") + 1);
                     IPackage tempPackage = Package.OpenPackage(0, tfile, true);
                     List<IResourceIndexEntry> list = tempPackage.GetResourceList;
                     int mCount = 0;
+                    int mCount2 = 0;
                     ConTainer tempContainer = null;
                     foreach (IResourceIndexEntry tEnry in list)
                     {
@@ -107,16 +110,20 @@ namespace S4PIDemoFE.Zjy
                         
                         uint mType = tEnry.ResourceType;
                         ulong instanceKey = tEnry.Instance;
-                        string strInstance = string.Format("{0:X8}", instanceKey);
+                        string strInstance = string.Format("{0:X16}", instanceKey);
                         string strGroup = string.Format("{0:X8}", tEnry.ResourceGroup);
                         string strType = string.Format("{0:X8}", mType);
+                        string testType= string.Format("{0:X16}", instanceKey);
                         //instanceKey >> 16;
                         if (mType == 0x220557DA)
                         {
-                            tempContainer = new ConTainer();
-                            tempContainer.strType = strType;
-                            tempContainer.group = strGroup;
-                            tempContainer.mInstance = strInstance;
+                            if (tempContainer == null) {
+                                tempContainer = new ConTainer();
+                                tempContainer.strType = strType;
+                                tempContainer.group = strGroup;
+                                tempContainer.mInstance = strInstance;
+                            }
+                          
 
                             Dictionary<string, DetailItem> dicKey = new Dictionary<string, DetailItem>();
                           
@@ -136,56 +143,125 @@ namespace S4PIDemoFE.Zjy
                                 deItem.keyValue = kvalue;
                                 string tempNs = string.Format("{0}-{1}-{2}-{3}", strType, strGroup,strInstance,key);
                                 deItem.strNS = tempNs;
-                                dicKey.Add(key, deItem);
-                                outMsg(name + "\n stbl" + dMsg);
+                                if (dicKey.ContainsKey(key)) {
+                                    string oldKey = dicKey[key].keyValue;
+                                    if (!oldKey.Equals(kvalue)) {
+                                        outMsg("[bug]  name duplicated at" +
+                                        "old=" + dicKey[key] +
+                                        ",new=" + kvalue +
+                                        " |" + tempNs + "");
+                                    }
+                                }
+                                else
+                                {
+                                    dicKey.Add(key, deItem);
+                                }
+                                //outMsg(name + "\n stbl" + dMsg);
                             }
                             if (strInstance.StartsWith("02"))
                             {
                                 tempContainer.zhDic = dicKey;
                                 mCount++;
                             }
-                            else if (strInstance.StartsWith("00"))
+                            else if (strInstance.StartsWith("03"))
                             {
                                 tempContainer.enDic = dicKey;
                                 mCount++;
                             }
-                            if (mCount > 2) {
-                                break;
+                            else {
+                                tempContainer.enDic = dicKey;
+                                mCount++;
                             }
+                            //    if (mCount > 2) {
+                            //    break;
+                            //}
                         }
                     }
+                    //if (mCount != 2) {
+                    //    outMsg(name+" [bug] count !=2,count="+mCount
+                    //        );
+                    //}
                     tempPackage.Dispose();
                     if (tempContainer != null) {
                         keyCotainer.Add(name, tempContainer);
+                        tempContainer.filename = name;
+                        mContainers.Add(tempContainer);
                     }
+                    
                     //tempPackage.AddResource()
                     //tempPackage.AddResource()
                 }
+
+                foreach (ConTainer mCt in mContainers)
+                {
+                    if (mCt.enDic != null)
+                    {
+                        foreach (string mKey in mCt.enDic.Keys)
+                        {
+                            if (mKey == null)
+                            {
+                                outMsg("null key");
+                            }
+                            if (mCt.zhDic == null)
+                            {
+                                break;
+                            }
+                            DetailItem item = mCt.enDic[mKey];
+                            if (mCt.zhDic.ContainsKey(mKey))
+                            {
+                              
+                                DetailItem item2 = mCt.zhDic[mKey];
+                                if (item == null)
+                                {
+                                    outMsg("item null1");
+                                    break;
+                                }
+                                if (item2 == null)
+                                {
+                                    outMsg("item null2");
+                                    break;
+                                }
+                                ExportedItem tempItem = new ExportedItem();
+                                tempItem.strNS = item.strNS;
+                                tempItem.beforeLang = item.keyValue;
+                                tempItem.TargetLang = item2.keyValue;
+                                items.Add(tempItem);
+                            }
+                            else
+                            {
+                                ExportedItem tempItem = new ExportedItem();
+                                tempItem.strNS = item.strNS;
+                                tempItem.beforeLang = item.keyValue ;
+                                tempItem.TargetLang = item.keyValue;
+                                tempItem.filename = mCt.filename;
+                                items.Add(tempItem);
+
+                            }
+                        }
+                        //foreach (string key in mCt.zhDic.Keys)
+                        //{
+                           
+                        //}
+                    }
+
+                }
+
             }
             catch (Exception e)
             {
                 outMsg("导出xml异常", e);
             }
-            foreach (ConTainer mCt in mContainers) {
-               foreach(string key in mCt.zhDic.Keys) {
-                    foreach (string mKey in mCt.zhDic.Keys) {
-                        DetailItem item = mCt.enDic[mKey];
-                        DetailItem item2 = mCt.zhDic[mKey];
-                        ExportedItem tempItem = new ExportedItem();
-                        tempItem.strNS= item.strNS;
-                        tempItem.beforeLang= item.strNS;
-                        tempItem.TargetLang = item2.keyHash;
-                  tempItem.beforeLang = item2.keyValue;
-                        items.Add(tempItem);
-                    }
-                }
-            }
-       
             outMsg("totalSize="+items.Count);
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < items.Count; i++) {
                 ExportedItem item = items[i];
+
+                string data= string.Format(" <Entry A=\"{0}\" B=\"{1} \" Namespace=\"{2}|{3}\" />", item.beforeLang, item.TargetLang, item.filename, item.strNS);
+            sb.Append(data);
                 outMsg(string.Format(" A=\"{0}\",B=\"{1},\"  Namespace=\"{2}\"", item.beforeLang,item.TargetLang,item.strNS));
             }
+           string result= sb.ToString();
+            outMsg(result);
         }
 
      

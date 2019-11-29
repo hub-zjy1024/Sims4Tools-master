@@ -56,6 +56,7 @@ namespace S4PIDemoFE
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.lbProgress = new System.Windows.Forms.Label();
             this.panel3 = new System.Windows.Forms.Panel();
+            this.button2 = new System.Windows.Forms.Button();
             this.cbo_exp_cloth = new System.Windows.Forms.CheckBox();
             this.cbo_r_rpmod = new System.Windows.Forms.CheckBox();
             this.lable1 = new System.Windows.Forms.Label();
@@ -79,7 +80,7 @@ namespace S4PIDemoFE
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.menuBarWidget = new S4PIDemoFE.MenuBarWidget();
             this.packageInfoFields1 = new S4PIDemoFE.PackageInfo.PackageInfoFields();
-            this.button2 = new System.Windows.Forms.Button();
+            this.btn_translate = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -182,6 +183,7 @@ namespace S4PIDemoFE
             // 
             // panel3
             // 
+            this.panel3.Controls.Add(this.btn_translate);
             this.panel3.Controls.Add(this.button2);
             this.panel3.Controls.Add(this.cbo_exp_cloth);
             this.panel3.Controls.Add(this.cbo_r_rpmod);
@@ -193,6 +195,16 @@ namespace S4PIDemoFE
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(285, 258);
             this.panel3.TabIndex = 5;
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(155, 109);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(99, 28);
+            this.button2.TabIndex = 6;
+            this.button2.Text = "mod文件去重";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.Button2_Click_1);
             // 
             // cbo_exp_cloth
             // 
@@ -405,15 +417,15 @@ namespace S4PIDemoFE
             this.menuBarWidget.MRUClick += new S4PIDemoFE.MenuBarWidget.MRUClickEventHandler(this.menuBarWidget1_MRUClick);
             this.menuBarWidget.BookmarkClick += new S4PIDemoFE.MenuBarWidget.BookmarkClickEventHandler(this.menuBarWidget1_BookmarkClick);
             // 
-            // button2
+            // btn_translate
             // 
-            this.button2.Location = new System.Drawing.Point(155, 109);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(99, 28);
-            this.button2.TabIndex = 6;
-            this.button2.Text = "mod文件去重";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.Button2_Click_1);
+            this.btn_translate.Location = new System.Drawing.Point(6, 162);
+            this.btn_translate.Name = "btn_translate";
+            this.btn_translate.Size = new System.Drawing.Size(75, 23);
+            this.btn_translate.TabIndex = 7;
+            this.btn_translate.Text = "翻译";
+            this.btn_translate.UseVisualStyleBackColor = true;
+            this.btn_translate.Click += new System.EventHandler(this.btn_translate_Click);
             // 
             // MainForm
             // 
@@ -477,5 +489,6 @@ namespace S4PIDemoFE
         private System.Windows.Forms.CheckBox cbo_r_rpmod;
         private System.Windows.Forms.CheckBox cbo_exp_cloth;
         private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button btn_translate;
     }
 }

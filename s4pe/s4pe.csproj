@@ -52,8 +52,7 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject>S4PIDemoFE.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.configuration" />

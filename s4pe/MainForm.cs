@@ -44,6 +44,7 @@ using s4pi.Package;
 using s4pi.WrapperDealer;
 using S4PIDemoFE.Settings;
 using S4PIDemoFE.Tools;
+using S4PIDemoFE.Zjy;
 using Version = S4PIDemoFE.Settings.Version;
 
 namespace S4PIDemoFE
@@ -3338,6 +3339,12 @@ namespace S4PIDemoFE
         private void Button2_Click_1(object sender, EventArgs e)
         {
             DuplicatedForm cheker = new DuplicatedForm();
+            cheker.Show();
+        }
+
+        private void btn_translate_Click(object sender, EventArgs e)
+        {
+            TransLateForm cheker = new TransLateForm();
             cheker.Show();
         }
     }
