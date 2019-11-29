@@ -51,6 +51,7 @@ namespace S4PIDemoFE.Zjy
             void onProgress(int percent);
             void onFinished(string targetPath);
             void onError(string msg);
+            void onMain(Action action);
         }
         IView mView;
 
@@ -163,14 +164,17 @@ namespace S4PIDemoFE.Zjy
                                 tempContainer.zhDic = dicKey;
                                 mCount++;
                             }
-                            else if (strInstance.StartsWith("03"))
-                            {
-                                tempContainer.enDic = dicKey;
-                                mCount++;
-                            }
+                            //else if (strInstance.StartsWith("03"))
+                            //{
+                            //    tempContainer.enDic = dicKey;
+                            //    mCount++;
+                            //}
                             else {
                                 tempContainer.enDic = dicKey;
-                                mCount++;
+                                if (mCount == 1) {
+                                    break;
+                                }
+                                //mCount++;
                             }
                             //    if (mCount > 2) {
                             //    break;
@@ -204,27 +208,24 @@ namespace S4PIDemoFE.Zjy
                             }
                             if (mCt.zhDic == null)
                             {
-                                break;
+                                outMsg("noZh "+mCt.filename);
+                                //break;
                             }
                             DetailItem item = mCt.enDic[mKey];
                             if (mCt.zhDic.ContainsKey(mKey))
                             {
                               
                                 DetailItem item2 = mCt.zhDic[mKey];
-                                if (item == null)
-                                {
-                                    outMsg("item null1");
-                                    break;
-                                }
-                                if (item2 == null)
-                                {
-                                    outMsg("item null2");
-                                    break;
-                                }
+                                //if (item2 == null)
+                                //{
+                                //    outMsg("item null2");
+                                //    break;
+                                //}
                                 ExportedItem tempItem = new ExportedItem();
                                 tempItem.strNS = item.strNS;
                                 tempItem.beforeLang = item.keyValue;
                                 tempItem.TargetLang = item2.keyValue;
+                                tempItem.filename = mCt.filename;
                                 items.Add(tempItem);
                             }
                             else
@@ -246,25 +247,59 @@ namespace S4PIDemoFE.Zjy
 
                 }
 
+                //outMsg("totalSize=" + items.Count);
+                StringBuilder sb = new StringBuilder();
+                sb.Append("<? xml version = \"1.0\" encoding = \"utf - 8\" ?>");
+                sb.Append("< Dictionary A = \"0x2\" B = \"0x0\" >");
+   //             <? xml version = "1.0" encoding = "utf-8" ?>
+   //<Dictionary A = "0x2" B = "0x0" >
+                for (int i = 0; i < items.Count; i++)
+                {
+                    ExportedItem item = items[i];
+
+                    string data = string.Format("<Entry A=\"{0}\" B=\"{1} \" Namespace=\"{2}|{3}\" />", item.beforeLang, item.TargetLang, item.filename, item.strNS);
+                    sb.Append(data);
+                    sb.Append("\r\n");
+                    //outMsg(string.Format(" A=\"{0}\",B=\"{1},\"  Namespace=\"{2}\"", item.beforeLang,item.TargetLang,item.strNS));
+                }
+                sb.Append("</Dictionary>");
+                string result = sb.ToString();
+                SavedToFile(result);
+                string retMsg = "待翻译条目：" + items.Count;
+                Action action = () => mView.onFinished(retMsg);
+                mView.onMain(action);
             }
             catch (Exception e)
             {
-                outMsg("导出xml异常", e);
+                //outMsg("导出xml异常", e);
+                string errMsg = ExMsg("导出xml异常", e);
+                Action action = () => mView.onError(errMsg);
+                mView.onMain(action);
             }
-            outMsg("totalSize="+items.Count);
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < items.Count; i++) {
-                ExportedItem item = items[i];
-
-                string data= string.Format(" <Entry A=\"{0}\" B=\"{1} \" Namespace=\"{2}|{3}\" />", item.beforeLang, item.TargetLang, item.filename, item.strNS);
-            sb.Append(data);
-                outMsg(string.Format(" A=\"{0}\",B=\"{1},\"  Namespace=\"{2}\"", item.beforeLang,item.TargetLang,item.strNS));
-            }
-           string result= sb.ToString();
-            outMsg(result);
+          
         }
 
-     
+        void SavedToFile(string data) {
+            string saveFile = PackageHandler.dirMod + new DateTime().ToString("MM-DD_HH_mm_ss") + ".xml";
+            DirectoryInfo info= Directory.GetParent(saveFile);
+            if (!info.Exists) {
+                Directory.CreateDirectory(info.FullName);
+            }
+            using (FileStream fStream = File.Open(saveFile, FileMode.OpenOrCreate)) {
+                byte[] dataByte = UTF8Encoding.UTF8.GetBytes(data);
+                fStream.Write(dataByte,0, dataByte.Length);
+            }
+       
+
+
+        }
+
+        private string ExMsg(string tag, Exception e)
+        {
+
+            return "异常," + tag + "," + e.Message + "\t,stack=" + e.StackTrace;
+        }
+
         private void outMsg(string tag,Exception e) {
             outMsg("异常,"+ tag+"," + e.Message + "\t,stack=" + e.StackTrace);
         }

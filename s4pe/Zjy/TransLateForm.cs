@@ -18,12 +18,19 @@ namespace S4PIDemoFE.Zjy
 
         public void onError(string msg)
         {
-            throw new NotImplementedException();
+            MessageBox.Show(msg, "错误");
         }
 
         public void onFinished(string targetPath)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+
+            MessageBox.Show(targetPath, "提示");
+        }
+
+        public void onMain(Action action)
+        {
+            Invoke(action);
         }
 
         public void onProgress(int percent)
