@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
 namespace S4PIDemoFE.Zjy
 {
@@ -105,6 +106,9 @@ namespace S4PIDemoFE.Zjy
                     int mCount = 0;
                     int mCount2 = 0;
                     ConTainer tempContainer = null;
+
+                    Dictionary<string, Dictionary<string, DetailItem>> mlangs = new Dictionary<string, Dictionary<string, DetailItem>>();
+                    string engKey = "";
                     foreach (IResourceIndexEntry tEnry in list)
                     {
 
@@ -118,12 +122,6 @@ namespace S4PIDemoFE.Zjy
                         //instanceKey >> 16;
                         if (mType == 0x220557DA)
                         {
-                            if (tempContainer == null) {
-                                tempContainer = new ConTainer();
-                                tempContainer.strType = strType;
-                                tempContainer.group = strGroup;
-                                tempContainer.mInstance = strInstance;
-                            }
                           
 
                             Dictionary<string, DetailItem> dicKey = new Dictionary<string, DetailItem>();
@@ -159,32 +157,33 @@ namespace S4PIDemoFE.Zjy
                                 }
                                 //outMsg(name + "\n stbl" + dMsg);
                             }
-                            if (strInstance.StartsWith("02"))
+                            mCount++;
+                            if (strInstance.StartsWith("00"))
                             {
-                                tempContainer.zhDic = dicKey;
-                                mCount++;
-                            }
-                            //else if (strInstance.StartsWith("03"))
-                            //{
-                            //    tempContainer.enDic = dicKey;
-                            //    mCount++;
-                            //}
-                            else {
-                                tempContainer.enDic = dicKey;
-                                if (mCount == 1) {
-                                    break;
+                                engKey = strInstance;
+                                if (tempContainer == null)
+                                {
+                                    tempContainer = new ConTainer();
+                                    tempContainer.strType = strType;
+                                    tempContainer.group = strGroup;
+                                    tempContainer.mInstance = strInstance;
                                 }
-                                //mCount++;
                             }
-                            //    if (mCount > 2) {
-                            //    break;
-                            //}
+                            mlangs.Add(strInstance,dicKey);
                         }
+                    }
+                    if (!"".Equals(engKey)) {
+                        string zhKey = "02" + engKey.Substring(2);
+                        tempContainer.enDic = mlangs[engKey];
+                        tempContainer.zhDic = mlangs[zhKey];
                     }
                     //if (mCount != 2) {
                     //    outMsg(name+" [bug] count !=2,count="+mCount
                     //        );
                     //}
+                    outMsg("dangqianID:" +
+                        "" + name + "" +
+                        "\t"+",count="+mCount);
                     tempPackage.Dispose();
                     if (tempContainer != null) {
                         keyCotainer.Add(name, tempContainer);
@@ -202,14 +201,9 @@ namespace S4PIDemoFE.Zjy
                     {
                         foreach (string mKey in mCt.enDic.Keys)
                         {
-                            if (mKey == null)
-                            {
-                                outMsg("null key");
-                            }
                             if (mCt.zhDic == null)
                             {
                                 outMsg("noZh "+mCt.filename);
-                                //break;
                             }
                             DetailItem item = mCt.enDic[mKey];
                             if (mCt.zhDic.ContainsKey(mKey))
@@ -249,22 +243,40 @@ namespace S4PIDemoFE.Zjy
 
                 //outMsg("totalSize=" + items.Count);
                 StringBuilder sb = new StringBuilder();
-                sb.Append("<? xml version = \"1.0\" encoding = \"utf - 8\" ?>");
-                sb.Append("< Dictionary A = \"0x2\" B = \"0x0\" >");
    //             <? xml version = "1.0" encoding = "utf-8" ?>
-   //<Dictionary A = "0x2" B = "0x0" >
+   //< Dictionary A = "0x2" B = "0x0" >
+                      sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                sb.Append("\r\n");
+                sb.Append("<Dictionary A=\"0x2\" B=\"0x0\">");
+                sb.Append("\r\n");
+                //             <? xml version = "1.0" encoding = "utf-8" ?>
+                //<Dictionary A = "0x2" B = "0x0" >
+                XmlDocument xmldoc = new XmlDocument();
+                //3.创建第一行描述信息，添加到xmldoc文档中
+                XmlDeclaration xmldec = xmldoc.CreateXmlDeclaration("1.0", "utf-8", null);
+                xmldoc.AppendChild(xmldec);
+                //4.创建根节点，xml文档有且只能有一个根节点
+                XmlElement xmlele1 = xmldoc.CreateElement("Dictionary");
+                xmldoc.AppendChild(xmlele1);
                 for (int i = 0; i < items.Count; i++)
                 {
                     ExportedItem item = items[i];
 
-                    string data = string.Format("<Entry A=\"{0}\" B=\"{1} \" Namespace=\"{2}|{3}\" />", item.beforeLang, item.TargetLang, item.filename, item.strNS);
+                    string data = string.Format("<Entry A=\"{0}\" B=\"{1} \" Namespace=\"{2}|{3}\" />", item.beforeLang.Replace("\"", "'"), item.TargetLang.Replace("\"", "'"), item.filename.Replace("\"", "'"), item.strNS.Replace("\"", "'"));
                     sb.Append(data);
                     sb.Append("\r\n");
+                    XmlElement xmlele2 = xmldoc.CreateElement("Entry");
+                    xmlele2.SetAttribute("A", item.beforeLang);
+                    xmlele2.SetAttribute("B", item.TargetLang);
+                    xmlele2.SetAttribute("Namespace", item.filename);
+                    xmlele1.AppendChild(xmlele2);
                     //outMsg(string.Format(" A=\"{0}\",B=\"{1},\"  Namespace=\"{2}\"", item.beforeLang,item.TargetLang,item.strNS));
                 }
                 sb.Append("</Dictionary>");
                 string result = sb.ToString();
-                SavedToFile(result);
+                outMsg("finalResult=" + result);
+                xmldoc.Save(mFile + "/zh_exported.xml");
+                //SavedToFile(mFile, result);
                 string retMsg = "待翻译条目：" + items.Count;
                 Action action = () => mView.onFinished(retMsg);
                 mView.onMain(action);
@@ -279,8 +291,9 @@ namespace S4PIDemoFE.Zjy
           
         }
 
-        void SavedToFile(string data) {
-            string saveFile = PackageHandler.dirMod + new DateTime().ToString("MM-DD_HH_mm_ss") + ".xml";
+        void SavedToFile(string srcDir,string data) {
+            //string saveFile = srcDir+"/" + new DateTime().ToString("MM-dd_HH_mm_ss") + ".xml";
+            string saveFile = srcDir+"/" + "zh_exported.xml";
             DirectoryInfo info= Directory.GetParent(saveFile);
             if (!info.Exists) {
                 Directory.CreateDirectory(info.FullName);
