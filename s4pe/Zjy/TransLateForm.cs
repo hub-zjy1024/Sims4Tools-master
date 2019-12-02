@@ -43,6 +43,25 @@ namespace S4PIDemoFE.Zjy
 
             string src = textBox1.Text.ToString();
             string pathTarget = textBox2.Text.ToString();
+            //if ("".Equals(src) || "".Equals(pathTarget)   ) {
+            //    onError("源目录和新目录都不能为空");
+            //    return;
+            //}
+            //TranslatePresenter mPresenter = new TranslatePresenter(this);
+            //Action act = () => mPresenter.ExporteZhXmlToEngXml(src,pathTarget);
+            //BeginInvoke(act);
+            TranslatePresenter mPresenter = new TranslatePresenter(this);
+            Action act = () => mPresenter.ExporteZhXmlToEngXml(src, pathTarget);
+            if ("".Equals(src) && !"".Equals(pathTarget))
+            {
+                act = () => mPresenter.MergeNewTransTo(pathTarget);
+            }
+            else if ("".Equals(src) && "".Equals(pathTarget))
+            {
+                onError("源目录和新目录不能同时为空");
+                return;
+            }
+            BeginInvoke(act);
         }
 
         private void Button2_Click(object sender, EventArgs e)
