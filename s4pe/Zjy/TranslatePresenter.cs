@@ -35,6 +35,7 @@ namespace S4PIDemoFE.Zjy
             public string strType;
             public string group;
             public string mInstance;
+            public string ownFile;
         }
         class ExportedItem
         {
@@ -128,6 +129,10 @@ namespace S4PIDemoFE.Zjy
                 Action action = () => mView.onFinished(errmsg);
                 mView.onMain(action);
             }
+            finally
+            {
+                realse();
+            }
 
         }
 
@@ -180,7 +185,11 @@ namespace S4PIDemoFE.Zjy
                 Action action = () => mView.onFinished(errmsg);
                 mView.onMain(action);
             }
-         
+            finally
+            {
+                realse();
+            }
+
         }
         private List<ExportedItem>  ImportFromXml(string mfile) {
             List<ExportedItem> srcItems = new List<ExportedItem>();
@@ -255,6 +264,205 @@ namespace S4PIDemoFE.Zjy
             List<ConTainer> mContainers = new List<ConTainer>();
             try
             {
+                //_( [xy] |left|right|start|stop)
+                string directoryPath = mFile;
+                string searchPattern = "*.package";
+                bool isSearchChild = true;
+                //如果目录不存在，则抛出异常  
+                string[] files = getChilds(directoryPath, searchPattern, isSearchChild);
+                Dictionary<string, ConTainer> keyCotainer = new Dictionary<string, ConTainer>();
+                for (int i = 0; i < files.Length; i++)
+                {
+                    string tfile = files[i];
+                    outMsg("nowFile="+tfile);
+                    string name = tfile.Substring(tfile.LastIndexOf("\\") + 1);
+                    IPackage tempPackage = Package.OpenPackage(0, tfile, true);
+                    List<IResourceIndexEntry> list = tempPackage.GetResourceList;
+                    int mCount = 0;
+                    int mCount2 = 0;
+                    ConTainer tempContainer = null;
+
+                    Dictionary<string, Dictionary<string, DetailItem>> mlangs = new Dictionary<string, Dictionary<string, DetailItem>>();
+                    string engKey = "";
+                    foreach (IResourceIndexEntry tEnry in list)
+                    {
+
+
+                        uint mType = tEnry.ResourceType;
+                        ulong instanceKey = tEnry.Instance;
+                        string strInstance = string.Format("{0:X16}", instanceKey);
+                        string strGroup = string.Format("{0:X8}", tEnry.ResourceGroup);
+                        string strType = string.Format("{0:X8}", mType);
+                        string testType = string.Format("{0:X16}", instanceKey);
+                        //instanceKey >> 16;
+                        if (mType == 0x220557DA)
+                        {
+
+
+                            Dictionary<string, DetailItem> dicKey = new Dictionary<string, DetailItem>();
+
+                            IResource res = null;
+
+                            try { 
+                                    res = getEntryRes(tempPackage, tEnry);
+                            }
+                            catch (Exception mex) {
+                                outMsg("read entry error,strInstance="+ strInstance, mex);
+                            }
+                            if (res == null) {
+                                continue;
+                            }
+                            StblResource.StblResource stblRes = (StblResource.StblResource)WrapperDealer.GetResource(0, tempPackage, tEnry, false);
+                            StringEntryList mStrs = stblRes.Entries;
+                            for (int m = 0; m < mStrs.Count; m++)
+                            {
+
+                                StringEntry sTry = mStrs[m];
+                                uint kint = sTry.KeyHash;
+                                string kvalue = sTry.StringValue;
+                                string key = string.Format("0x{0:X8}", kint);
+                                string dMsg = string.Format("stbl res key=0x{0:X8},value={1}", kint, kvalue);
+                                DetailItem deItem = new DetailItem();
+                                deItem.keyHash = key;
+                                deItem.keyValue = kvalue;
+                                string tempNs = string.Format("{0}-{1}-{2}-{3}", strType, strGroup, strInstance, key);
+                                deItem.strNS = tempNs;
+                                deItem.ownFile = tfile;
+                                if (dicKey.ContainsKey(key))
+                                {
+                                    string oldKey = dicKey[key].keyValue;
+                                    if (!oldKey.Equals(kvalue))
+                                    {
+                                        outMsg("[bug]  name duplicated at" +
+                                        "old=" + dicKey[key] +
+                                        ",new=" + kvalue +
+                                        " |" + tempNs + "");
+                                    }
+                                }
+                                else
+                                {
+                                    dicKey.Add(key, deItem);
+                                    //dicKey.Add("file", tfile);
+                                }
+                                //outMsg(name + "\n stbl" + dMsg);
+                            }
+                            mCount++;
+                            if (strInstance.StartsWith("00"))
+                            {
+                                engKey = strInstance;
+                                if (tempContainer == null)
+                                {
+                                    tempContainer = new ConTainer();
+                                    tempContainer.strType = strType;
+                                    tempContainer.group = strGroup;
+                                    tempContainer.mInstance = strInstance;
+                                }
+                            }
+                            if (mlangs.ContainsKey(strInstance))
+                            {
+                                Dictionary<string, DetailItem> d= mlangs[strInstance];
+                                try {
+                                    string tempK = d.Keys.First();
+                                    if (tempK != null)
+                                    {
+                                        DetailItem minte = d[tempK];
+                                        outMsg("has dupicated in"+minte.ownFile);
+                                    }
+                                }
+                                catch (Exception e) {
+                                    outMsg("get duplicated item error",e);
+                                }
+                            }
+                            else {
+                                mlangs.Add(strInstance, dicKey);
+                            }
+                        }
+                    }
+                    if (!"".Equals(engKey))
+                    {
+                        string zhKey = "02" + engKey.Substring(2);
+                        tempContainer.enDic = mlangs[engKey];
+                        tempContainer.zhDic = mlangs[zhKey];
+                    }
+                    //if (mCount != 2) {
+                    //    outMsg(name+" [bug] count !=2,count="+mCount
+                    //        );
+                    //}
+                    if (mCount > 0)
+                    {
+                        outMsg("dangqianID:" +
+                  "" + name + "" +
+                  "\t" + ",hasStbl ,cout=" + mCount);
+                    }
+                    tempPackage.Dispose();
+                    if (tempContainer != null)
+                    {
+                        keyCotainer.Add(name, tempContainer);
+                        tempContainer.filename = name;
+                        mContainers.Add(tempContainer);
+                    }
+
+                    //tempPackage.AddResource()
+                    //tempPackage.AddResource()
+                }
+
+                foreach (ConTainer mCt in mContainers)
+                {
+                    if (mCt.enDic != null)
+                    {
+                        foreach (string mKey in mCt.enDic.Keys)
+                        {
+                            if (mCt.zhDic == null)
+                            {
+                                outMsg("noZh " + mCt.filename);
+                            }
+                            DetailItem item = mCt.enDic[mKey];
+                            if (mCt.zhDic.ContainsKey(mKey))
+                            {
+
+                                DetailItem item2 = mCt.zhDic[mKey];
+                                //if (item2 == null)
+                                //{
+                                //    outMsg("item null2");
+                                //    break;
+                                //}
+                                ExportedItem tempItem = new ExportedItem();
+                                tempItem.strNS = item.strNS;
+                                tempItem.dkeyName = item.keyHash;
+                                tempItem.beforeLang = item.keyValue;
+                                tempItem.TargetLang = item2.keyValue;
+                                tempItem.filename = mCt.filename;
+                                items.Add(tempItem);
+                            }
+                            else
+                            {
+                                ExportedItem tempItem = new ExportedItem();
+                                tempItem.dkeyName = item.keyHash;
+                                tempItem.strNS = item.strNS;
+                                tempItem.beforeLang = item.keyValue;
+                                tempItem.TargetLang = item.keyValue;
+                                tempItem.filename = mCt.filename;
+                                items.Add(tempItem);
+
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                outMsg("getpackInfo error", e);
+                string errMsg = ExMsg("导出xml异常", e);
+                Action action = () => mView.onError(errMsg);
+                mView.onMain(action);
+            }
+            return items;
+        }
+        public void ExportXmlOnly(string mFile)
+        {
+            List<ExportedItem> items = new List<ExportedItem>();
+            List<ConTainer> mContainers = new List<ConTainer>();
+            try
+            {
                 string directoryPath = mFile;
                 string searchPattern = "*.package";
                 bool isSearchChild = true;
@@ -268,7 +476,6 @@ namespace S4PIDemoFE.Zjy
                     IPackage tempPackage = Package.OpenPackage(0, tfile, true);
                     List<IResourceIndexEntry> list = tempPackage.GetResourceList;
                     int mCount = 0;
-                    int mCount2 = 0;
                     ConTainer tempContainer = null;
 
                     Dictionary<string, Dictionary<string, DetailItem>> mlangs = new Dictionary<string, Dictionary<string, DetailItem>>();
@@ -388,168 +595,6 @@ namespace S4PIDemoFE.Zjy
                                 //}
                                 ExportedItem tempItem = new ExportedItem();
                                 tempItem.strNS = item.strNS;
-                                tempItem.dkeyName = item.keyHash;
-                                tempItem.beforeLang = item.keyValue;
-                                tempItem.TargetLang = item2.keyValue;
-                                tempItem.filename = mCt.filename;
-                                items.Add(tempItem);
-                            }
-                            else
-                            {
-                                ExportedItem tempItem = new ExportedItem();
-                                tempItem.dkeyName = item.keyHash;
-                                tempItem.strNS = item.strNS;
-                                tempItem.beforeLang = item.keyValue;
-                                tempItem.TargetLang = item.keyValue;
-                                tempItem.filename = mCt.filename;
-                                items.Add(tempItem);
-
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e) {
-                outMsg("getpackInfo error", e);
-                string errMsg = ExMsg("导出xml异常", e);
-                Action action = () => mView.onError(errMsg);
-                mView.onMain(action);
-            }
-            return items;
-        }
-        public void ExportXmlOnly(string mFile)
-        {
-            List<ExportedItem> items = new List<ExportedItem>();
-            List<ConTainer> mContainers = new List<ConTainer>();
-            try
-            {
-                string directoryPath = mFile;
-                string searchPattern = "*.package";
-                bool isSearchChild = true;
-                //如果目录不存在，则抛出异常  
-                string[] files = getChilds(directoryPath, searchPattern, isSearchChild);
-                Dictionary<string, ConTainer> keyCotainer = new Dictionary<string, ConTainer>();
-                for (int i = 0; i < files.Length; i++)
-                {
-                    string tfile = files[i];
-                    string name = tfile.Substring(tfile.LastIndexOf("\\") + 1);
-                    IPackage tempPackage = Package.OpenPackage(0, tfile, true);
-                    List<IResourceIndexEntry> list = tempPackage.GetResourceList;
-                    int mCount = 0;
-                    ConTainer tempContainer = null;
-
-                    Dictionary<string, Dictionary<string, DetailItem>> mlangs = new Dictionary<string, Dictionary<string, DetailItem>>();
-                    string engKey = "";
-                    foreach (IResourceIndexEntry tEnry in list)
-                    {
-
-                        
-                        uint mType = tEnry.ResourceType;
-                        ulong instanceKey = tEnry.Instance;
-                        string strInstance = string.Format("{0:X16}", instanceKey);
-                        string strGroup = string.Format("{0:X8}", tEnry.ResourceGroup);
-                        string strType = string.Format("{0:X8}", mType);
-                        string testType= string.Format("{0:X16}", instanceKey);
-                        //instanceKey >> 16;
-                        if (mType == 0x220557DA)
-                        {
-                          
-
-                            Dictionary<string, DetailItem> dicKey = new Dictionary<string, DetailItem>();
-                          
-                            IResource res = getEntryRes(tempPackage, tEnry);
-                            StblResource.StblResource stblRes = (StblResource.StblResource)WrapperDealer.GetResource(0, tempPackage, tEnry, false);
-                            StringEntryList mStrs = stblRes.Entries;
-                            for (int m = 0; m < mStrs.Count; m++)
-                            {
-                             
-                                StringEntry sTry = mStrs[m];
-                                uint kint = sTry.KeyHash;
-                                string kvalue = sTry.StringValue;
-                                string key = string.Format("0x{0:X8}", kint);
-                                string dMsg = string.Format("stbl res key=0x{0:X8},value={1}", kint, kvalue);
-                                DetailItem deItem = new DetailItem();
-                                deItem.keyHash = key;
-                                deItem.keyValue = kvalue;
-                                string tempNs = string.Format("{0}-{1}-{2}-{3}", strType, strGroup,strInstance,key);
-                                deItem.strNS = tempNs;
-                                if (dicKey.ContainsKey(key)) {
-                                    string oldKey = dicKey[key].keyValue;
-                                    if (!oldKey.Equals(kvalue)) {
-                                        outMsg("[bug]  name duplicated at" +
-                                        "old=" + dicKey[key] +
-                                        ",new=" + kvalue +
-                                        " |" + tempNs + "");
-                                    }
-                                }
-                                else
-                                {
-                                    dicKey.Add(key, deItem);
-                                }
-                                //outMsg(name + "\n stbl" + dMsg);
-                            }
-                            mCount++;
-                            if (strInstance.StartsWith("00"))
-                            {
-                                engKey = strInstance;
-                                if (tempContainer == null)
-                                {
-                                    tempContainer = new ConTainer();
-                                    tempContainer.strType = strType;
-                                    tempContainer.group = strGroup;
-                                    tempContainer.mInstance = strInstance;
-                                }
-                            }
-                            mlangs.Add(strInstance,dicKey);
-                        }
-                    }
-                    if (!"".Equals(engKey)) {
-                        string zhKey = "02" + engKey.Substring(2);
-                        tempContainer.enDic = mlangs[engKey];
-                        tempContainer.zhDic = mlangs[zhKey];
-                    }
-                    //if (mCount != 2) {
-                    //    outMsg(name+" [bug] count !=2,count="+mCount
-                    //        );
-                    //}
-                    if (mCount > 0) {
-                        outMsg("dangqianID:" +
-                  "" + name + "" +
-                  "\t" + ",hasStbl ,cout=" + mCount);
-                    }
-                    tempPackage.Dispose();
-                    if (tempContainer != null) {
-                        keyCotainer.Add(name, tempContainer);
-                        tempContainer.filename = name;
-                        mContainers.Add(tempContainer);
-                    }
-                    
-                    //tempPackage.AddResource()
-                    //tempPackage.AddResource()
-                }
-
-                foreach (ConTainer mCt in mContainers)
-                {
-                    if (mCt.enDic != null)
-                    {
-                        foreach (string mKey in mCt.enDic.Keys)
-                        {
-                            if (mCt.zhDic == null)
-                            {
-                                outMsg("noZh "+mCt.filename);
-                            }
-                            DetailItem item = mCt.enDic[mKey];
-                            if (mCt.zhDic.ContainsKey(mKey))
-                            {
-                              
-                                DetailItem item2 = mCt.zhDic[mKey];
-                                //if (item2 == null)
-                                //{
-                                //    outMsg("item null2");
-                                //    break;
-                                //}
-                                ExportedItem tempItem = new ExportedItem();
-                                tempItem.strNS = item.strNS;
                                 tempItem.beforeLang = item.keyValue;
                                 tempItem.TargetLang = item2.keyValue;
                                 tempItem.filename = mCt.filename;
@@ -559,7 +604,7 @@ namespace S4PIDemoFE.Zjy
                             {
                                 ExportedItem tempItem = new ExportedItem();
                                 tempItem.strNS = item.strNS;
-                                tempItem.beforeLang = item.keyValue ;
+                                tempItem.beforeLang = item.keyValue;
                                 tempItem.TargetLang = item.keyValue;
                                 tempItem.filename = mCt.filename;
                                 items.Add(tempItem);
@@ -568,7 +613,7 @@ namespace S4PIDemoFE.Zjy
                         }
                         //foreach (string key in mCt.zhDic.Keys)
                         //{
-                           
+
                         //}
                     }
 
@@ -576,9 +621,9 @@ namespace S4PIDemoFE.Zjy
 
                 //outMsg("totalSize=" + items.Count);
                 StringBuilder sb = new StringBuilder();
-   //             <? xml version = "1.0" encoding = "utf-8" ?>
-   //< Dictionary A = "0x2" B = "0x0" >
-                      sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                //             <? xml version = "1.0" encoding = "utf-8" ?>
+                //< Dictionary A = "0x2" B = "0x0" >
+                sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 sb.Append("\r\n");
                 sb.Append("<Dictionary A=\"0x2\" B=\"0x0\">");
                 sb.Append("\r\n");
@@ -621,6 +666,9 @@ namespace S4PIDemoFE.Zjy
                 Action action = () => mView.onError(errMsg);
                 mView.onMain(action);
             }
+            finally {
+                realse();
+            }
           
         }
 
@@ -645,12 +693,19 @@ namespace S4PIDemoFE.Zjy
 
             return "异常," + tag + "," + e.Message + "\t,stack=" + e.StackTrace;
         }
+       
 
         private void outMsg(string tag,Exception e) {
             outMsg("异常,"+ tag+"," + e.Message + "\t,stack=" + e.StackTrace);
         }
+        HLogHandler hLogHandler = new HLogHandler(PackageHandler.dirMod +"/log/transLate_" + HLogHandler.newNowStr() + ".log");
+
         private void outMsg(string msg) {
             Console.WriteLine(msg);
+            hLogHandler.InfoNewLine(msg);
+        }
+        public void realse() {
+            hLogHandler.Close();
         }
         public string[] getChilds(string directoryPath, string searchPattern, bool isSearchChild)
         {

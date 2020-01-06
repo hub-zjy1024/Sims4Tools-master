@@ -1369,8 +1369,22 @@ namespace S4PIDemoFE
         public int bufSize = 1024 * 10;
         public HLogHandler(string filePath)
         {
-            Stream outStream = File.Open(filePath, FileMode.Create);
-            bs = new BufferedStream(outStream, bufSize);
+            try
+            {
+                DirectoryInfo mDinfo=Directory.GetParent(filePath);
+                if (mDinfo != null) {
+                    if (!mDinfo.Exists)
+                    {
+                        mDinfo.Create();
+                    }
+                }
+                Stream outStream = File.Open(filePath, FileMode.Create);
+                bs = new BufferedStream(outStream, bufSize);
+            }
+            catch (Exception e) {
+                Console.Error.WriteLine(e.Message + ",stack=" + e.StackTrace);
+            }
+           
 
         }
         public void InfoNewLine(string info)
@@ -1381,6 +1395,12 @@ namespace S4PIDemoFE
                 bs.Write(b, 0, b.Length);
             }
         }
+
+        public static string newNowStr() {
+            string res =DateTime.Now.ToString("yyyy_MM_dd_HH_mm_ss_ffff");
+            return res;
+        }
+
         public void Close()
         {
             if (bs != null)
