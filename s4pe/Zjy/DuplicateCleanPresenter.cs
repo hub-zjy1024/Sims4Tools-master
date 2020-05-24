@@ -38,6 +38,16 @@ namespace S4PIDemoFE.Zjy
         public string GetBackupDir() {
             return bakPath;
         }
+        public void openDir(string path) {
+            if (Directory.Exists(path))
+            {
+                System.Diagnostics.Process.Start("Explorer", path);
+            }
+            else {
+                MessageBox.Show("不存在路径:"+path);
+            }
+            
+        }
         public void AsyncSearchDupulicateMods(string path) {
             
             Func<DataTable> export = () => searchDupulicateMods(path);
@@ -58,10 +68,12 @@ namespace S4PIDemoFE.Zjy
                     {
                         int fen = (int)(secondes / 60);
                         msg += fen + "分";
+                        secondes= (float)Math.Round(secondes, 2);
                         msg += secondes - fen * 60 + "秒";
                     }
                     else
                     {
+                        secondes = (float)Math.Round(secondes, 2);
                         msg += secondes + "秒";
                     }
                     Console.WriteLine("end time=" + DateTime.Now.ToString());
@@ -107,7 +119,7 @@ namespace S4PIDemoFE.Zjy
             {
                 //string tfile = files[i];
                 string tfile = files.ElementAt(i);
-                if (tfile.EndsWith(" .package")||tfile.EndsWith(".ts4script"))
+                if (tfile.EndsWith(".package")||tfile.EndsWith(".ts4script"))
                 {
                     
                 }
@@ -188,7 +200,7 @@ namespace S4PIDemoFE.Zjy
             int mindex = 1;
             foreach (DuplicatItem mItem in dupulicatss) {
                 //DataRow row = tbale.NewRow();
-                tbale.Rows.Add(new object[] { mindex, mItem.fileName, mItem.filepath, mItem.modifytime });
+                tbale.Rows.Add(new object[] { mindex,string.Format("{0}\r\n{1}\r\n{2}", mItem.fileName, mItem.filepath, mItem.modifytime), mItem.filepath, mItem.modifytime });
                 mindex++;
 
             }

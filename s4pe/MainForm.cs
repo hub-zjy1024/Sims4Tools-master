@@ -3347,5 +3347,23 @@ namespace S4PIDemoFE
             TransLateForm cheker = new TransLateForm();
             cheker.Show();
         }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
+            dialog.Description = "请选择模组文件夹";
+            string lastPath = textBox1.Text;
+            //dialog.RootFolder = Environment.SpecialFolder.Personal;
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                if (string.IsNullOrEmpty(dialog.SelectedPath))
+                {
+                    MessageBox.Show(this, "文件夹路径不能为空", "提示");
+                    return;
+                }
+                textBox1.Text = dialog.SelectedPath;
+            }
+        }
+ 
     }
 }
