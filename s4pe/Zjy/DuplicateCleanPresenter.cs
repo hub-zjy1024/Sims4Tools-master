@@ -10,6 +10,7 @@ namespace S4PIDemoFE.Zjy
 {
     public class DuplicateCleanPresenter
     {
+        HLogHandler mlogger = new HLogHandler("./Duplicated.log");
         public interface IView {
             void onDataOk(DataTable data, string msg);
             void moveFinish(string msg);
@@ -38,7 +39,7 @@ namespace S4PIDemoFE.Zjy
             return bakPath;
         }
         public void AsyncSearchDupulicateMods(string path) {
-
+            
             Func<DataTable> export = () => searchDupulicateMods(path);
 
 
@@ -74,7 +75,10 @@ namespace S4PIDemoFE.Zjy
                 catch (Exception e) {
                     mVIew.onError("扫描目录" +
                         "" + path +
-                        " 出现异常");
+                        " 出现异常"+e.StackTrace);
+                    mlogger.InfoNewLine("扫描目录" +
+                        "" + path +
+                        " 出现异常" + e.StackTrace);
                 }
 
                 //BeginInvoke(mListenter2,table);
@@ -94,14 +98,22 @@ namespace S4PIDemoFE.Zjy
             //string[] files = Directory.GetFiles(path, pattern, SearchOption.AllDirectories);
             //string[] files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
             //    .Where(s => s.EndsWith(".mp3") || s.EndsWith(".jpg"));
-
-            var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
-                .Where(s => s.EndsWith(".package") || s.EndsWith(".ts4script"));
+            pattern = "*.*";
+            //var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
+            //    .Where(s => s.EndsWith(".package") || s.EndsWith(".ts4script"));
+            string[] files = Directory.GetFiles(path, pattern, SearchOption.AllDirectories);
             int len = files.Count();
             for (int i = 0; i < len; i++)
             {
                 //string tfile = files[i];
                 string tfile = files.ElementAt(i);
+                if (tfile.EndsWith(" .package")||tfile.EndsWith(".ts4script"))
+                {
+                    
+                }
+                else {
+                    continue;
+                }
                 string fname = tfile.Substring(tfile.LastIndexOf("\\") + 1);
 
                 DuplicatItem item = new DuplicatItem();

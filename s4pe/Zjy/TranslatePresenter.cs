@@ -391,15 +391,16 @@ namespace S4PIDemoFE.Zjy
                     if (mCount > 0)
                     {
                         outMsg("dangqianID:" +
-                  "" + name + "" +
+                  "" + tfile.Substring(directoryPath.Length) + "" +
                   "\t" + ",hasStbl ,cout=" + mCount);
                     }
                     tempPackage.Dispose();
                     if (tempContainer != null)
                     {
-                        keyCotainer.Add(name, tempContainer);
+                    
                         tempContainer.filename = name;
                         mContainers.Add(tempContainer);
+                        //keyCotainer.Add(tfile, tempContainer);
                     }
 
                     //tempPackage.AddResource()
@@ -652,7 +653,7 @@ namespace S4PIDemoFE.Zjy
                 }
                 sb.Append("</Dictionary>");
                 string result = sb.ToString();
-                outMsg("finalResult=" + result);
+                //outMsg("finalResult=" + result);
                 xmldoc.Save(mFile + "/zh_exported.xml");
                 //SavedToFile(mFile, result);
                 string retMsg = "待翻译条目：" + items.Count;

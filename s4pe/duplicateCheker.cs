@@ -7,11 +7,10 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using static S4PIDemoFE.Zjy.DuplicateCleanPresenter;
 
 namespace S4PIDemoFE
 {
-    public partial class DuplicatedForm : Form, IView
+    public partial class DuplicatedForm : Form, S4PIDemoFE.Zjy.DuplicateCleanPresenter.IView
     {
 
         DuplicateCleanPresenter mPresent;
@@ -101,7 +100,8 @@ namespace S4PIDemoFE
             mPresent = new DuplicateCleanPresenter(this);
             dataGridView1.RowsRemoved+=mPresent.onDataRemove;
             string path = textBox1.Text.ToString();
-            path = path.Replace("\\", "/");
+            //path = path.Replace("\\", "/");
+            path = path.Replace("/", "\\");
             mPresent.AsyncSearchDupulicateMods(path);
             //mListenter = reFresh;
         }
