@@ -66,14 +66,17 @@ namespace S4PIDemoFE
             listView1.Items.Clear();
             listView1.EndUpdate();
             listView1.Refresh();
-            MessageBox.Show(msg + ",移除完成,已被保存到" + mPresent.GetBackupDir());
+            DialogResult mResult = MessageBox.Show(this, $"{msg},移除完成,已被保存到{ mPresent.GetBackupDir()},是否打开", "提示", MessageBoxButtons.YesNo);
+            if (mResult == DialogResult.Yes)
+            {
+                mPresent.openDir(mPresent.GetBackupDir());
+            }
             //throw new NotImplementedException();
         }
 
         public void onDataOk2(Dictionary<string,List<DuplicatItem>> mData2, string msg)
         {
             //listView1.Tag=new List<>
-
             ListView groupedListView = listView1;
             if (mData2.Count == 0) {
                 groupedListView.DataBindings.Clear();
@@ -149,6 +152,7 @@ namespace S4PIDemoFE
             label2.Text = "" + 100;
             onProGressShow(100);
             MessageBox.Show(msg + ",重复组数为=" + mData2.Count);
+         
         }
 
         public void onDataOk(DataTable data, string msg)
@@ -344,6 +348,7 @@ namespace S4PIDemoFE
             FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
             dialog.Description = "请选择模组文件夹";
             string lastPath = textBox1.Text;
+            dialog.SelectedPath = lastPath;
             //dialog.RootFolder = Environment.SpecialFolder.Personal;
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
