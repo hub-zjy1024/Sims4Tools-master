@@ -174,6 +174,7 @@
     </Compile>
     <Compile Include="Zjy\DuplicateCleanPresenter.cs" />
     <Compile Include="Zjy\DuplicatItem.cs" />
+    <Compile Include="Zjy\LogTagUtil.cs" />
     <Compile Include="Zjy\ObjectMod.cs" />
     <Compile Include="Zjy\PackageHandler.cs" />
     <Compile Include="Zjy\S4PoseInfo.cs" />

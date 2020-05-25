@@ -699,7 +699,7 @@ namespace S4PIDemoFE.Zjy
         private void outMsg(string tag,Exception e) {
             outMsg("异常,"+ tag+"," + e.Message + "\t,stack=" + e.StackTrace);
         }
-        HLogHandler hLogHandler = new HLogHandler(PackageHandler.dirMod +"/log/transLate_" + HLogHandler.newNowStr() + ".log");
+        HLogHandler hLogHandler = new HLogHandler(PackageHandler.dirMod +"/log/transLate_" + LogTagUtil.getYYmmStr() + ".log");
 
         private void outMsg(string msg) {
             Console.WriteLine(msg);

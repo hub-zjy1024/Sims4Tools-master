@@ -42,6 +42,7 @@
             this.button3 = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
             this.lbl_duplicated_count = new System.Windows.Forms.Label();
+            this.listView1 = new System.Windows.Forms.ListView();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -114,7 +115,7 @@
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(125, 25);
             this.button2.TabIndex = 7;
-            this.button2.Text = "移除重复文件";
+            this.button2.Text = "保留较新的";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.Button2_Click);
             // 
@@ -180,11 +181,21 @@
             this.lbl_duplicated_count.TabIndex = 10;
             this.lbl_duplicated_count.Text = "0";
             // 
+            // listView1
+            // 
+            this.listView1.Location = new System.Drawing.Point(25, 148);
+            this.listView1.Name = "listView1";
+            this.listView1.Size = new System.Drawing.Size(938, 593);
+            this.listView1.TabIndex = 11;
+            this.listView1.UseCompatibleStateImageBehavior = false;
+            this.listView1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.listView1_MouseDoubleClick);
+            // 
             // DuplicatedForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1185, 595);
+            this.ClientSize = new System.Drawing.Size(1185, 782);
+            this.Controls.Add(this.listView1);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.dataGridView1);
             this.Font = new System.Drawing.Font("宋体", 10F);
@@ -192,6 +203,7 @@
             this.MinimumSize = new System.Drawing.Size(554, 566);
             this.Name = "DuplicatedForm";
             this.Text = "mod去重";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.DuplicatedForm_FormClosed);
             this.Load += new System.EventHandler(this.DuplicatedForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);
@@ -216,5 +228,6 @@
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Label lbl_duplicated_count;
+        private System.Windows.Forms.ListView listView1;
     }
 }

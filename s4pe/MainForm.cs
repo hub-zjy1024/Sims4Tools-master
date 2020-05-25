@@ -3352,7 +3352,9 @@ namespace S4PIDemoFE
         {
             FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog();
             dialog.Description = "请选择模组文件夹";
+        
             string lastPath = textBox1.Text;
+            dialog.SelectedPath = lastPath;
             //dialog.RootFolder = Environment.SpecialFolder.Personal;
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {

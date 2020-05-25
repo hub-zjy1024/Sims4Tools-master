@@ -10,6 +10,18 @@ namespace S4PIDemoFE.Zjy
         public string fileName;
         public string filepath;
         public string modifytime;
+        //"yyyy-MM-dd HH:mm:ss"
+    
+        public class ComparatorByTime : IComparer<DuplicatItem>
+        {
+            public int Compare(DuplicatItem x, DuplicatItem y)
+            {
+                string timeData = "yyyy-MM-dd HH:mm:ss";
+                DateTime dtx= DateTime.Parse(x.modifytime);
+                DateTime dtY= DateTime.Parse(y.modifytime);
+                return (int)(dtx  - dtY).TotalMilliseconds;
+            }
+        }
         public class Comparator : IComparer<DuplicatItem>
         {
             public int Compare(DuplicatItem x, DuplicatItem y)

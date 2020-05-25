@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,24 +11,37 @@ namespace S4PIDemoFE.Zjy
 {
     public class DuplicateCleanPresenter
     {
-        HLogHandler mlogger = new HLogHandler("./Duplicated.log");
+        HLogHandler mlogger;
         public interface IView {
             void onDataOk(DataTable data, string msg);
+            void onDataOk2(Dictionary<string, List<DuplicatItem>> data, string msg);
             void moveFinish(string msg);
             void onProGress(int process);
             void chageThread(Action moveFinish, object[] v);
             void chageThread<T>(Action<T> moveFinish, object[] v);
             void onError(string msg);
         }
-
+        public static Color fontW1 = Color.FromArgb(255, 103, 58, 183);
         private IView mVIew;
+
+        public static string getModsDefault() {
+            string filepath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+            string modDir = filepath + "/Electronic Arts/The Sims 4/Mods/";
+            return modDir;
+        }
         public DuplicateCleanPresenter(IView mVIew) {
             this.mVIew = mVIew;
-            bakPath = System.AppDomain.CurrentDomain.BaseDirectory + "/back/duplicated/";
-            Console.WriteLine("bkdir=" + bakPath);
+            bakPath =PackageHandler.dirMod + "/backup/duplicated/"+LogTagUtil.getYYmmDDStr()+"/";
             if (!Directory.Exists(bakPath)) {
                 Directory.CreateDirectory(bakPath);
             }
+
+            string logDir = PackageHandler.dirMod + "log/";
+            if (!Directory.Exists(logDir)) Directory.CreateDirectory(logDir);
+            //string time = DateTime.Now.ToString("HHmmss");
+            string time = LogTagUtil.getYYmmStr();
+            string logFileName = string.Format("log_duplicate_{0}.txt", time);
+            mlogger = new HLogHandler(logDir+logFileName);
         }
         public Dictionary<string, string> mData = new Dictionary<string, string>();
         public Dictionary<string, List<DuplicatItem>> mData3 = new Dictionary<string, List<DuplicatItem>>();
@@ -41,15 +55,21 @@ namespace S4PIDemoFE.Zjy
         public void openDir(string path) {
             if (Directory.Exists(path))
             {
-                System.Diagnostics.Process.Start("Explorer", path);
+                //System.Diagnostics.Process.Start("Explorer", path);部分目录不支持跳转，比如我的文档目录下面的子目录无法跳转
+                System.Diagnostics.Process.Start(path);
             }
             else {
                 MessageBox.Show("不存在路径:"+path);
             }
             
         }
+         
+        public void Release() {
+            mlogger.Close();
+        }
+
         public void AsyncSearchDupulicateMods(string path) {
-            
+            mData3.Clear();
             Func<DataTable> export = () => searchDupulicateMods(path);
 
 
@@ -82,15 +102,14 @@ namespace S4PIDemoFE.Zjy
                     //BeginInvoke(new Action<DataTable>(onDataOk), table);
                     //Action<DataTable> mCallback = mVIew.onDataOk;
                     Action mCallback = () => mVIew.onDataOk(table, msg);
+
                     mVIew.chageThread(mCallback, new object[] { });
                 }
                 catch (Exception e) {
-                    mVIew.onError("扫描目录" +
-                        "" + path +
-                        " 出现异常"+e.StackTrace);
-                    mlogger.InfoNewLine("扫描目录" +
-                        "" + path +
-                        " 出现异常" + e.StackTrace);
+                    string errmsg = $"扫描目录{path}出现异常,{e.Message}";
+                    string logMsg = $"{errmsg},{e.StackTrace}";
+                    mlogger.InfoNewLine(logMsg);
+                    mVIew.onError(errmsg);
                 }
 
                 //BeginInvoke(mListenter2,table);
@@ -100,6 +119,7 @@ namespace S4PIDemoFE.Zjy
         }
         public DataTable searchDupulicateMods(string path)
         {
+            long tick1 = DateTime.Now.Ticks;
             parentDir = path;
             //string[] files = Directory.GetFiles(path, "*.package", SearchOption.AllDirectories);
             string pattern = "(";
@@ -113,6 +133,9 @@ namespace S4PIDemoFE.Zjy
             pattern = "*.*";
             //var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories)
             //    .Where(s => s.EndsWith(".package") || s.EndsWith(".ts4script"));
+            if (!Directory.Exists(path)) {
+                throw new Exception("路径不存在");
+            }
             string[] files = Directory.GetFiles(path, pattern, SearchOption.AllDirectories);
             int len = files.Count();
             for (int i = 0; i < len; i++)
@@ -173,9 +196,33 @@ namespace S4PIDemoFE.Zjy
                     names.Add(fname);
                 }
             }
+            //排除不重复的文件
             foreach (string mname in names) {
                 mData3.Remove(mname);
             }
+            Action<string> maction = mVIew.moveFinish;
+            Action< Dictionary<string, List<DuplicatItem>>,string> mDataCallback = mVIew.onDataOk2;
+
+
+            long tick2 = DateTime.Now.Ticks;
+            long timeDur = tick2 - tick1;
+            float secondes = timeDur / 10000000f;
+            string msg = "用时";
+            if (secondes > 60)
+            {
+                int fen = (int)(secondes / 60);
+                msg += fen + "分";
+                secondes = (float)Math.Round(secondes, 2);
+                msg += secondes - fen * 60 + "秒";
+            }
+            else
+            {
+                secondes = (float)Math.Round(secondes, 2);
+                msg += secondes + "秒";
+            }
+            Action mCallback = () => mVIew.onDataOk2(mData3, msg);
+            mVIew.chageThread(mCallback,new object[] { });
+            //mVIew.chageThread(mDataCallback,new object[] { mData3, "" });
             Console.WriteLine("total keys2=" + mData3.Count);
             //foreach (string tkey in mData3.Keys) {
             //    List<DuplicatItem> list = mData3[tkey];
@@ -231,11 +278,11 @@ namespace S4PIDemoFE.Zjy
             //Func<void> export = () => mvDupulicatedModsToBak();
             Action export = mvDupulicatedModsToBak;
             //() => mvDupulicatedModsToBak();
-            Console.WriteLine("before time=" + DateTime.Now.ToString());
+            //Console.WriteLine("before time=" + DateTime.Now.ToString());
             long tick1 = DateTime.Now.Ticks;
             export.BeginInvoke((de) => {
                 export.EndInvoke(de);
-                Console.WriteLine("end time=" + DateTime.Now.ToString());
+                //Console.WriteLine("end time=" + DateTime.Now.ToString());
                 long tick2= DateTime.Now.Ticks;
                 long time = tick2 - tick1;
                 float secondes = time / 10000000f;
@@ -244,9 +291,11 @@ namespace S4PIDemoFE.Zjy
                 {
                     int fen =(int ) (secondes / 60);
                     msg += fen + "分";
+                    secondes = (float)Math.Round(secondes, 2);
                     msg += secondes - fen * 60 + "秒";
                 }
                 else {
+                    secondes = (float)Math.Round(secondes, 2);
                     msg += secondes + "秒";
                 }
                 //BeginInvoke(new Action<DataTable>(onDataOk), table);
@@ -302,7 +351,7 @@ namespace S4PIDemoFE.Zjy
         public void mvDupulicatedModsToBak()
         {
 
-
+            FileStream mStr = null;
             try
             {
 
@@ -325,27 +374,49 @@ namespace S4PIDemoFE.Zjy
                 //    {
                 //        mVIew.onError("移动文件出错,"+e.StackTrace);
                 //        break;
-                       
+
                 //    }
-                //}
-                foreach (string name in mData3.Keys) {
+                //}]
+                string notFile = bakPath + "/说明.txt";
+                mStr = File.Open(notFile, FileMode.Append);
+                Encoding mEncoding = Encoding.UTF8;
+             
+                string msg1 = $"{HLogHandler.newNowStr()} 备份目录{bakPath}";
+                string newLine = "\r\n";
+
+                StreamWriter mWriter = new StreamWriter(mStr, mEncoding);
+                mWriter.Write(msg1);
+                mWriter.Write(newLine);
+                if (mData3.Keys.Count== 0) {
+                    throw new Exception("当前重复列表为空");
+                }
+                foreach (string name in mData3.Keys)
+                {
                     List<DuplicatItem> items = mData3[name];
-                    if (items.Count > 1) {
-                        items.Sort();
-                        Console.WriteLine("--now name=" + name);
+
+                    if (items.Count > 1)
+                    {
+                        items.Sort(new DuplicatItem.ComparatorByTime());
+                        //Lis
+                        //Array.Reverse(items);
+                        //Console.WriteLine($"--now name={name},time={}" );
                         foreach (DuplicatItem item in items)
                         {
-                            Console.WriteLine(item.filepath + "mypath =" + item.modifytime);
+                            Console.WriteLine(item.filepath + " \r\nmyTime =" + item.modifytime);
                         }
-                        for (int i = items.Count - 1; i > 0; i--) {
-                            //items.Remove()
+                        //排序过后保留最新的一个文件，从倒数第二个删除
+                        for (int i = items.Count - 2; i >=0; i--)
+                        {
                             DuplicatItem item = items[i];
                             string fname = item.fileName;
                             string path = item.filepath;
-                            //MoveFileById(fname, path);
                             try
                             {
                                 MoveFileById(fname, path);
+                                string msg = $"{HLogHandler.newNowStr()} {path} 移动到备份目录";
+                                mWriter.Write(msg);
+                                mWriter.Write(newLine);
+                                mWriter.Flush();
                             }
                             catch (Exception e)
                             {
@@ -355,9 +426,21 @@ namespace S4PIDemoFE.Zjy
                     }
                 }
             }
-            catch (Exception e) {
-                mVIew.onError("移动异常," + e.StackTrace);
+            catch (Exception e)
+            {
+                //mVIew.onError("移动异常," + e.StackTrace);
+                //mlogger.InfoNewLine();
 
+                string errmsg = $"移动异常,{e.Message}";
+                string logMsg = $"{errmsg},{e.StackTrace}";
+                mlogger.InfoNewLine(logMsg);
+                mVIew.onError(errmsg);
+            }
+            finally {
+                if (mStr != null) {
+                    mStr.Flush();
+                    mStr.Close();
+                }
             }
           
         }

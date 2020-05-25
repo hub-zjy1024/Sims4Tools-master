@@ -1382,7 +1382,7 @@ namespace S4PIDemoFE
                 bs = new BufferedStream(outStream, bufSize);
             }
             catch (Exception e) {
-                Console.Error.WriteLine(e.Message + ",stack=" + e.StackTrace);
+                Console.Error.WriteLine($"创建log文件失败,路径{filePath},"+e.Message + ",stack=" + e.StackTrace);
             }
            
 
@@ -1391,13 +1391,13 @@ namespace S4PIDemoFE
         {
             if (bs != null)
             {
-                byte[] b = PackageHandler.mCoding.GetBytes(info + "\n");
+                byte[] b = PackageHandler.mCoding.GetBytes(  $"{newNowStr()} {info}\n");
                 bs.Write(b, 0, b.Length);
             }
         }
 
         public static string newNowStr() {
-            string res =DateTime.Now.ToString("yyyy_MM_dd_HH_mm_ss_ffff");
+            string res =DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss:ffff");
             return res;
         }
 
@@ -1407,6 +1407,7 @@ namespace S4PIDemoFE
             {
                 bs.Flush();
                 bs.Close();
+                bs = null;
             }
         }
 
